@@ -19,3 +19,9 @@ AFS has no names; call `GetArchive` and `ReadEntry` with a section index.
 `GetLength` returns the loose file's stored length or the archive entry's decoded length. `Read` decodes a PRS entry once and caches the result until `Dispose`, so later reads of the same name, including different casings, reuse the same bytes. A file or entry whose bytes end before its declared length raises `IOException` or `ArchiveFormatException` instead of returning a short buffer.
 
 The registry is single-threaded, matching the client's main loop, and holds no operating-system file handles after construction.
+
+## Locale text and unitxt bundles
+
+`PsoBB.Data.Pr2Container` decodes the locale text containers (`textjapanese.pr2`, `textenglish.pr2`, `textgerman.pr2`, `textfrench.pr2`, `textspanish.pr2`). Each file is an eight-byte header with the decompressed size and the PRC seed, followed by a PRC-encrypted PRS stream. `PsoBB.Data.Pr3RelocationTable` reads the matching `.pr3` relocation table, whose first 0x20 bytes hold the pointer count and root offset and whose 16-bit distances locate the inline pointer fields in 32-bit steps.
+
+`PsoBB.Text.UnitxtTable` reads the `unitxt_*.prs` bundles used for item, technique, monster, class, section, menu and system strings. The decompressed bundle holds a list count, one size per list, one byte offset per string and the UTF-16 strings. `UnitxtTable.GetString(list, index)` returns the original string; `GameText.GetLoginScreenText` reads the title and account labels from list 41. `GameText.GetUnitxtFileName` maps the named locales to their bundle names.
