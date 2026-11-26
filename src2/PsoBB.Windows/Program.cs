@@ -31,6 +31,7 @@ internal static class Program
 			WindowsAudioDevice audio = new();
 			Direct3D11Renderer renderer = new(window.Handle, RenderSettings.Default);
 			using ClientHost host = new(new ClientOptions(dataFolder, "image.bin"), files, clock, settings, input, dispatcher, audio, renderer);
+			_ = new ClientStartup(host).Start();
 			while (window.Pump())
 				host.RunFrames(1);
 			host.RequestStop();
