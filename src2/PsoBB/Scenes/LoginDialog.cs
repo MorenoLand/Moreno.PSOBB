@@ -133,7 +133,7 @@ public sealed class LoginDialog : IDisposable
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.ExitGame), true, ExitGameData, 0xFFFFFFFFu),
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.PatchDownload), true, PatchDownloadData, 0xFFFFFFFFu),
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.RegisterUserId), true, RegisterUserIdData, 0xFFFFFFFFu),
-			new UiListItem(hintText, false, HintData, HintColor),
+			new UiListItem(hintText, false, HintData, HintColor, centered: true),
 		]);
 		_menu.SelectedIndex = 0;
 		TextSurface = textSurface;
@@ -180,6 +180,7 @@ public sealed class LoginDialog : IDisposable
 			_textSurface = value;
 			_header.TextSurface = value;
 			_menu.TextSurface = value;
+			_header.TextOffset = value is null ? default : new Vector2(MathF.Max(0f, (PanelSize.X - value.Measure(_header.Text)) * 0.5f), (HeaderHeight - BitmapFont.GlyphHeight) * 0.5f);
 		}
 	}
 

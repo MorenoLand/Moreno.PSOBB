@@ -224,7 +224,10 @@ public class UiListWindow : UiControl
 			uint color = index == _selectedIndex
 				? SelectedTextColor
 				: item.Color ?? (item.Enabled ? TextColor : DisabledTextColor);
-			TextSurface?.Draw(drawList, item.Text, new Vector2(Position.X + TextOffset.X, top + TextOffset.Y), color, width);
+			float textX = Position.X + TextOffset.X;
+			if (item.Centered && TextSurface is not null)
+				textX = Position.X + MathF.Max(0f, (width - TextSurface.Measure(item.Text)) * 0.5f);
+			TextSurface?.Draw(drawList, item.Text, new Vector2(textX, top + TextOffset.Y), color, width);
 		}
 		_scrollBar.Draw(drawList);
 	}

@@ -124,12 +124,12 @@ public sealed class LoginDialogTests
 		Assert.Equal(dialog.Menu.SelectionColor, selection.Color);
 		Assert.Equal(6, text.Draws.Count);
 		Assert.Equal("Login", text.Draws[0].Text);
-		Assert.Equal(LoginDialog.HeaderPosition, text.Draws[0].Position);
+		Assert.Equal(LoginDialog.HeaderPosition + dialog.Header.TextOffset, text.Draws[0].Position);
 		Assert.Equal("Start Game", text.Draws[1].Text);
 		Assert.Equal(LoginDialog.RowAreaPosition, text.Draws[1].Position);
 		Assert.Equal(0xFFFFFFFFu, text.Draws[1].Color);
 		Assert.Equal("[d]", text.Draws[5].Text);
-		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X, LoginDialog.RowAreaPosition.Y + 80f), text.Draws[5].Position);
+		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X + (220f - text.Measure("[d]")) * 0.5f, LoginDialog.RowAreaPosition.Y + 80f), text.Draws[5].Position);
 		Assert.Equal(LoginDialog.HintColor, text.Draws[5].Color);
 
 		dialog.Menu.SelectedIndex = 3;
