@@ -3,13 +3,19 @@ using PsoBB.Core;
 namespace PsoBB.Net;
 
 /// <summary>
-/// The server welcome (command 0x03) that starts the Blue Burst encryption handshake.
+/// The server welcome (commands 0x03 and 0x9B) that starts the Blue Burst encryption handshake.
 /// </summary>
 /// <remarks>
-/// The copyright is fixed-width ASCII text. The two key blocks are opaque 0x30-byte vectors that the client unmasks with the alternating key bytes 0x19, 0x16, 0x18 before initializing the receive and send ciphers.
+/// The copyright is fixed-width ASCII text and identifies the server role. The two key blocks are opaque 0x30-byte vectors that the client unmasks with the alternating key bytes 0x19, 0x16, 0x18 before initializing the receive and send ciphers.
 /// </remarks>
 public sealed class ServerInitPacket
 {
+	/// <summary>The game, ship and block server copyright sent by the command 0x03 welcome.</summary>
+	public const string GameServerCopyright = "Phantasy Star Online Blue Burst Game Server. Copyright 1999-2004 SONICTEAM.";
+
+	/// <summary>The character server copyright sent by the command 0x9B welcome.</summary>
+	public const string CharacterServerCopyright = "PSO NEW PM Server. Copyright 1999-2002 SONICTEAM.";
+
 	/// <summary>The fixed width of the copyright field.</summary>
 	public const int CopyrightLength = 0x60;
 
