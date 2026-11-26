@@ -17,8 +17,35 @@ public enum PacketCommand : ushort
 	/// <summary>Keepalive request and response; both carry no payload.</summary>
 	Ping = 0x001D,
 
-	/// <summary>Broadcast wrapper for a 0x60 subcommand frame.</summary>
+	/// <summary>Broadcast wrapper for one or more 0x60 subcommand records.</summary>
 	Broadcast = 0x0060,
+
+	/// <summary>Directed wrapper for one or more 0x60 subcommand records.</summary>
+	Directed = 0x0062,
+
+	/// <summary>Server game-join snapshot with four player lobby records.</summary>
+	GameJoin = 0x0064,
+
+	/// <summary>Server notice that one player joined the current game.</summary>
+	AddPlayerToGame = 0x0065,
+
+	/// <summary>Server notice that one player left the current game.</summary>
+	RemovePlayerFromGame = 0x0066,
+
+	/// <summary>Server lobby-join snapshot with up to twelve player entries.</summary>
+	JoinLobby = 0x0067,
+
+	/// <summary>Server notice that one player joined the current lobby.</summary>
+	AddPlayerToLobby = 0x0068,
+
+	/// <summary>Server notice that one player left the current lobby.</summary>
+	RemovePlayerFromLobby = 0x0069,
+
+	/// <summary>Large broadcast wrapper for one or more subcommand records.</summary>
+	LargeBroadcast = 0x006C,
+
+	/// <summary>Large directed wrapper for one or more subcommand records.</summary>
+	LargeTargeted = 0x006D,
 
 	/// <summary>Client login with account, character slot and connection phase.</summary>
 	ClientLogin = 0x0093,
