@@ -1,0 +1,1497 @@
+﻿# lift.py: lift one function of the original PE (x86-32) to C.
+#
+# Model (see rt.h): the guest image is mapped at its own addresses in a 32-bit process, so a guest address is a host
+# pointer.  Guest registers are globals (r_eax ...), the guest stack lives in guest memory, every function is
+# `void f_XXXXXXXX(void)`, a call pushes the real return address and calls the C function, `ret N` pops 4+N and returns.
+# Flags are local variables (fZ fS fC fO fP fA), computed only where a later instruction can read them (liveness).
+import re
+from capstone import Cs, CS_ARCH_X86, CS_MODE_32
+from capstone.x86 import *
+
+REG32 = ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"]
+FLAGS = "ZSCOPA"
+ALLF = frozenset(FLAGS)
+
+COND = {
+    "e": "fZ", "ne": "!fZ", "a": "(!fC&&!fZ)", "ae": "!fC", "b": "fC", "be": "(fC||fZ)",
+    "g": "(!fZ&&fS==fO)", "ge": "(fS==fO)", "l": "(fS!=fO)", "le": "(fZ||fS!=fO)",
+    "s": "fS", "ns": "!fS", "o": "fO", "no": "!fO", "p": "fP", "np": "!fP",
+}
+COND_FLAGS = {
+    "e": "Z", "ne": "Z", "a": "CZ", "ae": "C", "b": "C", "be": "CZ", "g": "ZSO", "ge": "SO", "l": "SO", "le": "ZSO",
+    "s": "S", "ns": "S", "o": "O", "no": "O", "p": "P", "np": "P",
+}
+
+md = Cs(CS_ARCH_X86, CS_MODE_32)
+md.detail = True
+
+
+def regparts(name):
+    if name in REG32:
+        return name, 32, 0
+    if name in ("ax", "cx", "dx", "bx", "sp", "bp", "si", "di"):
+        return "e" + name, 16, 0
+    if name in ("al", "cl", "dl", "bl"):
+        return "e" + name[0] + "x", 8, 0
+    if name in ("ah", "ch", "dh", "bh"):
+        return "e" + name[0] + "x", 8, 8
+    return None
+
+
+class Unsupported(Exception):
+    pass
+
+
+class Ins:
+    __slots__ = ("addr", "size", "mn", "ops", "text", "succ", "uses", "defs", "may", "live_out", "live_in", "raw")
+
+
+def mask(bits):
+    return {8: "0xffu", 16: "0xffffu", 32: "0xffffffffu"}[bits]
+
+
+class Lifter:
+    def __init__(self, image, func_starts, func_names=None, iat=None, code_lo=None, code_hi=None, code_heads=None):
+        self.im = image
+        self.code_lo = code_lo if code_lo is not None else image.base + 0x1000
+        self.code_hi = code_hi if code_hi is not None else image.base + image.image_size
+        self.starts = func_starts            # sorted list of function entry addresses
+        self.startset = set(func_starts)
+        self.code_heads = code_heads           # instruction starts IDA knows; a jump table entry that points at data is not code
+        self.names = func_names or {}
+        self.iat = iat or {}                  # slot address -> import name
+        self.unsup = []                       # (addr, text) of instructions emitted as UNSUP
+        self.calls = set()                    # static call/tail-call targets
+        self.imm_cands = set()                # code addresses used as immediate operands (function pointers: callbacks, allocators)
+        self.insn_bytes = set()               # every byte that belongs to a decoded instruction; the rest of the code range is data (jump tables, padding)
+        self.record = True                    # False while lifting a guessed function start (see gen.py): its bytes may be a table, so they stay data
+        self.conts = set()                    # code addresses this function pushes and returns into (Delphi SEH epilogue continuations)
+        self.call_returns = {}                # callee -> return addresses of its direct call sites
+        self.tail_funcs = set()               # functions that end in 'jmp reg' (the register holds the caller's continuation)
+        import bisect
+        self._bisect = bisect
+
+    # ---- operand helpers ----
+    def rname(self, r):
+        return md.reg_name(r)
+
+    def addr_expr(self, m, with_seg=True):
+        parts = []
+        if m.base:
+            parts.append("r_" + self.rname(m.base))
+        if m.index:
+            s = "r_" + self.rname(m.index)
+            if m.scale != 1:
+                s += "*%d" % m.scale
+            parts.append(s)
+        d = m.disp & 0xFFFFFFFF
+        if with_seg and m.segment == X86_REG_FS:
+            parts.append("TEB")
+        if d or not parts:
+            parts.append("0x%xu" % d)
+        return "(u32)(" + "+".join(parts) + ")"
+
+    def read(self, op, bits=None):
+        bits = bits or op.size * 8
+        if op.type == X86_OP_REG:
+            n = self.rname(op.reg)
+            if n.startswith("mm"):
+                return "(u64)(i64)fpr[%d]" % int(n[2:])
+            segs = {"cs": 0x23, "ss": 0x2B, "ds": 0x2B, "es": 0x2B, "gs": 0x2B, "fs": 0x53}      # Windows user-mode selectors
+            if n in segs:
+                return "0x%xu" % segs[n]
+            full, rb, sh = regparts(self.rname(op.reg))
+            if rb == 32:
+                return "r_" + full
+            if sh:
+                return "(u8)(r_%s>>8)" % full
+            return "(u%d)r_%s" % (rb, full)
+        if op.type == X86_OP_IMM:
+            return "0x%xu" % (op.imm & ((1 << bits) - 1))
+        if op.type == X86_OP_MEM:
+            return "R%d(%s)" % (bits, self.addr_expr(op.mem))
+        raise Unsupported("operand")
+
+    def write(self, op, v, bits=None):
+        bits = bits or op.size * 8
+        if op.type == X86_OP_REG:
+            n = self.rname(op.reg)
+            if n.startswith("mm"):
+                return "fpr[%d] = (long double)(i64)(%s);" % (int(n[2:]), v)
+            parts = regparts(n)
+            if parts is None:
+                raise Unsupported("segment register")
+            full, rb, sh = parts
+            if rb == 32:
+                return "r_%s = %s;" % (full, v)
+            if rb == 16:
+                return "r_%s = (r_%s & 0xffff0000u) | ((%s) & 0xffffu);" % (full, full, v)
+            if sh:
+                return "r_%s = (r_%s & 0xffff00ffu) | (((%s) & 0xffu) << 8);" % (full, full, v)
+            return "r_%s = (r_%s & 0xffffff00u) | ((%s) & 0xffu);" % (full, full, v)
+        if op.type == X86_OP_MEM:
+            return "W%d(%s, %s);" % (bits, self.addr_expr(op.mem), v)
+        raise Unsupported("write operand")
+
+    # ---- decode (recursive descent) ----
+    def decode(self, ea, extra=()):
+        ins = {}
+        work = [ea] + list(extra)
+        tables = {}
+        owner_lo = ea
+        nxt = self._bisect.bisect_right(self.starts, ea)
+        owner_hi = self.starts[nxt] if nxt < len(self.starts) else ea + 0x100000
+        while work:
+            a = work.pop()
+            while a not in ins:
+                b = self.im.read(a, 16)
+                d = list(md.disasm(b, a, 1)) if b else []
+                if not d:
+                    break
+                c = d[0]
+                i = Ins()
+                i.addr, i.size, i.mn = a, c.size, c.mnemonic
+                i.ops = list(c.operands)
+                i.text = "%s %s" % (c.mnemonic, c.op_str)
+                if not (c.mnemonic.startswith("j") or c.mnemonic == "call"):
+                    for o in c.operands:
+                        if o.type == X86_OP_IMM and self.code_lo <= (o.imm & 0xFFFFFFFF) < self.code_hi:
+                            self.imm_cands.add(o.imm & 0xFFFFFFFF)
+                i.raw = c
+                if c.mnemonic == "push" and c.operands and c.operands[0].type == X86_OP_IMM:
+                    t = c.operands[0].imm & 0xFFFFFFFF
+                    if ea <= t < owner_hi and t != ea and self.im.read(t, 1) == b"\xe9":
+                        n = (t + 5) & 0xFFFFFFFF      # Delphi SEH handler is 'jmp @@HandleFinally' (5 bytes); the finally body follows it
+                        if n < owner_hi and (self.code_heads is None or n in self.code_heads):
+                            self.calls.add(n)
+                i.succ = []
+                ins[a] = i
+                if self.record:
+                    self.insn_bytes.update(range(a, a + c.size))
+                nextaddr = a + c.size
+                m = c.mnemonic
+                if m in ("ret", "hlt", "int3", "retn", "repz ret", "rep ret"):
+                    break
+                if m == "jmp":
+                    o = i.ops[0]
+                    if o.type == X86_OP_IMM:
+                        t = o.imm
+                        if t in self.startset and t != ea:
+                            i.succ = []
+                            self.calls.add(t)
+                        else:
+                            i.succ = [t]
+                            work.append(t)
+                    elif o.type == X86_OP_MEM and o.mem.index and o.mem.scale == 4 and not o.mem.base:
+                        tab = o.mem.disp & 0xFFFFFFFF
+                        tg = self.read_table(tab, ea, owner_hi)
+                        tables[a] = (tab, tg)
+                        i.succ = list(dict.fromkeys(tg))
+                        work.extend(tg)
+                    elif o.type == X86_OP_REG:
+                        self.tail_funcs.add(ea)
+                    break
+                if (m.startswith("j") and m != "jmp") or m in ("loop", "loope", "loopne"):
+                    t = i.ops[0].imm
+                    i.succ = [nextaddr, t]
+                    work.append(t)
+                    a = nextaddr
+                    continue
+                if m == "call":
+                    o = i.ops[0]
+                    if o.type == X86_OP_IMM:
+                        self.calls.add(o.imm)
+                        self.call_returns.setdefault(o.imm, set()).add(nextaddr)
+                i.succ = [nextaddr]
+                a = nextaddr
+        self.tables = tables
+        self.conts = self.find_conts(ins, ea)
+        return ins
+
+    def find_conts(self, ins, ea):
+        """Addresses a function pushes and then returns into (the Delphi SEH epilogue pops the frame, pushes a
+        continuation and lets `ret` jump to it). The backward walk counts pushes and pops; a pushed code address
+        that is still on top at the return is a continuation."""
+        order = sorted(ins)
+        out = set()
+        for ret in order:
+            if ins[ret].mn not in ("ret", "retn", "repz ret", "rep ret"):
+                continue
+            idx = order.index(ret) - 1
+            need = 0
+            steps = 0
+            consume = False
+            while idx >= 0 and steps < 80:
+                a = order[idx]
+                i = ins[a]
+                idx -= 1
+                steps += 1
+                m = i.mn
+                if m in ("ret", "retn", "repz ret", "rep ret", "jmp"):
+                    break
+                if m == "call":
+                    consume = True          # the pushes before the call are its arguments, already popped
+                    continue
+                if consume and m == "push":
+                    o = i.ops[0] if i.ops else None
+                    t = (o.imm & 0xFFFFFFFF) if o is not None and o.type == X86_OP_IMM else None
+                    if need == 0 and t is not None and ea <= t < self.code_hi and t != ret and self.im.read(t, 1) \
+                            and (self.code_heads is None or t in self.code_heads):
+                        out.add(t)              # `push continuation; call cleanup; ret`: the address is not a call argument
+                        break
+                    continue
+                consume = False
+                if m == "push":
+                    if need == 0:
+                        o = i.ops[0] if i.ops else None
+                        t = (o.imm & 0xFFFFFFFF) if o is not None and o.type == X86_OP_IMM else None
+                        if t is not None and ea <= t < self.code_hi and t != ret and self.im.read(t, 1) \
+                                and (self.code_heads is None or t in self.code_heads):
+                            out.add(t)
+                            break
+                        continue                # a register or a small constant is a call argument: keep walking
+                    need -= 1
+                    continue
+                if m == "pop":
+                    need += 1
+                    continue
+                if m in ("add", "sub") and len(i.ops) == 2 and i.ops[0].type == X86_OP_REG and \
+                        self.rname(i.ops[0].reg) == "esp" and i.ops[1].type == X86_OP_IMM:
+                    slots = (i.ops[1].imm & 0xFFFFFFFF) // 4
+                    need += slots if m == "add" else -slots
+                    continue
+                if m == "leave" or (m == "mov" and i.ops and i.ops[0].type == X86_OP_REG and
+                                    self.rname(i.ops[0].reg) == "esp"):
+                    break
+        return out
+
+    def read_table(self, tab, ea, hi):
+        """Entries of a jump table that start at `tab`.  The index can be negative (memcpy's tail table), so entries
+        before `tab` that still point into this function are included; the emitted switch dispatches on the loaded
+        address, so a superset is harmless."""
+        lo = self.code_lo
+        hi = self.code_hi
+        out = []
+
+        def scan(direction, limit):
+            bad = 0
+            for k in range(0 if direction > 0 else 1, limit):
+                v = self.im.u32(tab + direction * 4 * k)
+                if v is not None and lo <= v < hi and abs(v - tab) <= 0x4000 and self.im.read(v, 1):
+                    out.append(v)
+                    bad = 0
+                else:
+                    bad += 1          # one junk entry is allowed: memcpy's table overlaps code bytes
+                    if bad > 1:
+                        break
+        scan(-1, 16)              # entries addressed by a negative index sit before the displacement
+        scan(1, 1024)
+        return out
+
+    # ---- semantics: returns (uses, defs, may_def_only, code builder) ----
+    def lift(self, ea, suffix=""):
+        ins = self.decode(ea)
+        extra = set()
+        for _ in range(8):
+            more = self.conts - set(ins) - extra
+            if not more:
+                break
+            extra |= more
+            ins = self.decode(ea, extra)
+        self._ins = ins
+        order = sorted(ins)
+        # liveness
+        for a in order:
+            self.analyse(ins[a])
+        for a in order:
+            ins[a].live_out = set()
+            ins[a].live_in = set()
+        changed = True
+        while changed:
+            changed = False
+            for a in reversed(order):
+                i = ins[a]
+                lo = set()
+                for s in i.succ:
+                    if s in ins:
+                        lo |= ins[s].live_in
+                li = set(i.uses) | (lo - set(i.defs))
+                if lo != i.live_out or li != i.live_in:
+                    i.live_out, i.live_in = lo, li
+                    changed = True
+        targets = set()
+        for a in order:
+            i = ins[a]
+            for s in i.succ:
+                if s != i.addr + i.size or i.mn.startswith("j"):
+                    targets.add(s)
+        for tab, tg in self.tables.values():
+            targets.update(tg)
+        targets.update(self.conts & set(ins))
+        name = self.names.get(ea, "")
+        out = ["void f_%08x%s(void)%s" % (ea, suffix, " /* %s */" % name if name else ""), "{",
+               "    FN_ENTER(0x%08x);" % ea]
+        if order and order[0] != ea:
+            # code that belongs to the function lies before its entry point: start by jumping to the entry
+            targets.add(ea)
+            out.append("    goto L_%08x;" % ea)
+        for a in order:
+            i = ins[a]
+            if a in targets:
+                out.append("L_%08x:; BB(0x%08x);" % (a, a))
+            try:
+                code = self.emit(i, ea)
+            except Unsupported as e:
+                code = ['UNSUP(0x%08x, "%s");' % (a, i.text.replace('"', "'"))]
+                self.unsup.append((a, i.text))
+            out.append("    /* %08x: %s */ %s" % (a, i.text, " ".join(code)))
+            # fall off the end of the decoded region without a terminator: trap
+            if i.succ and i.succ[0] == a + i.size and (a + i.size) not in ins and not i.mn.startswith("j") and i.mn != "call":
+                out.append("    UNSUP(0x%08x, \"falls out of decoded code\");" % (a + i.size))
+            if i.mn == "call" and (a + i.size) not in ins:
+                out.append("    UNSUP(0x%08x, \"call does not return\");" % (a + i.size))
+        out.append("}")
+        return "\n".join(out)
+
+    # ---- flag use/def per instruction ----
+    def analyse(self, i):
+        m = i.mn
+        u, d = set(), set()
+        base = m.split()[-1] if m.startswith("rep") else m
+        if m in ("loope", "loopne"):
+            u = {"Z"}
+        elif m.startswith("j") and m != "jmp":
+            cc = m[1:]
+            u = set(COND_FLAGS.get(cc, "ZSCOPA"))
+        elif m.startswith("set") or (m.startswith("cmov")):
+            cc = m[3:] if m.startswith("set") else m[4:]
+            u = set(COND_FLAGS.get(cc, "ZSCOPA"))
+        elif m in ("add", "sub", "cmp", "and", "or", "xor", "test", "neg"):
+            d = set("ZSCOPA")
+        elif m in ("inc", "dec"):
+            d = set("ZSOPA")
+        elif m in ("adc", "sbb"):
+            u, d = {"C"}, set("ZSCOPA")
+        elif m in ("shl", "shr", "sar", "rol", "ror", "shld", "shrd", "sal"):
+            cnt = i.ops[-1] if m not in ("shld", "shrd") else i.ops[2]
+            fl = set("ZSCOP") if m not in ("rol", "ror") else set("CO")
+            if cnt.type == X86_OP_IMM and (cnt.imm & 31) != 0:
+                d = fl
+            else:
+                u = set(fl)          # flags unchanged when the count is zero: value passes through
+                d = set()
+        elif m in ("mul", "imul"):
+            d = set("CO")
+        elif m in ("comisd", "ucomisd"):
+            d = set(ALLF)
+        elif m == "sahf":
+            d = set("ZSCPA")
+        elif m == "lahf":
+            u = set("ZSCPA")
+        elif m in ("cmc",):
+            u, d = {"C"}, {"C"}
+        elif m in ("clc", "stc"):
+            d = {"C"}
+        elif m in ("rcl", "rcr", "pushfd", "popfd", "pushf", "popf"):
+            u = set(ALLF)
+            d = set(ALLF) if "pop" in m or m.startswith("rc") else set()
+        elif base in ("cmpsb", "cmpsw", "cmpsd", "scasb", "scasw", "scasd"):
+            u, d = set("ZSCOPA"), set("ZSCOPA")      # a zero-length scan changes no flags: the incoming ones stay live
+        elif m in ("bt", "bts", "btr", "btc"):
+            d = {"C"}
+        elif m in ("div", "idiv"):
+            d = set()
+        elif m in ("call",):                                 # the callee overwrites them, like the hardware
+            u, d = set(), set(ALLF)
+        elif m in ("ret", "retn", "repz ret", "rep ret"):     # the caller branches on what the callee leaves
+            u, d = set(ALLF), set()
+        elif m.startswith("f") and m in ("fcom", "fcomp"):
+            pass
+        i.uses, i.defs = u, d
+        if m == "call":
+            i.uses = set()
+
+    # ---- flag computation code ----
+    def flagcode(self, kind, bits, live, cin=False):
+        sb = bits - 1
+        L = []
+
+        def add(f, e):
+            if f in live:
+                L.append("f%s = %s;" % (f, e))
+        add("Z", "(r == 0)")
+        add("S", "((r >> %d) & 1)" % sb)
+        add("P", "!__builtin_parity(r & 0xffu)")
+        add("A", "(((a ^ b ^ r) & 0x10u) != 0)")
+        if kind in ("add", "inc"):
+            add("O", "(((a ^ r) & (b ^ r)) >> %d) & 1" % sb)
+            if kind == "add":
+                add("C", "(r < a)")
+        elif kind in ("sub", "dec"):
+            add("O", "(((a ^ b) & (a ^ r)) >> %d) & 1" % sb)
+            if kind == "sub":
+                add("C", "(a < b)")
+        elif kind == "logic":
+            add("O", "0")
+            add("C", "0")
+        elif kind == "adc":
+            add("O", "(((a ^ r) & (b ^ r)) >> %d) & 1" % sb)
+            add("C", "(unsigned)((((u64)a + b + c) >> %d) & 1)" % bits)
+        elif kind == "sbb":
+            add("O", "(((a ^ b) & (a ^ r)) >> %d) & 1" % sb)
+            add("C", "((u64)a < (u64)b + c)")
+        return " ".join(L)
+
+    # ---- instruction emission ----
+    def emit(self, i, fea):
+        m = i.mn
+        ops = i.ops
+        live = i.live_out
+        nxt = i.addr + i.size
+
+        def sz():
+            return ops[0].size * 8
+
+        if m == "nop" or m == "wait" or m == "fnclex" or m == "fwait" or m == "int3" and False:
+            return [";"]
+        if m == "int3" or m == "hlt":
+            return ['UNSUP(0x%08x, "%s");' % (i.addr, m)]
+        if m == "mov":
+            bits = ops[0].size * 8
+            return [self.write(ops[0], self.read(ops[1], bits), bits)]
+        if m in ("movzx", "movsx"):
+            sbits = ops[1].size * 8
+            dbits = ops[0].size * 8
+            v = self.read(ops[1], sbits)
+            if m == "movsx":
+                v = "(u32)(i32)(i%d)%s" % (sbits, v)
+            else:
+                v = "(u32)%s" % v
+            return [self.write(ops[0], v, dbits)]
+        if m == "lea":
+            return [self.write(ops[0], self.addr_expr(ops[1].mem, False), 32)]
+        if m == "xchg":
+            bits = ops[0].size * 8
+            return ["{ u32 x = %s; u32 y = %s; %s %s }" % (self.read(ops[0], bits), self.read(ops[1], bits),
+                                                           self.write(ops[0], "y", bits), self.write(ops[1], "x", bits))]
+        if m == "push":
+            return ["{ u32 v = %s; r_esp -= 4; W32(r_esp, v); }" % (self.read(ops[0], 32) if ops[0].type != X86_OP_IMM else "0x%xu" % (ops[0].imm & 0xFFFFFFFF))]
+        if m == "pop":
+            return ["{ u32 v = R32(r_esp); r_esp += 4; %s }" % self.write(ops[0], "v", 32)]
+        if m == "leave":
+            return ["r_esp = r_ebp; r_ebp = R32(r_esp); r_esp += 4;"]
+        if m in ("ret", "retn", "repz ret", "rep ret"):
+            n = ops[0].imm if ops else 0
+            checks = "".join("if (R32(r_esp) == 0x%xu) { r_esp += %d; goto L_%08x; } " % (c, 4 + n, c)
+                             for c in sorted(self.conts) if c in self._ins)
+            return [checks + "FN_RET(0x%08x); r_esp += %d; return;" % (fea, 4 + n)]
+        if m == "call":
+            o = ops[0]
+            ret = "0x%xu" % nxt
+            if o.type == X86_OP_IMM:
+                return ["r_esp -= 4; W32(r_esp, %s); f_%08x();" % (ret, o.imm)]
+            return ["{ u32 t = %s; r_esp -= 4; W32(r_esp, %s); call_ind(t); }" % (self.read(o, 32), ret)]
+        if m == "jmp":
+            o = ops[0]
+            if o.type == X86_OP_IMM:
+                if o.imm in self.startset and o.imm != i.addr and not i.succ:
+                    return ["f_%08x(); return;" % o.imm]
+                if o.imm not in self._ins:
+                    return ['UNSUP(0x%08x, "jump to code that was not decoded");' % i.addr]
+                return ["goto L_%08x;" % o.imm]
+            if i.addr in self.tables:
+                tab, tg = self.tables[i.addr]
+                cases = " ".join("case 0x%xu: goto L_%08x;" % (t, t) for t in dict.fromkeys(tg))
+                return ["{ u32 t = R32(%s); switch (t) { %s default: UNSUP(0x%08x, \"jump table entry is not a known target\"); } }" % (self.addr_expr(o.mem), cases, i.addr)]
+            if o.type == X86_OP_REG:
+                if self.jmp_is_return(i, o):
+                    return ["FN_RET(0x%08x); return;" % fea]
+                return ["{ u32 t = %s; jmp_ind(t); return; }" % self.read(o, 32)]
+            return ["{ u32 t = %s; jmp_ind(t); return; }" % self.read(o, 32)]
+        if m in ("loop", "loope", "loopne"):
+            if ops[0].imm not in self._ins:
+                return ['UNSUP(0x%08x, "loop target was not decoded");' % i.addr]
+            cond = {"loop": "r_ecx", "loope": "r_ecx && fZ", "loopne": "r_ecx && !fZ"}[m]
+            return ["r_ecx--; if (%s) goto L_%08x;" % (cond, ops[0].imm)]
+        if m == "jecxz":
+            if ops[0].imm not in self._ins:
+                return ['UNSUP(0x%08x, "jecxz target was not decoded");' % i.addr]
+            return ["if (!r_ecx) goto L_%08x;" % ops[0].imm]
+        if m.startswith("j"):
+            cc = m[1:]
+            if cc not in COND:
+                raise Unsupported(m)
+            if ops[0].imm not in self._ins:
+                return ['if (%s) UNSUP(0x%08x, "branch to code that was not decoded");' % (COND[cc], i.addr)]
+            return ["if (%s) goto L_%08x;" % (COND[cc], ops[0].imm)]
+        if m.startswith("set"):
+            cc = m[3:]
+            return [self.write(ops[0], "(%s) ? 1 : 0" % COND[cc], 8)]
+        if m.startswith("cmov"):
+            cc = m[4:]
+            return ["if (%s) { %s }" % (COND[cc], self.write(ops[0], self.read(ops[1], 32), 32))]
+        if m == "cdq":
+            return ["r_edx = (r_eax >> 31) ? 0xffffffffu : 0;"]
+        if m == "cwde":
+            return ["r_eax = (u32)(i32)(i16)r_eax;"]
+        if m == "cwd":
+            return ["r_edx = (r_edx & 0xffff0000u) | (((r_eax >> 15) & 1) ? 0xffffu : 0);"]
+        if m == "sahf":
+            return ["{ u32 h = (r_eax >> 8) & 0xff; fS = (h >> 7) & 1; fZ = (h >> 6) & 1; fA = (h >> 4) & 1; fP = (h >> 2) & 1; fC = h & 1; }"]
+        if m == "lahf":
+            return ["r_eax = (r_eax & 0xffff00ffu) | ((u32)((fS << 7) | (fZ << 6) | (fA << 4) | (fP << 2) | 2 | fC) << 8);"]
+        if m == "clc":
+            return ["fC = 0;"]
+        if m == "stc":
+            return ["fC = 1;"]
+        if m == "cmc":
+            return ["fC = !fC;"]
+        if m == "cld":
+            return ["rt_df = 0;"]
+        if m == "std":
+            return ["rt_df = 1;"]
+
+        if m in ("add", "sub", "cmp", "and", "or", "xor", "test", "adc", "sbb"):
+            bits = ops[0].size * 8
+            mk = mask(bits)
+            a = self.read(ops[0], bits)
+            b = self.read(ops[1], bits)
+            if ops[1].type == X86_OP_IMM:
+                b = "0x%xu" % (ops[1].imm & ((1 << bits) - 1))
+            exprs = {"add": "a + b", "sub": "a - b", "cmp": "a - b", "and": "a & b", "or": "a | b", "xor": "a ^ b",
+                     "test": "a & b", "adc": "a + b + c", "sbb": "a - b - c"}
+            kind = {"add": "add", "sub": "sub", "cmp": "sub", "and": "logic", "or": "logic", "xor": "logic",
+                    "test": "logic", "adc": "adc", "sbb": "sbb"}[m]
+            pre = "u32 c = fC;" if m in ("adc", "sbb") else ""
+            store = "" if m in ("cmp", "test") else self.write(ops[0], "r", bits)
+            fc = self.flagcode(kind, bits, live)
+            # memory destination: evaluate the address once through a temp when it is a read-modify-write
+            if ops[0].type == X86_OP_MEM and m not in ("cmp", "test"):
+                ad = self.addr_expr(ops[0].mem)
+                a = "R%d(ad)" % bits
+                store = "W%d(ad, r);" % bits
+                return ["{ u32 ad = %s; %s u32 a = %s; u32 b = %s; u32 r = (%s) & %s; %s %s }" % (ad, pre, a, b, exprs[m], mk, store, fc)]
+            return ["{ %s u32 a = %s; u32 b = %s; u32 r = (%s) & %s; %s %s }" % (pre, a, b, exprs[m], mk, store, fc)]
+        if m in ("inc", "dec", "neg", "not"):
+            bits = ops[0].size * 8
+            mk = mask(bits)
+            if m == "not":
+                if ops[0].type == X86_OP_MEM:
+                    ad = self.addr_expr(ops[0].mem)
+                    return ["{ u32 ad = %s; W%d(ad, ~R%d(ad)); }" % (ad, bits, bits)]
+                return [self.write(ops[0], "~%s" % self.read(ops[0], bits), bits)]
+            if m == "neg":
+                pre, aa, bb, ex, kind = "", "0u", "x", "a - b", "sub"
+            elif m == "inc":
+                pre, aa, bb, ex, kind = "", "x", "1u", "a + b", "inc"
+            else:
+                pre, aa, bb, ex, kind = "", "x", "1u", "a - b", "dec"
+            fc = self.flagcode(kind, bits, live)
+            if m == "neg" and "C" in live:
+                fc += " fC = (b != 0);"
+            if ops[0].type == X86_OP_MEM:
+                ad = self.addr_expr(ops[0].mem)
+                return ["{ u32 ad = %s; u32 x = R%d(ad); u32 a = %s; u32 b = %s; u32 r = (%s) & %s; W%d(ad, r); %s }" % (ad, bits, aa, bb, ex, mk, bits, fc)]
+            return ["{ u32 x = %s; u32 a = %s; u32 b = %s; u32 r = (%s) & %s; %s %s }" % (self.read(ops[0], bits), aa, bb, ex, mk, self.write(ops[0], "r", bits), fc)]
+        if m in ("shl", "sal", "shr", "sar", "rol", "ror"):
+            return self.shift(i, m)
+        if m in ("shld", "shrd"):
+            return self.dshift(i, m)
+        if m in ("mul", "imul", "div", "idiv"):
+            return self.muldiv(i, m)
+        if m in ("bt", "bts", "btr", "btc") and ops[0].size == 4:
+            off = self.read(ops[1], 32) if ops[1].type != X86_OP_IMM else "0x%xu" % (ops[1].imm & 31)
+            op = {"bt": "", "bts": "v |= 1u << bit;", "btr": "v &= ~(1u << bit);", "btc": "v ^= 1u << bit;"}[m]
+            if ops[0].type == X86_OP_MEM:
+                head = "u32 bo = %s; u32 ad = %s + (u32)(((i32)bo >> 5) * 4); u32 bit = bo & 31; u32 v = R32(ad);" % (off, self.addr_expr(ops[0].mem))
+                tail = "W32(ad, v);" if op else ""
+            else:
+                head = "u32 bo = %s; u32 bit = bo & 31; u32 v = %s;" % (off, self.read(ops[0], 32))
+                tail = self.write(ops[0], "v", 32) if op else ""
+            return ["{ %s fC = (v >> bit) & 1; %s %s }" % (head, op, tail)]
+        if m == "pushfd":
+            return ["{ u32 v = 0x202u | rt_eflags_extra | (u32)fC | ((u32)fP << 2) | ((u32)fA << 4) | ((u32)fZ << 6) | ((u32)fS << 7) | ((u32)fO << 11); r_esp -= 4; W32(r_esp, v); }"]
+        if m == "popfd":
+            return ["{ u32 v = R32(r_esp); r_esp += 4; fC = v & 1; fP = (v >> 2) & 1; fA = (v >> 4) & 1; fZ = (v >> 6) & 1; fS = (v >> 7) & 1; fO = (v >> 11) & 1; rt_eflags_extra = v & 0x240000u; }"]
+        if m == "cpuid":
+            return ["{ u32 a, b, c, d; rt_cpuid(r_eax, r_ecx, &a, &b, &c, &d); r_eax = a; r_ebx = b; r_ecx = c; r_edx = d; }"]
+        if m == "rdtsc":
+            return ["{ u64 t = rt_rdtsc(); r_eax = (u32)t; r_edx = (u32)(t >> 32); }"]
+        if m in ("rcl", "rcr") and ops[0].size == 4:
+            cnt = self.read(ops[1], 8) if ops[1].type != X86_OP_IMM else "%du" % (ops[1].imm & 31)
+            a = self.read(ops[0], 32)
+            if m == "rcr":
+                step = "u32 nc = a & 1; a = (a >> 1) | ((u32)fC << 31); fC = nc;"
+            else:
+                step = "u32 nc = a >> 31; a = (a << 1) | (u32)fC; fC = nc;"
+            return ["{ u32 c = (%s) & 31; u32 a = %s; while (c--) { %s } fO = ((a >> 31) ^ (a >> 30)) & 1; %s }" % (cnt, a, step, self.write(ops[0], "a", 32))]
+        if m == "bswap":
+            bits = ops[0].size * 8
+            v = self.read(ops[0], bits)
+            if bits == 32:
+                return [self.write(ops[0], "__builtin_bswap32(%s)" % v, 32)]
+            if bits == 16:
+                return [self.write(ops[0], "__builtin_bswap16((u16)%s)" % v, 16)]
+            raise Unsupported(m)
+        if m in ("pushal", "pushad"):
+            return ["{ u32 sp = r_esp; r_esp -= 32; W32(r_esp, r_edi); W32(r_esp + 4, r_esi); W32(r_esp + 8, r_ebp); "
+                    "W32(r_esp + 12, sp); W32(r_esp + 16, r_ebx); W32(r_esp + 20, r_edx); W32(r_esp + 24, r_ecx); "
+                    "W32(r_esp + 28, r_eax); }"]
+        if m in ("popal", "popad"):
+            return ["{ r_edi = R32(r_esp); r_esi = R32(r_esp + 4); r_ebp = R32(r_esp + 8); r_ebx = R32(r_esp + 16); "
+                    "r_edx = R32(r_esp + 20); r_ecx = R32(r_esp + 24); r_eax = R32(r_esp + 28); r_esp += 32; }"]
+        if m in ("prefetchnta", "prefetcht0", "prefetcht1", "prefetcht2", "prefetchw", "prefetchwt1",
+                 "sfence", "lfence", "mfence"):
+            return [";"]
+        if m in ("emms", "femms"):
+            return ["; /* the MMX tag state is not modelled */"]
+        if m == "enter":
+            frame, level = ops[0].imm & 0xffff, ops[1].imm & 31
+            body = ("{ u32 f = 0x%xu; u32 lv = %du; r_esp -= 4; W32(r_esp, r_ebp); u32 fr = r_esp; "
+                    "if (lv) { u32 k = 1; while (k < lv) { r_ebp -= 4; r_esp -= 4; W32(r_esp, R32(r_ebp)); k++; } "
+                    "r_esp -= 4; W32(r_esp, fr); } r_ebp = fr; r_esp -= f; }" % (frame, level))
+            return [body]
+        if m == "retf":
+            return ["{ u32 t = R32(r_esp); r_esp += 4; r_eax = r_edx = 0; call_ind(t); }"]
+        if m.startswith("bnd"):
+            return [";"]
+        if m == "ud2":
+            return ['UNSUP(0x%08x, "ud2");' % i.addr]
+        if m in self.NOW3D_MN:
+            return self.now3d(i)
+        if m in self.MMX_MN and any(self.ism(o) or self.isx(o) for o in i.ops):
+            return self.mmx(i)
+        if self.is_sse(i):
+            return self.sse1(i) if (m in self.SSE1_MN or (m.startswith("cmp") and m[-2:] in ("ps", "ss"))) else self.sse(i)
+        if m in ("movsb", "movsw", "movsd", "stosb", "stosw", "stosd", "rep movsb", "rep movsw", "rep movsd",
+                 "rep stosb", "rep stosw", "rep stosd", "lodsb", "lodsd", "scasb", "scasw", "scasd", "xlatb",
+                 "repne scasb", "repne scasw", "repne scasd", "repe scasb", "repe scasw", "repe scasd",
+                 "cmpsb", "cmpsw", "cmpsd", "rep cmpsb", "rep cmpsw", "rep cmpsd",
+                 "repe cmpsb", "repe cmpsw", "repe cmpsd", "repne cmpsb", "repne cmpsw", "repne cmpsd"):
+            return self.strop(i, m)
+        if m.startswith("f"):
+            return self.x87(i, m)
+        raise Unsupported(m)
+
+    def jmp_is_return(self, i, o):
+        """A 'jmp reg' is a return when the register was just popped: Delphi string helpers pop the return
+        address into eax and jump to it. Otherwise it is a tail call to a method pointer ('jmp ebx')."""
+        reg = self.rname(o.reg)
+        order = [a for a in sorted(self._ins) if a < i.addr][-12:]
+        for a in reversed(order):
+            pre = self._ins[a]
+            m = pre.mn
+            if m in ("ret", "retn", "jmp", "call"):
+                break
+            if m.startswith("j"):
+                continue
+            if m == "pop" and pre.ops and pre.ops[0].type == X86_OP_REG and self.rname(pre.ops[0].reg) == reg:
+                return True
+            if m in ("mov", "xor", "add", "sub", "and", "or", "lea") and pre.ops and \
+                    pre.ops[0].type == X86_OP_REG and self.rname(pre.ops[0].reg) == reg:
+                return False
+        return False
+
+    def shift(self, i, m):
+        ops = i.ops
+        live = i.live_out
+        bits = ops[0].size * 8
+        mk = mask(bits)
+        sb = bits - 1
+        cnt = self.read(ops[1], 8) if ops[1].type != X86_OP_IMM else "%du" % (ops[1].imm & 31)
+        a = self.read(ops[0], bits)
+        pre = "u32 ad = %s; " % self.addr_expr(ops[0].mem) if ops[0].type == X86_OP_MEM else ""
+        if pre:
+            a = "R%d(ad)" % bits
+            st = "W%d(ad, r);" % bits
+        else:
+            st = self.write(ops[0], "r", bits)
+        F = []
+
+        def add(f, e):
+            if f in live:
+                F.append("f%s = %s;" % (f, e))
+        if m in ("shl", "sal"):
+            body = "r = (a << c) & %s;" % mk
+            add("C", "(c <= %d) ? ((a >> (%d - c)) & 1) : 0" % (bits, bits))
+            add("O", "((r >> %d) & 1) ^ fCx" % sb)
+        elif m == "shr":
+            body = "r = (c >= %d) ? 0 : (a >> c);" % bits
+            add("C", "(c <= %d) ? ((a >> (c - 1)) & 1) : 0" % bits)
+            add("O", "(a >> %d) & 1" % sb)
+        elif m == "sar":
+            body = "r = (u32)((i%d)a >> (c > %d ? %d : c)) & %s;" % (bits, sb, sb, mk)
+            add("C", "((i%d)a >> ((c > %d ? %d : c - 1))) & 1" % (bits, sb, sb))
+            add("O", "0")
+        elif m == "rol":
+            body = "{ u32 k = c %% %d; r = k ? (((a << k) | (a >> (%d - k))) & %s) : a; }" % (bits, bits, mk)
+            add("C", "r & 1")
+            add("O", "((r >> %d) ^ r) & 1" % sb)
+        else:
+            body = "{ u32 k = c %% %d; r = k ? (((a >> k) | (a << (%d - k))) & %s) : a; }" % (bits, bits, mk)
+            add("C", "(r >> %d) & 1" % sb)
+            add("O", "((r >> %d) ^ (r >> %d)) & 1" % (sb, sb - 1))
+        if m in ("shl", "sal", "shr", "sar"):
+            if "Z" in live:
+                F.append("fZ = (r == 0);")
+            if "S" in live:
+                F.append("fS = (r >> %d) & 1;" % sb)
+            if "P" in live:
+                F.append("fP = !__builtin_parity(r & 0xffu);")
+        flags = " ".join(F).replace("fCx", "fC")
+        if m in ("shl", "sal"):
+            # OF uses the new CF: compute C first, then O (order of F is C then O already)
+            pass
+        return ["{ %su32 c = (%s) & 31; u32 a = %s; u32 r = a; if (c) { %s %s %s } }" % (pre, cnt, a, body if body.startswith("{") else body, st, flags)]
+
+    def dshift(self, i, m):
+        ops = i.ops
+        live = i.live_out
+        bits = ops[0].size * 8
+        if bits != 32:
+            raise Unsupported(m)
+        cnt = self.read(ops[2], 8) if ops[2].type != X86_OP_IMM else "%du" % (ops[2].imm & 31)
+        a = self.read(ops[0], 32)
+        b = self.read(ops[1], 32)
+        if m == "shld":
+            body = "r = (a << c) | (b >> (32 - c)); fC = (a >> (32 - c)) & 1;"
+        else:
+            body = "r = (a >> c) | (b << (32 - c)); fC = (a >> (c - 1)) & 1;"
+        fl = ""
+        if "Z" in live:
+            fl += " fZ = (r == 0);"
+        if "S" in live:
+            fl += " fS = r >> 31;"
+        if "P" in live:
+            fl += " fP = !__builtin_parity(r & 0xffu);"
+        if "O" in live:
+            fl += " fO = ((r ^ a) >> 31) & 1;"
+        return ["{ u32 c = (%s) & 31; u32 a = %s; u32 b = %s; u32 r = a; if (c) { %s %s%s } }" % (cnt, a, b, body, self.write(ops[0], "r", 32), fl)]
+
+    def muldiv(self, i, m):
+        ops = i.ops
+        if m == "imul" and len(ops) >= 2:
+            if len(ops) == 2:
+                d, s1, s2 = ops[0], ops[0], ops[1]
+            else:
+                d, s1, s2 = ops[0], ops[1], ops[2]
+            bits = d.size * 8
+            if bits != 32:
+                a = self.read(s1, bits)
+                b = self.read(s2, bits) if s2.type != X86_OP_IMM else "0x%xu" % (s2.imm & 0xFFFF)
+                return ["{ i32 t = (i32)(i%d)%s * (i32)(i%d)%s; %s fC = fO = (t != (i32)(i%d)t); }" % (bits, a, bits, b, self.write(d, "(u32)t", bits), bits)]
+            a = self.read(s1, 32)
+            b = self.read(s2, 32) if s2.type != X86_OP_IMM else "0x%xu" % (s2.imm & 0xFFFFFFFF)
+            return ["{ i64 t = (i64)(i32)%s * (i64)(i32)%s; %s fC = fO = (t != (i64)(i32)(u32)t); }" % (a, b, self.write(d, "(u32)t", 32))]
+        bits = ops[0].size * 8
+        s = self.read(ops[0], bits)
+        if bits == 32:
+            if m == "mul":
+                return ["{ u64 t = (u64)r_eax * %s; r_eax = (u32)t; r_edx = (u32)(t >> 32); fC = fO = (r_edx != 0); }" % s]
+            if m == "imul":
+                return ["{ i64 t = (i64)(i32)r_eax * (i64)(i32)%s; r_eax = (u32)t; r_edx = (u32)((u64)t >> 32); fC = fO = (t != (i64)(i32)(u32)t); }" % s]
+            if m == "div":
+                return ["{ u32 d = %s; if (!d) UNSUP(0x%08x, \"divide by zero\"); { u64 n = ((u64)r_edx << 32) | r_eax; u64 q = n / d; if (q >> 32) UNSUP(0x%08x, \"divide overflow\"); r_eax = (u32)q; r_edx = (u32)(n %% d); } }" % (s, i.addr, i.addr)]
+            return ["{ i32 d = (i32)%s; if (!d) UNSUP(0x%08x, \"divide by zero\"); { i64 n = (i64)(((u64)r_edx << 32) | r_eax); i64 q = n / d; if (q != (i64)(i32)q) UNSUP(0x%08x, \"divide overflow\"); r_eax = (u32)q; r_edx = (u32)(n %% d); } }" % (s, i.addr, i.addr)]
+        if bits == 16:
+            if m == "mul":
+                return ["{ u32 t = (r_eax & 0xffffu) * %s; r_eax = (r_eax & 0xffff0000u) | (t & 0xffffu); r_edx = (r_edx & 0xffff0000u) | (t >> 16); fC = fO = ((t >> 16) != 0); }" % s]
+            if m == "div":
+                return ["{ u32 d = %s; if (!d) UNSUP(0x%08x, \"divide by zero\"); { u32 n = ((r_edx & 0xffffu) << 16) | (r_eax & 0xffffu); u32 q = n / d; if (q >> 16) UNSUP(0x%08x, \"divide overflow\"); r_eax = (r_eax & 0xffff0000u) | q; r_edx = (r_edx & 0xffff0000u) | (n %% d); } }" % (s, i.addr, i.addr)]
+            if m == "imul":
+                return ["{ i32 t = (i32)(i16)r_eax * (i32)(i16)%s; r_eax = (r_eax & 0xffff0000u) | ((u32)t & 0xffffu); r_edx = (r_edx & 0xffff0000u) | (((u32)t >> 16) & 0xffffu); fC = fO = (t != (i32)(i16)t); }" % s]
+            if m == "idiv":
+                return ["{ i32 d = (i16)%s; if (!d) UNSUP(0x%08x, \"divide by zero\"); { i32 n = (i32)(((r_edx & 0xffffu) << 16) | (r_eax & 0xffffu)); i32 q = n / d; if (q != (i16)q) UNSUP(0x%08x, \"divide overflow\"); r_eax = (r_eax & 0xffff0000u) | ((u32)q & 0xffffu); r_edx = (r_edx & 0xffff0000u) | ((u32)(n %% d) & 0xffffu); } }" % (s, i.addr, i.addr)]
+            raise Unsupported(m + "16")
+        if bits == 8:
+            if m == "imul":
+                return ["{ i32 t = (i32)(i8)r_eax * (i32)(i8)%s; r_eax = (r_eax & 0xffff0000u) | ((u32)t & 0xffffu); fC = fO = (t != (i32)(i8)t); }" % s]
+            if m == "idiv":
+                return ["{ i32 d = (i8)%s; if (!d) UNSUP(0x%08x, \"divide by zero\"); { i32 n = (i16)r_eax; i32 q = n / d; if (q != (i8)q) UNSUP(0x%08x, \"divide overflow\"); r_eax = (r_eax & 0xffff0000u) | (((u32)(n %% d) & 0xffu) << 8) | ((u32)q & 0xffu); } }" % (s, i.addr, i.addr)]
+            if m == "mul":
+                return ["{ u32 t = (r_eax & 0xffu) * %s; r_eax = (r_eax & 0xffff0000u) | t; fC = fO = ((t >> 8) != 0); }" % s]
+            if m == "div":
+                return ["{ u32 d = %s; if (!d) UNSUP(0x%08x, \"divide by zero\"); { u32 n = r_eax & 0xffffu; u32 q = n / d; if (q >> 8) UNSUP(0x%08x, \"divide overflow\"); r_eax = (r_eax & 0xffff0000u) | ((n %% d) << 8) | q; } }" % (s, i.addr, i.addr)]
+            raise Unsupported(m + "8")
+        raise Unsupported(m)
+
+    def strop(self, i, m):
+        live = i.live_out
+        rep = m.startswith("rep")
+        base = m.split()[-1]
+        w = {"b": 1, "w": 2, "d": 4}[base[-1]] if base not in ("xlatb",) else 1
+        bits = w * 8
+        if base.startswith("movs"):
+            one = "W%d(r_edi, R%d(r_esi)); r_esi += rt_df ? -%d : %d; r_edi += rt_df ? -%d : %d;" % (bits, bits, w, w, w, w)
+            if rep:
+                return ["while (r_ecx) { %s r_ecx--; }" % one]
+            return [one]
+        if base.startswith("stos"):
+            val = {1: "(u8)r_eax", 2: "(u16)r_eax", 4: "r_eax"}[w]
+            one = "W%d(r_edi, %s); r_edi += rt_df ? -%d : %d;" % (bits, val, w, w)
+            if rep:
+                return ["while (r_ecx) { %s r_ecx--; }" % one]
+            return [one]
+        if base == "lodsb":
+            return ["r_eax = (r_eax & 0xffffff00u) | R8(r_esi); r_esi += rt_df ? -1 : 1;"]
+        if base == "lodsd":
+            return ["r_eax = R32(r_esi); r_esi += rt_df ? -4 : 4;"]
+        if base == "xlatb":
+            return ["r_eax = (r_eax & 0xffffff00u) | R8(r_ebx + (r_eax & 0xffu));"]
+        if base in ("scasb", "scasw", "scasd"):
+            fl = self.flagcode("sub", bits, set(ALLF) if m.startswith("rep") else live)
+            acc = {1: "r_eax & 0xffu", 2: "r_eax & 0xffffu", 4: "r_eax"}[w]
+            step = "{ u32 a = %s; u32 b = R%d(r_edi); u32 r = (a - b) & %s; r_edi += rt_df ? -%d : %d; %s }" % (
+                acc, bits, mask(bits), w, w, fl)
+            if m.startswith("repne"):
+                return ["while (r_ecx) { %s r_ecx--; if (fZ) break; }" % step]
+            if m.startswith("repe") or m.startswith("rep "):
+                return ["while (r_ecx) { %s r_ecx--; if (!fZ) break; }" % step]
+            return [step]
+        if base in ("cmpsb", "cmpsw", "cmpsd"):
+            fl = self.flagcode("sub", bits, set(ALLF) if m.startswith("rep") else live)
+            step = "{ u32 a = R%d(r_esi); u32 b = R%d(r_edi); u32 r = (a - b) & %s; r_esi += rt_df ? -%d : %d; r_edi += rt_df ? -%d : %d; %s }" % (
+                bits, bits, mask(bits), w, w, w, w, fl)
+            if m.startswith("repne"):
+                return ["while (r_ecx) { %s r_ecx--; if (fZ) break; }" % step]
+            if m.startswith("repe") or m.startswith("rep "):
+                return ["while (r_ecx) { %s r_ecx--; if (!fZ) break; }" % step]
+            return [step]
+        raise Unsupported(m)
+
+    # ---- x87 ----
+    def x87(self, i, m):
+        ops = i.ops
+        live = i.live_out
+
+        def isreg(o):
+            return o.type == X86_OP_REG and self.rname(o.reg).startswith("st")
+
+        def stn(o):
+            n = self.rname(o.reg)
+            return 0 if n == "st" else int(re.sub(r"[^0-9]", "", n))
+
+        def mem(o):
+            return o.type == X86_OP_MEM
+
+        if m in ("fld", "fst", "fstp") and ops:
+            o = ops[0]
+            if mem(o):
+                ad = self.addr_expr(o.mem)
+                sz = o.size
+                if m == "fld":
+                    rd = {4: "R_F32(%s)", 8: "R_F64(%s)", 10: "R_F80(%s)"}[sz] % ad
+                    return ["FPUSH(%s);" % rd]
+                wr = {4: "W_F32(%s, ST(0));", 8: "W_F64(%s, ST(0));", 10: "W_F80(%s, ST(0));"}[sz] % ad
+                return [wr + (" FPOP();" if m == "fstp" else "")]
+            n = stn(o)
+            if m == "fld":
+                return ["{ long double v = ST(%d); FPUSH(v); }" % n]
+            return ["ST(%d) = ST(0);%s" % (n, " FPOP();" if m == "fstp" else "")]
+        if m == "fild":
+            ad = self.addr_expr(ops[0].mem)
+            t = {2: "i16", 4: "i32", 8: "i64"}[ops[0].size]
+            return ["FPUSH((long double)(%s)R%d(%s));" % (t, ops[0].size * 8, ad)]
+        if m in ("fist", "fistp"):
+            ad = self.addr_expr(ops[0].mem)
+            n = ops[0].size
+            return ["W%d(%s, (u%d)fx_int%d(ST(0)));%s" % (n * 8, ad, n * 8, n * 8, " FPOP();" if m == "fistp" else "")]
+        consts = {"fldz": "0.0", "fld1": "1.0", "fldpi": "3.14159265358979323846", "fldln2": "0.69314718055994530942",
+                  "fldlg2": "0.30102999566398119521", "fldl2e": "1.44269504088896340736", "fldl2t": "3.32192809488736234787",
+                  "fldln2": "0.69314718055994530942"}
+        if m in consts:
+            return ["FPUSH(%s);" % consts[m]]
+        if m == "fxch":
+            n = stn(ops[-1]) if ops else 1
+            return ["{ long double t = ST(0); ST(0) = ST(%d); ST(%d) = t; }" % (n, n)]
+        if m == "fchs":
+            return ["ST(0) = -ST(0);"]
+        if m == "fabs":
+            return ["ST(0) = fabsl(ST(0));"]
+        if m == "fsqrt":
+            return ["ST(0) = sqrtl(ST(0));"]
+        if m == "frndint":
+            return ["ST(0) = fx_rint(ST(0));"]
+        arith = {"fadd": "+", "fsub": "-", "fsubr": "r-", "fmul": "*", "fdiv": "/", "fdivr": "r/",
+                 "faddp": "+", "fsubp": "-", "fsubrp": "r-", "fmulp": "*", "fdivp": "/", "fdivrp": "r/",
+                 "fiadd": "+", "fisub": "-", "fisubr": "r-", "fimul": "*", "fidiv": "/", "fidivr": "r/"}
+        if m in arith:
+            op = arith[m]
+            pop = m.endswith("p") and m not in ("fiadd",)
+            rev = op.startswith("r")
+            o = op[-1]
+
+            def comb(dst, src):
+                return ("%s = %s %s %s;" % (dst, src, o, dst)) if rev else ("%s = %s %s %s;" % (dst, dst, o, src))
+            if m.startswith("fi"):
+                ad = self.addr_expr(ops[0].mem)
+                t = {2: "i16", 4: "i32"}[ops[0].size]
+                return [comb("ST(0)", "(long double)(%s)R%d(%s)" % (t, ops[0].size * 8, ad))]
+            if ops and mem(ops[0]):
+                ad = self.addr_expr(ops[0].mem)
+                v = "R_F32(%s)" % ad if ops[0].size == 4 else "R_F64(%s)" % ad
+                return [comb("ST(0)", v)]
+            if len(ops) == 2:
+                d, s = stn(ops[0]), stn(ops[1])
+            elif len(ops) == 1:
+                d, s = (stn(ops[0]), 0) if pop else (0, stn(ops[0]))
+            else:
+                d, s = 1, 0
+            return [comb("ST(%d)" % d, "ST(%d)" % s) + (" FPOP();" if pop else "")]
+        if m in ("fcom", "fcomp", "fcompp", "fucom", "fucomp", "fucompp", "ficom", "ficomp", "fcompi", "ftst"):
+            if m == "ftst":
+                other = "0.0"
+            elif m in ("fcompp", "fucompp"):
+                other = "ST(1)"
+            elif m.startswith("fi"):
+                other = "(long double)(%s)R%d(%s)" % ({2: "i16", 4: "i32"}[ops[0].size], ops[0].size * 8, self.addr_expr(ops[0].mem))
+            elif ops and mem(ops[0]):
+                other = ("R_F32(%s)" if ops[0].size == 4 else "R_F64(%s)") % self.addr_expr(ops[0].mem)
+            elif ops:
+                other = "ST(%d)" % stn(ops[0])
+            else:
+                other = "ST(1)"
+            pops = "FPOP(); FPOP();" if m.endswith("pp") else ("FPOP();" if m.endswith("p") else "")
+            return ["fx_compare(ST(0), %s); %s" % (other, pops)]
+        if m == "fnstsw":
+            if ops and ops[0].type == X86_OP_REG:
+                return ["r_eax = (r_eax & 0xffff0000u) | fx_sw();"]
+            return ["W16(%s, fx_sw());" % self.addr_expr(ops[0].mem)]
+        if m == "fnstcw":
+            return ["W16(%s, fcw);" % self.addr_expr(ops[0].mem)]
+        if m == "fldcw":
+            return ["fcw = R16(%s);" % self.addr_expr(ops[0].mem)]
+        if m == "fninit":
+            return ["ftop = 0; fsw = 0; fcw = 0x37F;"]
+        if m == "fbstp":
+            return ["fx_bcd_store(%s, ST(0)); FPOP();" % self.addr_expr(ops[0].mem)]
+        if m == "fprem" or m == "fprem1":
+            return ["ST(0) = fmodl(ST(0), ST(1)); fsw &= ~0x400;"]
+        if m == "fscale":
+            return ["ST(0) = ldexpl(ST(0), (int)ST(1));"]
+        if m == "fsin":
+            return ["ST(0) = sinl(ST(0));"]
+        if m == "fcos":
+            return ["ST(0) = cosl(ST(0));"]
+        if m == "fyl2x":
+            return ["ST(1) = ST(1) * log2l(ST(0)); FPOP();"]
+        if m == "fpatan":
+            return ["ST(1) = atan2l(ST(1), ST(0)); FPOP();"]
+        if m == "f2xm1":
+            return ["ST(0) = exp2l(ST(0)) - 1.0;"]
+        if m == "fptan":
+            return ["ST(0) = tanl(ST(0)); FPUSH(1.0);"]
+        if m == "fsincos":
+            return ["{ long double v = ST(0); ST(0) = cosl(v); FPUSH(sinl(v)); }"]
+        if m in ("fcmovb", "fcmovbe", "fcmovnbe", "fcmove", "fcmovne", "fcmovu", "fcmovnb", "fcmovnu"):
+            n = stn(ops[-1]) if ops else 1
+            cond = {"fcmovb": "fC", "fcmovbe": "fC || fZ", "fcmovnbe": "!(fC || fZ)", "fcmove": "fZ",
+                    "fcmovne": "!fZ", "fcmovu": "fP", "fcmovnb": "!fC", "fcmovnu": "!fP"}[m]
+            return ["if (%s) ST(0) = ST(%d);" % (cond, n)]
+        if m == "fxsave":
+            return ['UNSUP(0x%08x, "fxsave");' % i.addr]
+        if m == "ffree":
+            return [";"]
+        raise Unsupported(m)
+
+    # ---- SSE / SSE2 (the subset the image uses) ----
+    SSE_MN = {
+        "movapd", "movaps", "movupd", "movups", "movdqa", "movdqu", "movsd", "movlpd", "movhpd", "movd", "movq",
+        "addsd", "subsd", "mulsd", "divsd", "minsd", "maxsd", "sqrtsd", "addpd", "subpd", "mulpd", "divpd",
+        "andpd", "andnpd", "orpd", "xorpd", "pand", "pandn", "por", "pxor", "unpcklpd", "unpckhpd", "shufpd",
+        "pshufd", "pcmpeqd", "psubd", "paddd", "paddq", "psubq", "pmaxsw", "pextrw", "pinsrw", "pmovmskb",
+        "psrlq", "psllq", "comisd", "ucomisd", "cvtsi2sd", "cvtsd2si", "cvttsd2si", "cvtdq2pd", "stmxcsr", "ldmxcsr",
+    }
+    CMP_PRED = {"eq": "a == b", "lt": "a < b", "le": "a <= b", "unord": "(a != a || b != b)", "neq": "!(a == b)",
+                "nlt": "!(a < b)", "nle": "!(a <= b)", "ord": "(a == a && b == b)"}
+
+    SSE1_MN = {
+        "movss", "addss", "subss", "mulss", "divss", "minss", "maxss", "sqrtss", "rcpss", "rsqrtss",
+        "addps", "subps", "mulps", "divps", "minps", "maxps", "sqrtps", "rcpps", "rsqrtps",
+        "andps", "orps", "xorps", "andnps", "unpcklps", "unpckhps", "shufps",
+        "movhps", "movlps", "movhlps", "movlhps", "comiss", "ucomiss",
+        "cvtsi2ss", "cvtss2si", "cvttss2si", "movmskps", "movmskpd",
+    }
+    MMX_MN = {
+        "movq", "movd", "paddb", "paddw", "paddd", "psubb", "psubw", "psubd", "paddsb", "paddsw",
+        "paddusb", "paddusw", "psubsb", "psubsw", "psubusb", "psubusw", "pand", "pandn", "por", "pxor",
+        "pcmpeqb", "pcmpeqw", "pcmpeqd", "pcmpgtb", "pcmpgtw", "pcmpgtd", "pmullw", "pmulhw", "pmaddwd",
+        "packsswb", "packssdw", "packuswb", "punpcklbw", "punpcklwd", "punpckldq", "punpckhbw", "punpckhwd",
+        "punpckhdq", "psllw", "pslld", "psllq", "psrlw", "psrld", "psrlq", "psraw", "psrad", "pslldq", "psrldq",
+        "pmovmskb", "movntq", "movntdq", "pmaxsw", "pminsw",
+    }
+    NOW3D_MN = {
+        "pfadd", "pfsub", "pfsubr", "pfmul", "pfacc", "pfpnacc", "pfnacc", "pfmax", "pfmin",
+        "pfcmpge", "pfcmpgt", "pfcmpeq", "pfrcp", "pfrsqrt", "pfrcpit1", "pfrcpit2", "pfrsqit1",
+        "pf2id", "pf2iw", "pi2fd", "pswapd",
+    }
+
+    def ism(self, o):
+        return o.type == X86_OP_REG and self.rname(o.reg).startswith("mm")
+
+    def mi(self, o):
+        return int(self.rname(o.reg)[2:])
+
+    def now3d(self, i):
+        m, ops = i.mn, i.ops
+        d = ops[0]
+        xd = self.isx(d)
+
+        def rd(o):
+            if self.ism(o):
+                return "(u64)(i64)fpr[%d]" % self.mi(o)
+            if self.isx(o):
+                return "xmm[%d].q[0]" % self.xi(o)
+            return "R64(%s)" % self.addr_expr(o.mem)
+
+        def wr(v):
+            if self.ism(d):
+                return "fpr[%d] = (long double)(i64)(%s);" % (self.mi(d), v)
+            if xd:
+                return "xmm[%d].q[0] = %s;" % (self.xi(d), v)
+            return "W64(%s, %s);" % (self.addr_expr(d.mem), v)
+
+        if m == "pswapd":
+            return ["{ MM64 a; a.q = %s; MM64 r; r.d[0] = a.d[1]; r.d[1] = a.d[0]; %s }" % (rd(d), wr("r.q"))]
+        un = {"pfrcp": "rt_pf_rcp", "pfrsqrt": "rt_pf_rsqrt", "pf2id": "rt_pf2id", "pf2iw": "rt_pf2iw", "pi2fd": "rt_pi2fd"}
+        if m in un:
+            return ["{ u64 r = %s(%s); %s }" % (un[m], rd(d), wr("r"))]
+        bi = {"pfadd": "rt_pf_+", "pfsub": "rt_pf_-", "pfmul": "rt_pf_*"}
+        fn = {"pfadd": "rt_pf_+", "pfsub": "rt_pf_-", "pfmul": "rt_pf_*",
+              "pfsubr": "rt_pf_subr", "pfacc": "rt_pf_acc", "pfpnacc": "rt_pf_pnacc", "pfnacc": "rt_pf_nacc",
+              "pfmax": "rt_pf_max", "pfmin": "rt_pf_min", "pfcmpge": "rt_pf_cmpge", "pfcmpgt": "rt_pf_cmpgt",
+              "pfcmpeq": "rt_pf_cmpeq", "pfrcpit1": "rt_pf_rcpit1", "pfrcpit2": "rt_pf_rcpit2",
+              "pfrsqit1": "rt_pf_rsqit1"}[m]
+        sym = {"+": "rt_pf_add", "-": "rt_pf_sub", "*": "rt_pf_mul"}.get(fn[-1]) if fn.startswith("rt_pf_") else None
+        call = sym if sym else fn
+        return ["{ u64 r = %s(%s, %s); %s }" % (call, rd(d), rd(ops[1]), wr("r"))]
+
+    def mmx(self, i):
+        m, ops = i.mn, i.ops
+        d = ops[0]
+        xd = self.isx(d)
+        width = 128 if xd else 64
+
+        def rd(o):
+            if self.ism(o):
+                return "(u64)(i64)fpr[%d]" % self.mi(o)
+            if self.isx(o):
+                return "xmm[%d].q[0]" % self.xi(o)
+            return "R64(%s)" % self.addr_expr(o.mem)
+
+        def wr(v):
+            if self.ism(d):
+                return "fpr[%d] = (long double)(i64)(%s);" % (self.mi(d), v)
+            return "W64(%s, %s);" % (self.addr_expr(d.mem), v)
+
+        if m == "movd":
+            if self.ism(d):
+                return ["{ u64 v = %s; fpr[%d] = (long double)(i64)v; }" % (self.read(ops[1], 32), self.mi(d))]
+            if self.ism(ops[1]):
+                return [self.write(d, "(u32)(u64)(i64)fpr[%d]" % self.mi(ops[1]), 32)]
+            if xd:
+                return ["{ u32 v = %s; xmm[%d].d[0] = v; xmm[%d].d[1] = 0; xmm[%d].d[2] = 0; xmm[%d].d[3] = 0; }" % (
+                    self.read(ops[1], 32), self.xi(d), self.xi(d), self.xi(d), self.xi(d))]
+            return [self.write(d, "xmm[%d].d[0]" % self.xi(ops[1]), 32)]
+        if m == "movq":
+            if self.ism(d):
+                return ["{ MM64 r; r.q = %s; %s }" % (rd(ops[1]), wr("r.q"))]
+            if xd and not self.isx(ops[1]):
+                return ["{ xmm[%d].q[0] = R64(%s); xmm[%d].q[1] = 0; }" % (self.xi(d), self.addr_expr(ops[1].mem), self.xi(d))]
+            if xd:
+                return ["{ xmm[%d].q[0] = %s.q[0]; xmm[%d].q[1] = 0; }" % (self.xi(d), "xmm[%d]" % self.xi(ops[1]), self.xi(d))]
+            if self.ism(ops[1]):
+                return ["{ MM64 r; r.q = (u64)(i64)fpr[%d]; W64(%s, r.q); }" % (self.mi(ops[1]), self.addr_expr(d.mem))]
+            return ["W64(%s, xmm[%d].q[0]);" % (self.addr_expr(d.mem), self.xi(ops[1]))]
+        if m in ("movntq", "movntdq"):
+            if self.ism(ops[1]):
+                return ["{ MM64 r; r.q = (u64)(i64)fpr[%d]; W64(%s, r.q); }" % (self.mi(ops[1]), self.addr_expr(d.mem))]
+            if m == "movntdq":
+                return ["memcpy((void *)(uintptr_t)%s, &xmm[%d], 16);" % (self.addr_expr(d.mem), self.xi(ops[1]))]
+            return ["W64(%s, xmm[%d].q[0]);" % (self.addr_expr(d.mem), self.xi(ops[1]))]
+        if m == "pmovmskb":
+            base = self.xi(ops[1]) if self.isx(ops[1]) else None
+            if base is not None:
+                bits = " | ".join("((u32)(xmm[%d].b[%d] >> 7) << %d)" % (base, k, k) for k in range(16))
+            else:
+                bits = " | ".join("((u32)((u8)(((u64)(i64)fpr[%d]) >> (%d*8)) >> 7) << %d)" % (self.mi(ops[1]), k, k) for k in range(8))
+            return [self.write(d, bits, 32)]
+        two = len(ops) > 1
+        pre = "MM64 a; a.q = %s;" % rd(d)
+        if two:
+            pre += " MM64 b; b.q = %s;" % rd(ops[1])
+        body = []
+        lanes8, lanes16, lanes32 = 8 if width == 128 else 4, 4 if width == 128 else 2, 4 if width == 128 else 2
+        if m in ("paddb", "paddw", "paddd", "psubb", "psubw", "psubd", "paddsb", "paddsw", "paddusb", "paddusw",
+                 "psubsb", "psubsw", "psubusb", "psubusw"):
+            n = {"b": 8, "w": 4, "d": 2}[m[-1]]
+            arr = {"b": "b", "w": "w", "d": "d"}[m[-1]]
+            op = "+" if "add" in m else "-"
+            for k in range(n):
+                if m.endswith("sb"):
+                    body.append("r.%s[%d] = (u8)(i8)rt_sat8((i32)(i8)a.%s[%d] %s (i32)(i8)b.%s[%d]);" % (arr, k, arr, k, op, arr, k))
+                elif m.endswith("sw"):
+                    body.append("r.%s[%d] = (u16)(i16)rt_sat16((i32)(i16)a.%s[%d] %s (i32)(i16)b.%s[%d]);" % (arr, k, arr, k, op, arr, k))
+                elif m.endswith("usb"):
+                    body.append("r.%s[%d] = rt_satu8((i32)a.b[%d] %s (i32)b.b[%d]);" % (arr, k, k, op, k))
+                elif m.endswith("usw"):
+                    body.append("r.%s[%d] = rt_satu16((i32)a.w[%d] %s (i32)b.w[%d]);" % (arr, k, k, op, k))
+                else:
+                    body.append("r.%s[%d] = a.%s[%d] %s b.%s[%d];" % (arr, k, arr, k, op, arr, k))
+        elif m in ("pand", "pandn", "por", "pxor"):
+            e = {"pand": "a.q & b.q", "pandn": "~a.q & b.q", "por": "a.q | b.q", "pxor": "a.q ^ b.q"}[m]
+            body.append("r.q = %s;" % e)
+        elif m in ("pcmpeqb", "pcmpeqw", "pcmpeqd", "pcmpgtb", "pcmpgtw", "pcmpgtd"):
+            arr = {"b": "b", "w": "w", "d": "d"}[m[-1]]
+            n = {"b": 8, "w": 4, "d": 2}[m[-1]]
+            cmp = "==" if "eq" in m else ">"
+            signed = "eq" not in m
+            for k in range(n):
+                if signed:
+                    body.append("r.%s[%d] = ((i%d)a.%s[%d] %s (i%d)b.%s[%d]) ? ~0u : 0;" % (arr, k, 32 if arr == "d" else (16 if arr == "w" else 8), arr, k, cmp, 32 if arr == "d" else (16 if arr == "w" else 8), arr, k))
+                else:
+                    body.append("r.%s[%d] = (a.%s[%d] == b.%s[%d]) ? ~0u : 0;" % (arr, k, arr, k, arr, k))
+        elif m == "pmullw":
+            n = 4
+            for k in range(n):
+                body.append("r.w[%d] = (u16)(a.w[%d] * b.w[%d]);" % (k, k, k))
+        elif m == "pmulhw":
+            n = 4
+            for k in range(n):
+                body.append("r.w[%d] = (u16)(((i32)(i16)a.w[%d] * (i32)(i16)b.w[%d]) >> 16);" % (k, k, k))
+        elif m == "pmaddwd":
+            body.append("r.sd[0] = (i32)(i16)a.w[0] * (i32)(i16)b.w[0] + (i32)(i16)a.w[1] * (i32)(i16)b.w[1];")
+            body.append("r.sd[1] = (i32)(i16)a.w[2] * (i32)(i16)b.w[2] + (i32)(i16)a.w[3] * (i32)(i16)b.w[3];")
+        elif m == "pmaxsw" or m == "pminsw":
+            op = ">" if m == "pmaxsw" else "<"
+            n = 4
+            for k in range(n):
+                body.append("r.w[%d] = ((i16)a.w[%d] %s (i16)b.w[%d]) ? a.w[%d] : b.w[%d];" % (k, k, op, k, k, k))
+        elif m in ("punpcklbw", "punpcklwd", "punpckldq", "punpckhbw", "punpckhwd", "punpckhdq"):
+            unit = {"bw": "b", "wd": "w", "dq": "d"}[m[-2:]]
+            n = {"b": 8, "w": 4, "d": 2}[unit]
+            half = n // 2
+            off = half if "h" in m[6:8] else 0
+            if width == 128:
+                if self.isx(ops[1]):
+                    pre2 = "XMM A = xmm[%d]; XMM B = xmm[%d];" % (self.xi(d), self.xi(ops[1]))
+                else:
+                    pre2 = "XMM A = xmm[%d]; XMM B; memcpy(&B, (void *)(uintptr_t)%s, 16);" % (self.xi(d), self.addr_expr(ops[1].mem))
+                enc = []
+                for k in range(half):
+                    enc.append("xmm[%d].%s[%d] = A.%s[%d];" % (self.xi(d), unit, 2 * k, unit, off + k))
+                    enc.append("xmm[%d].%s[%d] = B.%s[%d];" % (self.xi(d), unit, 2 * k + 1, unit, off + k))
+                step = 2 * half
+                for k in range(half):
+                    enc.append("xmm[%d].%s[%d] = A.%s[%d];" % (self.xi(d), unit, step + 2 * k, unit, half + off + k))
+                    enc.append("xmm[%d].%s[%d] = B.%s[%d];" % (self.xi(d), unit, step + 2 * k + 1, unit, half + off + k))
+                return ["{ %s %s }" % (pre2, " ".join(enc))]
+            for k in range(half):
+                body.append("r.%s[%d] = a.%s[%d];" % (unit, 2 * k, unit, off + k))
+                body.append("r.%s[%d] = b.%s[%d];" % (unit, 2 * k + 1, unit, off + k))
+        elif m in ("packssdw", "packsswb", "packuswb"):
+            fn = "rt_sat8" if m == "packsswb" else "rt_satu8"
+            if width == 128:
+                if self.isx(ops[1]):
+                    pre2 = "XMM A = xmm[%d]; XMM B = xmm[%d];" % (self.xi(d), self.xi(ops[1]))
+                else:
+                    pre2 = "XMM A = xmm[%d]; XMM B; memcpy(&B, (void *)(uintptr_t)%s, 16);" % (self.xi(d), self.addr_expr(ops[1].mem))
+                if m == "packssdw":
+                    enc = ["xmm[%d].w[%d] = (u16)rt_sat16((i32)A.d[%d]);" % (self.xi(d), k, k) for k in range(4)] + \
+                          ["xmm[%d].w[%d] = (u16)rt_sat16((i32)B.d[%d]);" % (self.xi(d), 4 + k, k) for k in range(4)]
+                else:
+                    enc = ["xmm[%d].b[%d] = (u8)%s((i32)(i16)A.w[%d]);" % (self.xi(d), k, fn, k) for k in range(8)] + \
+                          ["xmm[%d].b[%d] = (u8)%s((i32)(i16)B.w[%d]);" % (self.xi(d), 8 + k, fn, k) for k in range(8)]
+                return ["{ %s %s }" % (pre2, " ".join(enc))]
+            if m == "packssdw":
+                for k in range(2):
+                    body.append("r.w[%d] = (u16)rt_sat16((i32)a.d[%d]);" % (k, k))
+                    body.append("r.w[%d] = (u16)rt_sat16((i32)b.d[%d]);" % (2 + k, k))
+            else:
+                for k in range(4):
+                    body.append("r.b[%d] = (u8)%s((i32)(i16)a.w[%d]);" % (k, fn, k))
+                    body.append("r.b[%d] = (u8)%s((i32)(i16)b.w[%d]);" % (4 + k, fn, k))
+        elif m in ("psllw", "pslld", "psllq", "psrlw", "psrld", "psrlq", "psraw", "psrad"):
+            unit = m[-1]
+            if ops[1].type == X86_OP_IMM:
+                cnt = "0x%xu" % (ops[1].imm & 0xff)
+            else:
+                cnt = "(u32)(0xffu & %s)" % rd(ops[1])
+            left = "psll" in m
+            arith = m == "psrad"
+            maxb = {"w": 16, "d": 32, "q": 64}[unit]
+            n = {"w": 4, "d": 2, "q": 1}[unit]
+            for k in range(n):
+                if unit == "q":
+                    body.append("r.q = c > 63 ? 0 : (a.q %s c);" % ("<<" if left else ">>"))
+                else:
+                    if arith:
+                        body.append("r.%s[%d] = c > 31 ? (u32)((i32)a.%s[%d] >> 31) : (u32)((i32)a.%s[%d] >> c);" % (unit, k, unit, k, unit, k) if unit == "d" else "")
+                    else:
+                        body.append("r.%s[%d] = c >= %d ? 0 : (a.%s[%d] %s c);" % (unit, k, maxb, unit, k, "<<" if left else ">>"))
+            if arith and unit == "d":
+                n = 2
+                body = ["r.d[%d] = c > 31 ? (u32)((i32)a.d[%d] >> 31) : (u32)((i32)a.d[%d] >> c);" % (k, k, k) for k in range(n)]
+            body.insert(0, "u32 c = %s;" % cnt)
+        elif m in ("pslldq", "psrldq"):
+            imm = ops[1].imm & 0xff
+            body = ["{ u64 lo = xmm[%d].q[0], hi = xmm[%d].q[1];" % (self.xi(d), self.xi(d))]
+            if m == "pslldq":
+                body.append("if (%d >= 16) { xmm[%d].q[0] = 0; xmm[%d].q[1] = 0; } else { xmm[%d].q[0] = lo << (%d * 8); xmm[%d].q[1] = %d ? (hi << (%d * 8)) | (lo >> (64 - (%d * 8))) : hi; }" % (
+                    imm, self.xi(d), self.xi(d), self.xi(d), imm, self.xi(d), imm, imm, imm))
+            else:
+                body.append("if (%d >= 16) { xmm[%d].q[0] = 0; xmm[%d].q[1] = 0; } else { xmm[%d].q[0] = %d ? (lo >> (%d * 8)) | (hi << (64 - (%d * 8))) : lo; xmm[%d].q[1] = hi >> (%d * 8); }" % (
+                    imm, self.xi(d), self.xi(d), self.xi(d), imm, imm, imm, self.xi(d), imm))
+            body.append("}")
+            return [" ".join(body)]
+        else:
+            raise Unsupported(m)
+        if width == 128:
+            # apply the 64-bit body to both halves
+            stmts = []
+            for half in (0, 1):
+                srcq = ("xmm[%d].q[%d]" % (self.xi(ops[1]), half)) if len(ops) > 1 and self.isx(ops[1]) else (
+                    "R64(%s)" % self.addr_expr(ops[1].mem) if len(ops) > 1 else "0")
+                stmts.append("{ MM64 a; a.q = xmm[%d].q[%d]; MM64 b; b.q = %s; MM64 r; %s xmm[%d].q[%d] = r.q; }" % (
+                    self.xi(d), half, srcq, " ".join(body), self.xi(d), half))
+            return [" ".join(stmts)]
+        return ["{ %s MM64 r; %s %s }" % (pre, " ".join(body), wr("r.q"))]
+
+    def sse1(self, i):
+        m, ops = i.mn, i.ops
+        d = ops[0]
+        X = lambda o: "xmm[%d]" % self.xi(o)
+
+        def ld(o):
+            if self.isx(o):
+                return "XMM s = %s;" % X(o)
+            if o.size == 4 or o.size == 1:
+                return "XMM s; s.d[0] = R32(%s); s.d[1] = 0; s.d[2] = 0; s.d[3] = 0;" % self.addr_expr(o.mem)
+            if o.size == 8:
+                return "XMM s; s.q[0] = R64(%s); s.q[1] = 0;" % self.addr_expr(o.mem)
+            return "XMM s; memcpy(&s, (void *)(uintptr_t)%s, 16);" % self.addr_expr(o.mem)
+
+        if m == "movss":
+            if self.isx(d) and self.isx(ops[1]):
+                return ["%s.d[0] = %s.d[0];" % (X(d), X(ops[1]))]
+            if self.isx(d):
+                return ["{ u32 v = R32(%s); %s.d[0] = v; %s.d[1] = 0; %s.d[2] = 0; %s.d[3] = 0; }" % (
+                    self.addr_expr(ops[1].mem), X(d), X(d), X(d), X(d))]
+            return ["W32(%s, %s.d[0]);" % (self.addr_expr(d.mem), X(ops[1]))]
+        if m in ("movlps", "movhps"):
+            lane = 0 if m == "movlps" else 1
+            if self.isx(d):
+                return ["%s.q[%d] = R64(%s);" % (X(d), lane, self.addr_expr(ops[1].mem))]
+            return ["W64(%s, %s.q[%d]);" % (self.addr_expr(d.mem), X(ops[1]), lane)]
+        if m == "movhlps":
+            return ["%s.q[0] = %s.q[1];" % (X(d), X(ops[1]))]
+        if m == "movlhps":
+            return ["%s.q[1] = %s.q[0];" % (X(d), X(ops[1]))]
+        if m in ("addss", "subss", "mulss", "divss", "minss", "maxss"):
+            op = {"addss": "+", "subss": "-", "mulss": "*", "divss": "/"}[m] if m in ("addss", "subss", "mulss", "divss") else None
+            if op:
+                return ["{ %s %s.fs[0] = %s.fs[0] %s s.fs[0]; }" % (ld(ops[1]), X(d), X(d), op)]
+            cmp = "<" if m == "minss" else ">"
+            return ["{ %s %s.fs[0] = (%s.fs[0] %s s.fs[0]) ? %s.fs[0] : s.fs[0]; }" % (ld(ops[1]), X(d), X(d), cmp, X(d))]
+        if m in ("addps", "subps", "mulps", "divps", "minps", "maxps"):
+            op = {"addps": "+", "subps": "-", "mulps": "*", "divps": "/"}.get(m)
+            if op:
+                body = " ".join("%s.fs[%d] = %s.fs[%d] %s s.fs[%d];" % (X(d), k, X(d), k, op, k) for k in range(4))
+            else:
+                cmp = "<" if m == "minps" else ">"
+                body = " ".join("%s.fs[%d] = (%s.fs[%d] %s s.fs[%d]) ? %s.fs[%d] : s.fs[%d];" % (X(d), k, X(d), k, cmp, k, X(d), k, k) for k in range(4))
+            return ["{ %s %s }" % (ld(ops[1]), body)]
+        if m == "sqrtss":
+            return ["{ %s %s.fs[0] = sqrtf(s.fs[0]); }" % (ld(ops[1]), X(d))]
+        if m == "sqrtps":
+            return ["{ %s %s }" % (ld(ops[1]), " ".join("%s.fs[%d] = sqrtf(s.fs[%d]);" % (X(d), k, k) for k in range(4)))]
+        if m in ("rcpss", "rsqrtss", "rcpps", "rsqrtps"):
+            n = 1 if m.endswith("ss") else 4
+            if m.startswith("rcp"):
+                body = " ".join("%s.fs[%d] = 1.0f / s.fs[%d];" % (X(d), k, k) for k in range(n))
+            else:
+                body = " ".join("%s.fs[%d] = 1.0f / sqrtf(s.fs[%d]);" % (X(d), k, k) for k in range(n))
+            return ["{ %s %s }" % (ld(ops[1]), body)]
+        if m in ("andps", "orps", "xorps", "andnps"):
+            e = {"andps": "a & b", "orps": "a | b", "xorps": "a ^ b", "andnps": "~a & b"}[m]
+            return ["{ %s %s.q[0] = %s; %s.q[1] = %s; }" % (ld(ops[1]), X(d), e.replace("a", X(d) + ".q[0]").replace("b", "s.q[0]"),
+                                                            X(d), e.replace("a", X(d) + ".q[1]").replace("b", "s.q[1]"))]
+        if m == "shufps":
+            imm = ops[2].imm
+            return ["{ %s u32 lo = %s.d[%d]; u32 lo2 = %s.d[%d]; u32 hi = s.d[%d]; u32 hi2 = s.d[%d]; "
+                    "%s.d[0] = lo; %s.d[1] = lo2; %s.d[2] = hi; %s.d[3] = hi2; }" % (
+                        ld(ops[1]), X(d), imm & 3, X(d), (imm >> 2) & 3, (imm >> 4) & 3, (imm >> 6) & 3,
+                        X(d), X(d), X(d), X(d))]
+        if m == "unpcklps":
+            return ["{ %s u32 a0 = %s.d[0], a1 = %s.d[1]; %s.d[0] = a0; %s.d[1] = s.d[0]; %s.d[2] = a1; %s.d[3] = s.d[1]; }" % (
+                ld(ops[1]), X(d), X(d), X(d), X(d), X(d), X(d))]
+        if m == "unpckhps":
+            return ["{ %s u32 a0 = %s.d[2], a1 = %s.d[3]; %s.d[0] = a0; %s.d[1] = s.d[2]; %s.d[2] = a1; %s.d[3] = s.d[3]; }" % (
+                ld(ops[1]), X(d), X(d), X(d), X(d), X(d), X(d))]
+        if m in ("comiss", "ucomiss"):
+            return ["{ %s float a = %s.fs[0]; float b = s.fs[0]; fO = 0; fS = 0; fA = 0; "
+                    "if (a != a || b != b) { fZ = 1; fP = 1; fC = 1; } else if (a > b) { fZ = 0; fP = 0; fC = 0; } "
+                    "else if (a < b) { fZ = 0; fP = 0; fC = 1; } else { fZ = 1; fP = 0; fC = 0; } }" % (ld(ops[1]), X(d))]
+        if m == "cvtsi2ss":
+            return ["%s.fs[0] = (float)(i32)(%s);" % (X(d), self.read(ops[1], 32) if ops[1].type != X86_OP_MEM else "R32(%s)" % self.addr_expr(ops[1].mem))]
+        if m in ("cvtss2si", "cvttss2si"):
+            return ["{ %s double v = (double)s.fs[0]; double r = %s; %s }" % (
+                ld(ops[1]), "fx_rint_mx(v)" if m == "cvtss2si" else "trunc(v)",
+                self.write(d, "(r >= -2147483648.0 && r < 2147483648.0) ? (u32)(i32)r : 0x80000000u", 32))]
+        if m.startswith("cmp") and m[-2:] in ("ps", "ss"):
+            pred = m[3:-2]
+            cond = self.CMP_PRED[pred]
+            if m[-2:] == "ss":
+                return ["{ %s float a = %s.fs[0]; float b = s.fs[0]; %s.d[0] = (%s) ? 0xffffffffu : 0; }" % (
+                    ld(ops[1]), X(d), X(d), cond)]
+            body = " ".join("%s.d[%d] = (%s) ? 0xffffffffu : 0;" % (X(d), k, cond.replace("a", "%s.fs[%d]" % (X(d), k)).replace("b", "s.fs[%d]" % k)) for k in range(4))
+            return ["{ %s %s }" % (ld(ops[1]), body)]
+        if m == "movmskps":
+            bits = " | ".join("((%s.d[%d] >> 31) << %d)" % (X(ops[1]), k, k) for k in range(4))
+            return [self.write(d, bits, 32)]
+        if m == "movmskpd":
+            bits = " | ".join("((%s.d[%d] >> 31) << %d)" % (X(ops[1]), k * 2 + 1, k) for k in range(2))
+            return [self.write(d, bits, 32)]
+        raise Unsupported(m)
+
+    def isx(self, o):
+        return o.type == X86_OP_REG and self.rname(o.reg).startswith("xmm")
+
+    def xi(self, o):
+        return int(self.rname(o.reg)[3:])
+
+    def is_sse(self, i):
+        m = i.mn
+        if m in self.SSE1_MN:
+            return True
+        if m.startswith("cmp") and len(m) > 5 and m[-2:] in ("sd", "pd", "ps", "ss") and m[3:-2] in self.CMP_PRED:
+            return True
+        if m in self.SSE_MN:
+            return any(self.isx(o) for o in i.ops) or m in ("stmxcsr", "ldmxcsr", "cvtsd2si", "cvttsd2si", "cvtsi2sd")
+        return False
+
+    def sse(self, i):
+        m = i.mn
+        ops = i.ops
+
+        def X(o):
+            return "xmm[%d]" % self.xi(o)
+
+        def load_s(o, nbytes):
+            if self.isx(o):
+                return "XMM s = %s;" % X(o)
+            a = self.addr_expr(o.mem)
+            if nbytes == 16:
+                return "XMM s; memcpy(&s, (void *)(uintptr_t)%s, 16);" % a
+            if nbytes == 8:
+                return "XMM s; s.q[0] = R64(%s); s.q[1] = 0;" % a
+            return "XMM s; s.q[0] = 0; s.q[1] = 0; s.d[0] = R32(%s);" % a
+
+        d = ops[0]
+        if m in ("movapd", "movaps", "movupd", "movups", "movdqa", "movdqu"):
+            if self.isx(d):
+                return ["{ %s %s = s; }" % (load_s(ops[1], 16), X(d))]
+            return ["memcpy((void *)(uintptr_t)%s, &%s, 16);" % (self.addr_expr(d.mem), X(ops[1]))]
+        if m == "movsd":
+            if self.isx(d) and self.isx(ops[1]):
+                return ["%s.q[0] = %s.q[0];" % (X(d), X(ops[1]))]
+            if self.isx(d):
+                return ["{ %s.q[0] = R64(%s); %s.q[1] = 0; }" % (X(d), self.addr_expr(ops[1].mem), X(d))]
+            return ["W64(%s, %s.q[0]);" % (self.addr_expr(d.mem), X(ops[1]))]
+        if m in ("movlpd", "movhpd"):
+            lane = 0 if m == "movlpd" else 1
+            if self.isx(d):
+                return ["%s.q[%d] = R64(%s);" % (X(d), lane, self.addr_expr(ops[1].mem))]
+            return ["W64(%s, %s.q[%d]);" % (self.addr_expr(d.mem), X(ops[1]), lane)]
+        if m == "movd":
+            if self.isx(d):
+                src = self.read(ops[1], 32)
+                return ["{ u32 v = %s; %s.d[0] = v; %s.d[1] = 0; %s.q[1] = 0; }" % (src, X(d), X(d), X(d))]
+            return [self.write(d, "%s.d[0]" % X(ops[1]), 32)]
+        if m == "movq":
+            if self.isx(d):
+                return ["{ %s %s.q[0] = s.q[0]; %s.q[1] = 0; }" % (load_s(ops[1], 8), X(d), X(d))]
+            return ["W64(%s, %s.q[0]);" % (self.addr_expr(d.mem), X(ops[1]))]
+        sc = {"addsd": "+", "subsd": "-", "mulsd": "*", "divsd": "/"}
+        if m in sc:
+            return ["{ %s %s.f[0] = %s.f[0] %s s.f[0]; }" % (load_s(ops[1], 8), X(d), X(d), sc[m])]
+        if m in ("minsd", "maxsd"):
+            op = "<" if m == "minsd" else ">"
+            return ["{ %s %s.f[0] = (%s.f[0] %s s.f[0]) ? %s.f[0] : s.f[0]; }" % (load_s(ops[1], 8), X(d), X(d), op, X(d))]
+        if m == "sqrtsd":
+            return ["{ %s %s.f[0] = sqrt(s.f[0]); }" % (load_s(ops[1], 8), X(d))]
+        pc = {"addpd": "+", "subpd": "-", "mulpd": "*", "divpd": "/"}
+        if m in pc:
+            return ["{ %s %s.f[0] = %s.f[0] %s s.f[0]; %s.f[1] = %s.f[1] %s s.f[1]; }" % (load_s(ops[1], 16), X(d), X(d), pc[m], X(d), X(d), pc[m])]
+        lg = {"andpd": "{D} & {S}", "orpd": "{D} | {S}", "xorpd": "{D} ^ {S}", "andnpd": "~{D} & {S}",
+              "pand": "{D} & {S}", "por": "{D} | {S}", "pxor": "{D} ^ {S}", "pandn": "~{D} & {S}"}
+        if m in lg:
+            e0 = lg[m].format(D=X(d) + ".q[0]", S="s.q[0]")
+            e1 = lg[m].format(D=X(d) + ".q[1]", S="s.q[1]")
+            return ["{ %s %s.q[0] = %s; %s.q[1] = %s; }" % (load_s(ops[1], 16), X(d), e0, X(d), e1)]
+        if m == "unpcklpd":
+            return ["{ %s %s.f[1] = s.f[0]; }" % (load_s(ops[1], 16), X(d))]
+        if m == "unpckhpd":
+            return ["{ %s %s.f[0] = %s.f[1]; %s.f[1] = s.f[1]; }" % (load_s(ops[1], 16), X(d), X(d), X(d))]
+        if m == "shufpd":
+            imm = ops[2].imm
+            return ["{ %s double lo = %s.f[%d]; double hi = s.f[%d]; %s.f[0] = lo; %s.f[1] = hi; }" % (load_s(ops[1], 16), X(d), imm & 1, (imm >> 1) & 1, X(d), X(d))]
+        if m == "pshufd":
+            imm = ops[2].imm
+            return ["{ %s XMM r; r.d[0] = s.d[%d]; r.d[1] = s.d[%d]; r.d[2] = s.d[%d]; r.d[3] = s.d[%d]; %s = r; }" % (
+                load_s(ops[1], 16), imm & 3, (imm >> 2) & 3, (imm >> 4) & 3, (imm >> 6) & 3, X(d))]
+        lane32 = {"pcmpeqd": "(%s.d[{k}] == s.d[{k}]) ? 0xffffffffu : 0", "psubd": "%s.d[{k}] - s.d[{k}]", "paddd": "%s.d[{k}] + s.d[{k}]"}
+        if m in lane32:
+            body = " ".join(("%s.d[%d] = " % (X(d), k)) + (lane32[m].replace("{k}", str(k)) % X(d)) + ";" for k in range(4))
+            return ["{ %s %s }" % (load_s(ops[1], 16), body)]
+        if m in ("paddq", "psubq"):
+            op = "+" if m == "paddq" else "-"
+            return ["{ %s %s.q[0] %s= s.q[0]; %s.q[1] %s= s.q[1]; }" % (load_s(ops[1], 16), X(d), op, X(d), op)]
+        if m == "pmaxsw":
+            body = " ".join("if ((i16)s.w[%d] > (i16)%s.w[%d]) %s.w[%d] = s.w[%d];" % (k, X(d), k, X(d), k, k) for k in range(8))
+            return ["{ %s %s }" % (load_s(ops[1], 16), body)]
+        if m == "pextrw":
+            return [self.write(d, "(u32)%s.w[%d]" % (X(ops[1]), ops[2].imm & 7), 32)]
+        if m == "pinsrw":
+            if ops[1].type == X86_OP_MEM:
+                src = "R16(%s)" % self.addr_expr(ops[1].mem)
+            else:
+                src = "r_" + regparts(self.rname(ops[1].reg))[0]
+            return ["%s.w[%d] = (u16)(%s);" % (X(d), ops[2].imm & 7, src)]
+        if m == "pmovmskb":
+            bits = " | ".join("((u32)(%s.b[%d] >> 7) << %d)" % (X(ops[1]), k, k) for k in range(16))
+            return [self.write(d, bits, 32)]
+        if m in ("psrlq", "psllq"):
+            if ops[1].type == X86_OP_IMM:
+                cnt = "%du" % ops[1].imm
+                pre = ""
+            else:
+                pre = load_s(ops[1], 16)
+                cnt = "(u32)(s.q[0] > 64 ? 64 : s.q[0])"          # only the low 64 bits of the count operand are used
+            op = ">>" if m == "psrlq" else "<<"
+            sh = "{ u32 c = %s; %s.q[0] = c > 63 ? 0 : %s.q[0] %s c; %s.q[1] = c > 63 ? 0 : %s.q[1] %s c; }" % (cnt, X(d), X(d), op, X(d), X(d), op)
+            return ["{ %s %s }" % (pre, sh)]
+        if m in ("comisd", "ucomisd"):
+            return ["{ %s double a = %s.f[0]; double b = s.f[0]; fO = 0; fS = 0; fA = 0; "
+                    "if (a != a || b != b) { fZ = 1; fP = 1; fC = 1; } else if (a > b) { fZ = 0; fP = 0; fC = 0; } "
+                    "else if (a < b) { fZ = 0; fP = 0; fC = 1; } else { fZ = 1; fP = 0; fC = 0; } }" % (load_s(ops[1], 8), X(d))]
+        if m == "cvtsi2sd":
+            return ["%s.f[0] = (double)(i32)(%s);" % (X(d), self.read(ops[1], 32))]
+        if m in ("cvtsd2si", "cvttsd2si"):
+            rnd = "fx_rint_mx(v)" if m == "cvtsd2si" else "trunc(v)"
+            return ["{ %s double v = s.f[0]; double r = %s; %s }" % (load_s(ops[1], 8), rnd,
+                    self.write(d, "(r >= -2147483648.0 && r < 2147483648.0) ? (u32)(i32)r : 0x80000000u", 32))]
+        if m == "cvtdq2pd":
+            return ["{ %s %s.f[0] = (double)(i32)s.d[0]; %s.f[1] = (double)(i32)s.d[1]; }" % (load_s(ops[1], 8), X(d), X(d))]
+        if m == "stmxcsr":
+            return ["W32(%s, mxcsr);" % self.addr_expr(d.mem)]
+        if m == "ldmxcsr":
+            return ["mxcsr = R32(%s);" % self.addr_expr(d.mem)]
+        if m.startswith("cmp"):
+            pred, kind = m[3:-2], m[-2:]
+            cond = self.CMP_PRED[pred]
+            if kind == "sd":
+                return ["{ %s double a = %s.f[0]; double b = s.f[0]; %s.q[0] = (%s) ? ~0ull : 0ull; }" % (load_s(ops[1], 8), X(d), X(d), cond)]
+            return ["{ %s double a = %s.f[0]; double b = s.f[0]; %s.q[0] = (%s) ? ~0ull : 0ull; a = %s.f[1]; b = s.f[1]; %s.q[1] = (%s) ? ~0ull : 0ull; }" % (
+                load_s(ops[1], 16), X(d), X(d), cond, X(d), X(d), cond)]
+        raise Unsupported(m)

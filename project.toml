@@ -1,0 +1,309 @@
+# PSOBB (Patch client) - static recompilation target.
+# Addresses are absolute virtual addresses in the original 32-bit PE image.
+# Copy the original client to PsoBB.exe here, or set SS_EXE to its path.
+# SHA-256: f4d4bd463c07fec2542452735deb5237641634100d9223d2d0f0ae4000315cc0
+
+[project]
+name        = "PsoBB"
+arch        = "x86"
+exe         = "PsoBB.exe"
+host_exe    = "PsoBBHost.exe"
+host_name   = "PSOBB"
+image_base  = 0x400000
+entry       = 0x85AB43
+pe_entry    = 0xB60000
+code_lo     = 0x401000
+code_hi     = 0x8CC000
+image_end   = 0xB62000
+guest_size  = 0x4000000
+tail_size   = 0x400000
+icon        = ""
+
+[build]
+mingw32 = "mingw32"
+libs    = ["psapi", "winmm", "ole32", "gdi32", "user32", "shell32", "advapi32", "comdlg32", "winspool"]
+resources = ""
+cflags  = ["-O1", "-g", "-fno-omit-frame-pointer", "-w"]
+stack   = 0x10000000
+heap    = 0x10000000
+
+[imports]
+# The client links its CRT statically; every import is stdcall Win32.
+cdecl_modules = []
+libs = ["libkernel32.a", "libuser32.a", "libgdi32.a", "libshell32.a", "libole32.a",
+        "libwinmm.a", "libcomdlg32.a", "libadvapi32.a", "libwinspool.a", "libdbghelp.a"]
+
+[imports.nargs]
+InitializeCriticalSectionAndSpinCount = 2
+SetCriticalSectionSpinCount = 2
+TryEnterCriticalSection = 1
+EnterCriticalSection = 1
+LeaveCriticalSection = 1
+DeleteCriticalSection = 1
+GetSystemInfo = 1
+IsProcessorFeaturePresent = 1
+GetCommandLineA = 0
+GetCommandLineW = 0
+GetEnvironmentStrings = 0
+GetEnvironmentStringsW = 0
+FreeEnvironmentStringsA = 1
+FreeEnvironmentStringsW = 1
+GetModuleHandleA = 1
+GetModuleHandleExA = 3
+GetStartupInfoA = 1
+GetStartupInfoW = 1
+GetVersionExA = 1
+GetVersionExW = 1
+GetStdHandle = 1
+GetFileType = 1
+SetHandleCount = 1
+GetProcessHeap = 0
+HeapSetInformation = 4
+VirtualQuery = 3
+VirtualAlloc = 4
+VirtualFree = 3
+VirtualProtect = 4
+HeapCreate = 3
+HeapDestroy = 1
+HeapAlloc = 3
+HeapFree = 3
+HeapReAlloc = 4
+HeapSize = 3
+SetUnhandledExceptionFilter = 1
+UnhandledExceptionFilter = 1
+EncodePointer = 1
+DecodePointer = 1
+FlsAlloc = 1
+FlsFree = 1
+FlsGetValue = 1
+FlsSetValue = 2
+TlsAlloc = 0
+TlsFree = 1
+TlsGetValue = 1
+TlsSetValue = 2
+InterlockedCompareExchange = 3
+InterlockedExchange = 2
+MultiByteToWideChar = 6
+WideCharToMultiByte = 8
+LCMapStringA = 6
+LCMapStringW = 6
+GetStringTypeA = 5
+GetStringTypeW = 4
+GetCPInfo = 2
+IsValidCodePage = 1
+IsValidLocale = 2
+GetLocaleInfoA = 4
+GetACP = 0
+GetOEMCP = 0
+CompareStringA = 6
+CompareStringW = 6
+GetDateFormatA = 6
+GetTimeFormatA = 6
+EnumSystemLocalesA = 2
+GetThreadLocale = 0
+SetThreadLocale = 1
+GetSystemDefaultLCID = 0
+GetUserDefaultLCID = 0
+GetSystemTimeAsFileTime = 1
+GetLocalTime = 1
+GetSystemTime = 1
+GetTimeZoneInformation = 1
+QueryPerformanceCounter = 1
+QueryPerformanceFrequency = 1
+CreateEventA = 4
+SetEvent = 1
+WaitForSingleObject = 2
+WaitForMultipleObjects = 3
+CreateMutexA = 3
+ReleaseMutex = 1
+CreateThread = 6
+ResumeThread = 1
+SuspendThread = 1
+SetThreadPriority = 2
+GetThreadPriority = 1
+GetExitCodeThread = 2
+TerminateThread = 2
+GetCurrentThread = 0
+GetCurrentProcess = 0
+GetCurrentThreadId = 0
+GetCurrentProcessId = 0
+IsDebuggerPresent = 0
+SetConsoleCtrlHandler = 2
+GetConsoleMode = 2
+SetConsoleMode = 2
+GetConsoleCP = 0
+GetConsoleOutputCP = 0
+WriteConsoleA = 5
+GetEnvironmentVariableA = 3
+SetEnvironmentVariableA = 3
+ExpandEnvironmentStringsA = 3
+SleepEx = 2
+SwitchToThread = 0
+OutputDebugStringA = 1
+FlushInstructionCache = 3
+GetSystemDirectoryA = 2
+GetWindowsDirectoryA = 2
+GetTempPathA = 2
+GetFileAttributesA = 1
+FindFirstFileA = 2
+FindNextFileA = 2
+FindClose = 1
+CreateDirectoryA = 2
+RemoveDirectoryA = 1
+DeleteFileA = 1
+MoveFileA = 2
+CopyFileA = 3
+SetCurrentDirectoryA = 1
+GetCurrentDirectoryA = 2
+GetFullPathNameA = 4
+GetDriveTypeA = 1
+GetFileSize = 2
+SetFilePointer = 4
+FlushFileBuffers = 1
+GetFileTime = 4
+FileTimeToLocalFileTime = 2
+FileTimeToSystemTime = 2
+SystemTimeToFileTime = 2
+LocalFileTimeToFileTime = 2
+GetComputerNameA = 2
+GetUserNameA = 2
+OpenFileMappingA = 3
+CreateFileMappingA = 6
+MapViewOfFile = 5
+UnmapViewOfFile = 1
+DuplicateHandle = 7
+PeekNamedPipe = 5
+CreatePipe = 4
+GetTempFileNameA = 4
+GetPriorityClass = 1
+SetPriorityClass = 2
+SetErrorMode = 1
+LoadLibraryExA = 3
+GetModuleFileNameA = 3
+GetModuleFileNameW = 3
+FreeLibrary = 1
+GetProcAddress = 2
+CloseHandle = 1
+WriteFile = 5
+ReadFile = 5
+CreateFileA = 7
+SetFileAttributesA = 2
+MoveFileExA = 3
+LoadLibraryA = 1
+LoadLibraryW = 1
+GetModuleHandleW = 1
+ExitProcess = 1
+TerminateProcess = 2
+RaiseException = 4
+RtlUnwind = 4
+GetVersion = 0
+GetTickCount = 0
+GetTickCount64 = 0
+GetLastError = 0
+SetLastError = 1
+Sleep = 1
+InitializeSListHead = 1
+SDL_Init = 1
+SDL_InitSubSystem = 1
+SDL_Quit = 0
+SDL_GetError = 0
+CreateToolhelp32Snapshot = 2
+Process32First = 2
+Process32Next = 2
+Thread32First = 2
+Thread32Next = 2
+Module32First = 2
+Module32Next = 2
+Heap32ListFirst = 2
+Heap32ListNext = 2
+Toolhelp32ReadProcessMemory = 6
+DirectInput8Create = 5
+DirectSoundCreate = 3
+ImmGetContext = 1
+ImmAssociateContext = 2
+ImmNotifyIME = 4
+ImmSetCandidateWindow = 2
+ImmGetCandidateListW = 4
+ImmSetConversionStatus = 3
+ImmGetConversionStatus = 3
+ImmGetOpenStatus = 1
+ImmGetCompositionStringW = 4
+ImmGetDescriptionW = 3
+ImmReleaseContext = 2
+ImmSetOpenStatus = 2
+ImmGetDefaultIMEWnd = 1
+ImmDisableIME = 1
+ImmIsIME = 1
+ImmSetCompositionWindow = 2
+WSASend = 7
+closesocket = 1
+connect = 3
+getsockopt = 5
+htons = 1
+inet_addr = 1
+recv = 4
+recvfrom = 6
+select = 5
+send = 4
+sendto = 6
+setsockopt = 5
+shutdown = 2
+socket = 3
+gethostbyaddr = 3
+gethostbyname = 1
+WSAGetLastError = 0
+WSAStartup = 2
+WSACleanup = 0
+__WSAFDIsSet = 2
+Direct3DCreate8 = 1
+ValidatePixelShader = 3
+ValidateVertexShader = 4
+SnmpUtilVarBindFree = 1
+SnmpUtilOidNCmp = 3
+SnmpUtilOidCpy = 2
+
+[wasm]
+emcc           = "emcc"
+global_base    = 0
+initial_memory = 0x20000000
+stack_size     = 0x1000000
+guest_stack    = 0x800000
+width          = 640
+height         = 480
+data_dir       = "data"
+data_parts     = 4
+
+[ida]
+out        = "ida"
+project    = "psobb"
+signatures = ["vc32rtf", "vc32mfc", "vc32mfce", "vc7atl", "vc8atl", "vcseh", "vcextra",
+              "vc32_14", "vc32ucrt", "mssdk32", "msmfc2", "msmfc2u", "msddk32", "ms32wdk", "pe", "exe"]
+
+[analyzer]
+command  = ""
+provider = "ghidra"
+timeout  = 900
+
+[lift]
+skip_categories = ["other"]
+skip = []
+wrap = []
+extra = [0x85AB43, 0x83747A, 0x837481, 0x837488, 0x83748F, 0x837496, 0x83749D, 0x8374A4, 0x8374AB, 0x8374B2, 0x8374B9, 0x8374E8, 0x83750D, 0x7A628C, 0x864057]
+data = []
+chunk = 120
+max_functions_per_file = 150
+
+[classify]
+ranges = []
+
+[layout]
+areas = [
+  ["gui",    "Gui|Window|Dialog|Menu|Button|Scroll|Tab|Text|Popup|Tooltip|Slider|Hud|Cursor|Screen|Panel|Controls"],
+  ["gfx",    "GL|DX|Render|Pixel|Image|Bitmap|Png|Jpeg|Gif|Dds|Dxt|Font|Draw|Color|Texture|Palette|Particle|Sprite|Shader|Display|Graphics|Camera"],
+  ["net",    "Net|Client|Connector|Packet|HTTP|DNS|SSL|Crypto|Blowfish|MD5|Base64|Socket|Server|Download|Url|Web|Patch"],
+  ["script", "Script|Event|Trigger|Npc|Quest|Class"],
+  ["game",   "Game|Player|Level|Map|Item|Anim|Weapon|Body|Head|Enemy|Boss|Attack|Battle"],
+  ["math",   "Point|Rect|Quat|Box|Matrix|Vec|Plane|Random|Math"],
+  ["audio",  "Sound|Audio|Music|Wave|Mixer|Se"],
+  ["core",   "Str|String|Array|List|File|Path|Dir|Registry|Debug|Console|Profile|Process|Time|Memory|Heap|Thread|Lock|Object|Resource|Cache|Stream|Input|Key|Mouse|App|Shell"],
+]

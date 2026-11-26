@@ -1,0 +1,5 @@
+ea	name	kind
+009ff8e0	rtti_exception	class
+00a239c0	rtti_type_info	class
+0085a67c	type_info::vfunc0	vfunc
+00997fc8	vftable_type_info	vftable
