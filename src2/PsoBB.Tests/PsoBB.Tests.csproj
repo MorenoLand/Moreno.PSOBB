@@ -22,4 +22,8 @@
     <ProjectReference Include="..\PsoBB\PsoBB.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
