@@ -1,7 +1,7 @@
-# PSOBB client - static recompilation target.
-  Addresses are absolute virtual addresses in the original 32-bit PE image.
-  Copy the original client to PsoBB.exe here, or set SS_EXE to its path.
-  SHA-256: f4d4bd463c07fec2542452735deb5237641634100d9223d2d0f0ae4000315cc0
+# PSOBB (Patch client) - static recompilation target.
+# Addresses are absolute virtual addresses in the original 32-bit PE image.
+# Copy the original client to PsoBB.exe here, or set SS_EXE to its path.
+# SHA-256: f4d4bd463c07fec2542452735deb5237641634100d9223d2d0f0ae4000315cc0
 
 [project]
 name        = "PsoBB"
@@ -28,7 +28,7 @@ stack   = 0x10000000
 heap    = 0x10000000
 
 [imports]
-  The client links its CRT statically; every import is stdcall Win32.
+# The client links its CRT statically; every import is stdcall Win32.
 cdecl_modules = []
 libs = ["libkernel32.a", "libuser32.a", "libgdi32.a", "libshell32.a", "libole32.a",
         "libwinmm.a", "libcomdlg32.a", "libadvapi32.a", "libwinspool.a", "libdbghelp.a"]

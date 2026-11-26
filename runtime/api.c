@@ -1,12 +1,12 @@
-** api.c: calls from lifted (guest) code into the real Windows API, and from Windows back into guest code.
+/* api.c: calls from lifted (guest) code into the real Windows API, and from Windows back into guest code.
  *
  * Guest code reaches an import through its IAT slot; boot.c fills every slot with a sentinel address
  * (API_BASE + index * 16), and call_ind() hands those to api_dispatch().  Arguments are read from the guest stack,
- * the real function is called with the global lock released, and the result goes back into eax*edx.
+ * the real function is called with the global lock released, and the result goes back into eax/edx.
  *
  * Only one guest thread runs at a time (the "GIL"): the CPU registers are globals, so a thread saves its registers
  * before it leaves the lock for a blocking call and restores them when it re-enters.
- **
+ */
 #include "rt.h"
 #include "sys.h"
 #include "api.h"
@@ -46,8 +46,8 @@ const char *rt_last_api = "";
 
 typedef struct {
     u32 saved_esp; int in_api; u32 stack_lo, stack_top, teb;
-    u32 last_error;                  ** non-Windows hosts: GetLastError of this thread **
-    u32 tls[W32_TLS_SLOTS];          ** non-Windows hosts: TlsGetValue slots of this thread **
+    u32 last_error;                  /* non-Windows hosts: GetLastError of this thread */
+    u32 tls[W32_TLS_SLOTS];          /* non-Windows hosts: TlsGetValue slots of this thread */
 } ThreadState;
 #if !defined(_WIN32)
 static __thread ThreadState *ts_self;
@@ -81,7 +81,7 @@ static void gil_enter(void) { pthread_mutex_lock(&gil); }
 static void gil_leave(void) { pthread_mutex_unlock(&gil); }
 #endif
 
-** a fake TEB: only the fields guest code reads (SEH chain, stack bounds, self pointer, TLS array) **
+/* a fake TEB: only the fields guest code reads (SEH chain, stack bounds, self pointer, TLS array) */
 u32 rt_tls_start, rt_tls_end, rt_tls_zero, rt_tls_index_addr;
 u32 rt_new_teb(u32 stack_lo, u32 stack_top)
 {
@@ -109,8 +109,8 @@ u32 rt_new_teb(u32 stack_lo, u32 stack_top)
 ThreadState *rt_thread(void)
 {
 #if defined(_WIN32)
-    ** TlsGetValue resets the thread's last-error value to 0.  The guest reads it (GetLastError, WSAGetLastError) after
-     * the API that set it, so everything the bridge does in between must leave it alone. **
+    /* TlsGetValue resets the thread's last-error value to 0.  The guest reads it (GetLastError, WSAGetLastError) after
+     * the API that set it, so everything the bridge does in between must leave it alone. */
     DWORD last_error = GetLastError();
     ThreadState *ts = (ThreadState *)TlsGetValue(ts_index);
     SetLastError(last_error);
@@ -132,7 +132,7 @@ ThreadState *rt_thread(void)
     return ts;
 }
 
-** the main guest thread uses a bigger stack, set up by boot.c **
+/* the main guest thread uses a bigger stack, set up by boot.c */
 void rt_main_thread(u32 lo, u32 top)
 {
     ThreadState *ts = (ThreadState *)calloc(1, sizeof *ts);
@@ -151,7 +151,7 @@ void rt_main_thread(u32 lo, u32 top)
 u32 *rt_tls_slots(void) { return rt_thread()->tls; }
 u32 *rt_last_error(void) { return &rt_thread()->last_error; }
 
-** ---- calling guest code ---- **
+/* ---- calling guest code ---- */
 u32 gcall(u32 addr, u32 ecx_value, int cdecl_, int n, ...)
 {
     u32 a[32];
@@ -165,14 +165,14 @@ u32 gcall(u32 addr, u32 ecx_value, int cdecl_, int n, ...)
     r_esp -= 4; W32(r_esp, SENT_RET);
     call_ind(addr);
     if (cdecl_) r_esp += 4 * n;
-    if (r_esp != start) {       ** the callee removed a different number of argument bytes than the convention says **
+    if (r_esp != start) {       /* the callee removed a different number of argument bytes than the convention says */
         fprintf(stderr, "gcall %08x: stack ends %d bytes off (n=%d, cdecl=%d)\n", addr, (int)(r_esp - start), n, cdecl_);
         r_esp = start;
     }
     return r_eax;
 }
 
-** ---- calling the real API with n 32-bit arguments ---- **
+/* ---- calling the real API with n 32-bit arguments ---- */
 typedef u64 (__stdcall *F0)(void);
 typedef u64 (__stdcall *F1)(u32);
 typedef u64 (__stdcall *F2)(u32, u32);
@@ -192,9 +192,9 @@ typedef u64 (__stdcall *F15)(u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u
 typedef u64 (__stdcall *F16)(u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32);
 typedef u32 (__cdecl *C16)(u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32);
 
-** MSVC thiscall: `this` in ECX, the arguments on the stack, the callee pops them.
+/* MSVC thiscall: `this` in ECX, the arguments on the stack, the callee pops them.
  * regparm(3) fills EAX, EDX, ECX from the first three parameters, so the two dummies place `this`
- * in ECX and the real arguments start on the stack; stdcall makes gcc expect the callee to pop. **
+ * in ECX and the real arguments start on the stack; stdcall makes gcc expect the callee to pop. */
 #define TCDEF(k, ...) typedef u32 (__attribute__((stdcall, regparm(3))) *TC##k)(u32, u32, void *, ##__VA_ARGS__)
 TCDEF(0);
 TCDEF(1, u32);
@@ -248,7 +248,7 @@ static u64 host_call(void *fn, int n, int cdecl_, const u32 *a, int tc, u32 ecx)
     return 0;
 }
 
-** ---- host-callable trampolines for guest function pointers (Windows: the real API calls them) ---- **
+/* ---- host-callable trampolines for guest function pointers (Windows: the real API calls them) ---- */
 #if defined(_WIN32)
 typedef struct { u32 guest; int nargs; u32 stub; } Tramp;
 static Tramp tramps[512];
@@ -283,7 +283,7 @@ u32 rt_tramp(u32 guest, int nargs)
 {
     if ((guest & 0xFF000000u) == API_BASE) {
         ApiEnt *e = &api_tab[(guest - API_BASE) >> 4];
-        return (u32)(uintptr_t)e->fn;               ** a guest pointer to an API: the real function is directly callable **
+        return (u32)(uintptr_t)e->fn;               /* a guest pointer to an API: the real function is directly callable */
     }
     for (int i = 0; i < tramp_n; ++i)
         if (tramps[i].guest == guest && tramps[i].nargs == nargs) return tramps[i].stub;
@@ -297,12 +297,12 @@ u32 rt_tramp(u32 guest, int nargs)
     tramps[idx].guest = guest;
     tramps[idx].nargs = nargs;
     unsigned k = 0;
-    p[k++] = 0x8D; p[k++] = 0x44; p[k++] = 0x24; p[k++] = 0x04;                  ** lea eax, [esp+4] **
-    p[k++] = 0x50;                                                               ** push eax **
-    p[k++] = 0x68; *(u32 *)(p + k) = (u32)idx; k += 4;                           ** push idx **
-    p[k++] = 0xE8; *(u32 *)(p + k) = (u32)((unsigned char *)host_cb - (p + k + 4)); k += 4;   ** call host_cb **
-    p[k++] = 0x83; p[k++] = 0xC4; p[k++] = 0x08;                                 ** add esp, 8 **
-    p[k++] = 0xC2; *(u16 *)(p + k) = (u16)(nargs * 4); k += 2;                   ** ret nargs*4 **
+    p[k++] = 0x8D; p[k++] = 0x44; p[k++] = 0x24; p[k++] = 0x04;                  /* lea eax, [esp+4] */
+    p[k++] = 0x50;                                                               /* push eax */
+    p[k++] = 0x68; *(u32 *)(p + k) = (u32)idx; k += 4;                           /* push idx */
+    p[k++] = 0xE8; *(u32 *)(p + k) = (u32)((unsigned char *)host_cb - (p + k + 4)); k += 4;   /* call host_cb */
+    p[k++] = 0x83; p[k++] = 0xC4; p[k++] = 0x08;                                 /* add esp, 8 */
+    p[k++] = 0xC2; *(u16 *)(p + k) = (u16)(nargs * 4); k += 2;                   /* ret nargs*4 */
     tramps[idx].stub = (u32)(uintptr_t)p;
     return tramps[idx].stub;
 }
@@ -311,13 +311,13 @@ u32 rt_tramp_guest(u32 host)
 {
     for (int i = 0; i < tramp_n; ++i)
         if (tramps[i].stub == host) return tramps[i].guest;
-    for (unsigned i = 0; i < sizeof api_tab * sizeof *api_tab; ++i)
+    for (unsigned i = 0; i < sizeof api_tab / sizeof *api_tab; ++i)
         if ((u32)(uintptr_t)api_tab[i].fn == host) return API_BASE + (i << 4);
     return host;
 }
 #endif
 
-** ---- API table ---- **
+/* ---- API table ---- */
 u32 api_add(const char *module, const char *name, FARPROC fn, int nargs, int cdecl_)
 {
     if (api_count >= MAX_API) { fprintf(stderr, "api table full\n"); exit(5); }
@@ -340,7 +340,7 @@ u32 api_add_emu(const char *module, const char *name, ApiEmu emu, int nargs, int
     return s;
 }
 
-** ---- thread start ---- **
+/* ---- thread start ---- */
 typedef struct { u32 fn, param; } GThreadStart;
 #if defined(_WIN32)
 static DWORD WINAPI guest_thread_main(LPVOID p)
@@ -363,7 +363,7 @@ static void *guest_thread_main(void *p)
 #endif
 }
 
-** ---- the dispatcher ---- **
+/* ---- the dispatcher ---- */
 static u32 guest_str_nargs_lookup(const char *name);
 
 static unsigned long now_ms(void)
@@ -373,14 +373,14 @@ static unsigned long now_ms(void)
 #else
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
-    return (unsigned long)t.tv_sec * 1000ul + (unsigned long)(t.tv_nsec * 1000000);
+    return (unsigned long)t.tv_sec * 1000ul + (unsigned long)(t.tv_nsec / 1000000);
 #endif
 }
 
-unsigned api_call_count[MAX_API];                    ** how often each import was called (every host) **
+unsigned api_call_count[MAX_API];                    /* how often each import was called (every host) */
 #if defined(_WIN32)
-** RECOMP_SAMPLE=1: a thread looks at where the guest thread is every millisecond (its instruction pointer); the counts per 16-byte block are printed with
- * RECOMP_PROF_SECONDS, to be looked up in bin*lift.map.  Shows the real cost of the code, inlined functions included. **
+/* RECOMP_SAMPLE=1: a thread looks at where the guest thread is every millisecond (its instruction pointer); the counts per 16-byte block are printed with
+ * RECOMP_PROF_SECONDS, to be looked up in bin/lift.map.  Shows the real cost of the code, inlined functions included. */
 #define SAMPLE_SLOTS 65536
 static u32 sample_eip[SAMPLE_SLOTS], sample_count[SAMPLE_SLOTS];
 static HANDLE sample_thread;
@@ -388,7 +388,7 @@ static volatile int sample_run;
 static void sample_print(int round)
 {
     static unsigned shown[MAX_API];
-    {   ** the API calls since the last print, the most frequent first (RECOMP_SAMPLE): which system calls a slow stretch is made of **
+    {   /* the API calls since the last print, the most frequent first (RECOMP_SAMPLE): which system calls a slow stretch is made of */
         int order[MAX_API], n = 0;
         for (int i = 0; i < MAX_API; ++i) if (api_call_count[i] != shown[i]) order[n++] = i;
         for (int i = 0; i < n; ++i) for (int j = i + 1; j < n; ++j)
@@ -408,7 +408,7 @@ static DWORD WINAPI sample_main(LPVOID arg)
     while (sample_run) {
         CONTEXT c;
         Sleep(1);
-        if (GetTickCount() - last >= 5000) { last = GetTickCount(); sample_print(++round); }          ** the counts so far, every 5 seconds: the program may be closed before it stops by itself **
+        if (GetTickCount() - last >= 5000) { last = GetTickCount(); sample_print(++round); }          /* the counts so far, every 5 seconds: the program may be closed before it stops by itself */
         if (SuspendThread(sample_thread) == (DWORD)-1) continue;
         c.ContextFlags = CONTEXT_CONTROL;
         if (GetThreadContext(sample_thread, &c)) {
@@ -445,27 +445,27 @@ void api_dispatch(u32 sentinel)
     int idx = (int)((sentinel - API_BASE) >> 4);
     ApiEnt *e = &api_tab[idx];
     if (idx >= 0 && idx < MAX_API) ++api_call_count[idx];
-    sample_start();                                  ** RECOMP_SAMPLE: from the first system call on, so a hang before the message loop shows too **
+    sample_start();                                  /* RECOMP_SAMPLE: from the first system call on, so a hang before the message loop shows too */
     u32 a[32];
     u32 *sp = (u32 *)(uintptr_t)(r_esp + 4);
     int n = e->nargs < 0 ? 0 : e->nargs;
     int extra_args = 0;
     u32 this_val = r_ecx;
-    if (e->thiscall_ && e->proxy && (u32)sp[0] == e->proxy) {   ** a caller that passes the object as the first stack argument **
+    if (e->thiscall_ && e->proxy && (u32)sp[0] == e->proxy) {   /* a caller that passes the object as the first stack argument */
         this_val = (u32)sp[0];
         sp++;
         extra_args = 1;
     }
-    if (e->name[0] == 'P' && !strcmp(e->name, "PeekMessageA")) {          ** debugging: RECOMP_FRAMES=n stops after n message-loop turns **
+    if (e->name[0] == 'P' && !strcmp(e->name, "PeekMessageA")) {          /* debugging: RECOMP_FRAMES=n stops after n message-loop turns */
         sample_start();
         static int frames, limit = -1;
         if (limit < 0) { const char *v = getenv("RECOMP_FRAMES"); limit = v ? atoi(v) : 0; }
-        if (rt_trace && frames % 100 == 5) {      ** debugging: the focused GUI control decides whether the script scheduler runs (Timer_MainTick) **
+        if (rt_trace && frames % 100 == 5) {      /* debugging: the focused GUI control decides whether the script scheduler runs (Timer_MainTick) */
             u32 fr = R32(0x72BD9C);
             fprintf(stderr, "[state] frame %d: first responder %08x (+198 = %02x, vtable %08x), canvas %08x, main window %08x\n", frames, fr,
                     fr ? R8(fr + 198) : 0, fr ? R32(fr) : 0, R32(0x72E1A0), R32(0x72B9DC));
         }
-        {   ** RECOMP_PROF_SECONDS=n: stop after n seconds and print the counts, so a profile of a server session does not depend on the speed of the loop **
+        {   /* RECOMP_PROF_SECONDS=n: stop after n seconds and print the counts, so a profile of a server session does not depend on the speed of the loop */
             static long secs = -1;
             static unsigned long start;
             if (secs < 0) { const char *v = getenv("RECOMP_PROF_SECONDS"); secs = v ? atol(v) : 0; start = now_ms(); }
@@ -488,7 +488,7 @@ void api_dispatch(u32 sentinel)
     }
     for (int i = 0; i < (e->cdecl_ ? 16 : n); ++i) a[i] = sp[i];
     for (int i = e->cdecl_ ? 16 : n; i < 16; ++i) a[i] = 0;
-    for (int i = 0; i < n && i < 16; ++i) {           ** interface arguments are our proxies: pass the host object **
+    for (int i = 0; i < n && i < 16; ++i) {           /* interface arguments are our proxies: pass the host object */
         u32 rv = com_real_this(a[i]);
         if (rv != a[i]) a[i] = rv;
     }
@@ -497,7 +497,7 @@ void api_dispatch(u32 sentinel)
         fprintf(stderr, "[api %6lu] %s!%s(", now_ms() - t0, e->module, e->name);
         for (int i = 0; i < n && i < 8; ++i) {
             fprintf(stderr, "%s%x", i ? ", " : "", a[i]);
-            const char *s = (const char *)(uintptr_t)a[i];       ** show text arguments: file names, registry keys, host names **
+            const char *s = (const char *)(uintptr_t)a[i];       /* show text arguments: file names, registry keys, host names */
             if (a[i] > 0x10000 && rt_readable(a[i], 4) && (unsigned char)s[0] >= 0x20 && (unsigned char)s[0] < 0x7F && (unsigned char)s[1] >= 0x20 && (unsigned char)s[1] < 0x7F && (unsigned char)s[2] >= 0x20 && (unsigned char)s[2] < 0x7F) {
                 char tmp[48];
                 int k = 0;
@@ -509,8 +509,8 @@ void api_dispatch(u32 sentinel)
         fprintf(stderr, ")\n");
     }
 #if defined(_WIN32)
-    ** The notification-area icons are built from image files the game downloads: while
-     * they are not there the icon handle is 0 and the entry shows nothing.  Such an entry gets the program's own icon instead. **
+    /* The notification-area icons are built from image files the game downloads: while
+     * they are not there the icon handle is 0 and the entry shows nothing.  Such an entry gets the program's own icon instead. */
     if (e->name[0] == 'S' && !strcmp(e->name, "Shell_NotifyIconA") && a[1] > 0x10000 && rt_readable(a[1], 0x18) && (R32(a[1] + 12) & 2) && R32(a[1] + 20) == 0) {
         static HICON app_icon;
         if (!app_icon) app_icon = LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(1));
@@ -565,7 +565,7 @@ void api_dispatch(u32 sentinel)
         DWORD now = GetTickCount();
         if (!fps_t0) fps_t0 = now;
         else if (now - fps_t0 >= 5000) {
-            fprintf(stderr, "[fps] %.1f (%u frames in %lu ms)\n", fps_n * 1000.0 * (now - fps_t0), fps_n, (unsigned long)(now - fps_t0));
+            fprintf(stderr, "[fps] %.1f (%u frames in %lu ms)\n", fps_n * 1000.0 / (now - fps_t0), fps_n, (unsigned long)(now - fps_t0));
             fps_t0 = now; fps_n = 0;
         }
     }
@@ -587,17 +587,17 @@ void api_dispatch(u32 sentinel)
     (void)special;
 #endif
     if (e->emu) {
-        r = e->emu(a);                   ** an emulated Win32 function: runs with the lock held, releases it itself if it blocks **
+        r = e->emu(a);                   /* an emulated Win32 function: runs with the lock held, releases it itself if it blocks */
     } else if (!e->fn) {
 #if defined(_WIN32)
-        ** the import was not found when the program started (a DLL beside the game is missing, fmod.dll for the sound): the call
-         * does nothing and returns 0 instead of jumping to address 0 **
+        /* the import was not found when the program started (a DLL beside the game is missing, fmod.dll for the sound): the call
+         * does nothing and returns 0 instead of jumping to address 0 */
         static int shown;
         if (shown++ < 12) fprintf(stderr, "call of %s!%s ignored: the import was not found\n", e->module, e->name);
         r = 0;
 #else
-        ** outside Windows every import is emulated: one without an emulation is a gap in recomp*rt*win32*, and a made-up result
-         * would only fail later somewhere else **
+        /* outside Windows every import is emulated: one without an emulation is a gap in recomp/rt/win32/, and a made-up result
+         * would only fail later somewhere else */
         fprintf(stderr, "import %s!%s is called but this host has no implementation of it (guest esp %08x, return to %08x)\n",
                 e->module, e->name, r_esp, R32(r_esp));
         fflush(stderr);
@@ -612,7 +612,7 @@ void api_dispatch(u32 sentinel)
         u32 ecx = e->thiscall_ ? com_real_this(this_val) : keep.ecx;
         void *fp0 = __builtin_frame_address(0);
         if (e->thiscall_ && extra_args) {
-            ** DirectX's C ABI: the object is the first stack argument and the callee pops it **
+            /* DirectX's C ABI: the object is the first stack argument and the callee pops it */
             u32 b[33];
             b[0] = com_real_this((u32)this_val);
             for (int i = 0; i < n && i < 32; ++i) b[i + 1] = a[i];
@@ -638,7 +638,7 @@ void api_dispatch(u32 sentinel)
             }
         }
     }
-    {   ** RECOMP_LOGAPI=Name,module,...: show those calls and their results (for a Shell_NotifyIconA call also its NOTIFYICONDATA) **
+    {   /* RECOMP_LOGAPI=Name,module,...: show those calls and their results (for a Shell_NotifyIconA call also its NOTIFYICONDATA) */
         static const char *logapi = (const char *)1;
         if (logapi == (const char *)1) logapi = getenv("RECOMP_LOGAPI");
         if (logapi && (strstr(logapi, e->name) || strstr(logapi, e->module))) {
@@ -666,13 +666,13 @@ void api_dispatch(u32 sentinel)
         }
     }
     if (rt_trace) fprintf(stderr, "[api]   -> %llx\n", (unsigned long long)r);
-    if (rt_trace && e->name[0] == 'g' && e->name[1] == 'l') {          ** RECOMP_TRACE: show the geometry of vertex-array draw calls **
+    if (rt_trace && e->name[0] == 'g' && e->name[1] == 'l') {          /* RECOMP_TRACE: show the geometry of vertex-array draw calls */
         static u32 vptr, vstride, tptr, tstride, vsize;
         if (!strcmp(e->name, "glVertexPointer")) { vsize = a[0]; vstride = a[2]; vptr = a[3]; }
         else if (!strcmp(e->name, "glTexCoordPointer")) { tstride = a[2]; tptr = a[3]; }
         else if (!strcmp(e->name, "glDrawArrays") && a[2] > 0 && vptr > 0x10000 && rt_readable(vptr, 32)) {
             static int stacks;
-            if (a[0] == 7 && stacks++ < 2) rt_shadow_dump();      ** who builds the text quads (profile build only) **
+            if (a[0] == 7 && stacks++ < 2) rt_shadow_dump();      /* who builds the text quads (profile build only) */
             u32 stepv = vstride ? vstride : vsize * 4, stept = tstride ? tstride : 8;
             for (u32 i = 0; i < a[2] && i < 8; ++i) {
                 const float *v = (const float *)(uintptr_t)(vptr + (a[1] + i) * stepv);
@@ -682,14 +682,14 @@ void api_dispatch(u32 sentinel)
             }
         }
     }
-    if (rt_trace && !strcmp(e->name, "recv") && (int)r > 0) {      ** show what the servers send (printable bytes only) **
+    if (rt_trace && !strcmp(e->name, "recv") && (int)r > 0) {      /* show what the servers send (printable bytes only) */
         const unsigned char *d = (const unsigned char *)(uintptr_t)a[1];
         int len = (int)r > 160 ? 160 : (int)r;
         fprintf(stderr, "[recv %d bytes] ", (int)r);
         for (int i = 0; i < len; ++i) fputc(d[i] >= 0x20 && d[i] < 0x7F ? d[i] : '.', stderr);
         fputc('\n', stderr);
     }
-    static int netlog = -1;      ** RECOMP_NETLOG=1: only the traffic of the sockets, with the frame count, cheap enough for a full session **
+    static int netlog = -1;      /* RECOMP_NETLOG=1: only the traffic of the sockets, with the frame count, cheap enough for a full session */
     if (netlog < 0) netlog = getenv("RECOMP_NETLOG") != NULL;
     if (netlog && !rt_trace && (!strcmp(e->name, "send") || !strcmp(e->name, "recv") || !strcmp(e->name, "sendto") ||
                                 !strcmp(e->name, "recvfrom")) && (int)r > 0) {
@@ -699,7 +699,7 @@ void api_dispatch(u32 sentinel)
         for (int i = 0; i < len; ++i) fputc(d[i] >= 0x20 && d[i] < 0x7F ? d[i] : '.', stderr);
         fputc('\n', stderr);
     }
-    static int glinfo = -1;      ** RECOMP_GLINFO=1: driver strings, missing extension functions and the GL call before every GL error **
+    static int glinfo = -1;      /* RECOMP_GLINFO=1: driver strings, missing extension functions and the GL call before every GL error */
     if (glinfo < 0) glinfo = getenv("RECOMP_GLINFO") != NULL;
     if (glinfo && e->name[0] == 'g' && e->name[1] == 'l') {
         static const char *last_gl;
@@ -707,12 +707,12 @@ void api_dispatch(u32 sentinel)
         if (!strcmp(e->name, "glGetString") && r > 0x10000) fprintf(stderr, "[glinfo] glGetString(%x) = %.600s\n", a[0], (const char *)(uintptr_t)r);
         else if (!strcmp(e->name, "glGetError")) { if (r && shown++ < 40) fprintf(stderr, "[glinfo] glGetError = %x after %s\n", (unsigned)r, last_gl ? last_gl : "?"); }
         else {
-            if (!strcmp(e->name, "glTexImage2D") && a[1] == 0)          ** texture uploads: internal format, size, pixel format and type **
+            if (!strcmp(e->name, "glTexImage2D") && a[1] == 0)          /* texture uploads: internal format, size, pixel format and type */
                 fprintf(stderr, "[glinfo] glTexImage2D internal=%x %ux%u format=%x type=%x pixels=%s\n", a[2], a[3], a[4], a[6], a[7], a[8] ? "yes" : "NULL");
             last_gl = e->name;
         }
     }
-    ** a method that returns an interface: wrap the object it stored so the guest calls our sentinels **
+    /* a method that returns an interface: wrap the object it stored so the guest calls our sentinels */
     if (e->module && !strcmp(e->module, "com") && (u32)r == 0) {
         const char *hash = strrchr(e->name, '#');
         int slot = hash ? atoi(hash + 1) : -1;
@@ -742,7 +742,7 @@ void api_dispatch(u32 sentinel)
         if (qi && a[1] && rt_readable(a[1], 4) && R32(a[1])) {
             W32(a[1], com_wrap((void *)(uintptr_t)R32(a[1]), qi));
         } else
-        for (size_t k = 0; k < sizeof outs * sizeof *outs; ++k) {
+        for (size_t k = 0; k < sizeof outs / sizeof *outs; ++k) {
             if (slot != outs[k].slot || strlen(outs[k].iface) != iflen || strncmp(e->name, outs[k].iface, iflen)) continue;
             int arg = outs[k].arg;
             if (arg < 16 && a[arg] && rt_readable(a[arg], 4) && R32(a[arg]))
@@ -775,8 +775,8 @@ int api_dispatch_host(u32 target)
             return 1;
         }
     }
-    ** a host function the program resolved by walking another module's export table: name it from the
-     * module image, look its argument count up, and dispatch it through the same bridge. **
+    /* a host function the program resolved by walking another module's export table: name it from the
+     * module image, look its argument count up, and dispatch it through the same bridge. */
     char name[256];
     MEMORY_BASIC_INFORMATION mbi;
     if (!VirtualQuery((void *)(uintptr_t)target, &mbi, sizeof mbi) || !mbi.AllocationBase) return 0;
@@ -804,7 +804,7 @@ int api_dispatch_host(u32 target)
         MEMORY_BASIC_INFORMATION mb;
         if (VirtualQuery((void *)(uintptr_t)target, &mb, sizeof mb) && (mb.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY))) {
             const unsigned char *b = (const unsigned char *)(uintptr_t)target;
-            u32 to = 0;                                  /* a patch hook thunk: it forwards to the client's own code */
+            u32 to = 0;                                  /* an Patch hook thunk: it forwards to the client's own code */
             if (b[0] == 0xE9) to = target + 5 + *(const i32 *)(b + 1);
             else if (b[0] == 0xFF && b[1] == 0x25) to = *(const u32 *)(b + 2);
             if (to >= SS_CODE_LO && to < SS_CODE_HI) {
@@ -831,7 +831,7 @@ int api_dispatch_host(u32 target)
     return 1;
 }
 
-** the real call with the lock released, for special handlers that adjust arguments **
+/* the real call with the lock released, for special handlers that adjust arguments */
 u64 api_call_real(ApiEnt *e, u32 *a)
 {
     ThreadState *ts = rt_thread();
@@ -861,7 +861,7 @@ u32 api_start_thread(u32 fn, u32 param, u32 *a_out, void **out)
     return (u32)(uintptr_t)guest_thread_main;
 }
 
-** ---- for the Win32 emulation of non-Windows hosts (recomp*rt*win32*) ---- **
+/* ---- for the Win32 emulation of non-Windows hosts (recomp/rt/win32/) ---- */
 static __thread Cpu blk_cpu[8];
 static __thread int blk_depth;
 
