@@ -1,3 +1,4 @@
+using PsoBB.Configuration;
 using PsoBB.Core;
 using PsoBB.Graphics;
 using PsoBB.Platform;
@@ -62,6 +63,7 @@ public sealed class ClientHost : IDisposable
 		Dispatcher = dispatcher;
 		AudioDevice = audioDevice;
 		Renderer = renderer;
+		GameOptions = PsoBB.Configuration.GameOptions.Load(settings);
 		GlobalState.Reset();
 	}
 
@@ -84,6 +86,11 @@ public sealed class ClientHost : IDisposable
 	/// Gets the persisted client settings.
 	/// </summary>
 	public IGameSettings GameSettings { get; }
+
+	/// <summary>
+	/// Gets the typed options loaded from <see cref="GameSettings"/> at start-up.
+	/// </summary>
+	public GameOptions GameOptions { get; }
 
 	/// <summary>
 	/// Gets the keyboard and mouse devices.
