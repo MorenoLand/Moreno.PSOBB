@@ -159,6 +159,21 @@ public sealed class PsoCipherTests
 	}
 
 	/// <summary>
+	/// The shipped P and S-box tables stay pinned to the client's data image.
+	/// </summary>
+	[Fact]
+	public void ShippedTablesMatchTheDataImage()
+	{
+		Assert.Equal(36, PsoCipher.ShippedSubkeyHalves.Length);
+		Assert.Equal(new ushort[] { 0xBC89, 0xDB37 }, PsoCipher.ShippedSubkeyHalves[..2].ToArray());
+		Assert.Equal(new ushort[] { 0x4786, 0x60D6 }, PsoCipher.ShippedSubkeyHalves[^2..].ToArray());
+		Assert.Equal(0x0DA28C5Cu, PsoCipher.ShippedSBox0[0]);
+		Assert.Equal(0x7BCA974Eu, PsoCipher.ShippedSBox1[0]);
+		Assert.Equal(0x08892594u, PsoCipher.ShippedSBox2[0]);
+		Assert.Equal(0xEA57ABE6u, PsoCipher.ShippedSBox3[0]);
+	}
+
+	/// <summary>
 	/// An empty key cannot initialise the key schedule.
 	/// </summary>
 	[Fact]
