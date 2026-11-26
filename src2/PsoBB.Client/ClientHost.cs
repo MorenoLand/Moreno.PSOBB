@@ -5,8 +5,8 @@ using PsoBB.Platform;
 namespace PsoBB.Client;
 
 /// <summary>
-/// The portable client composition root: it loads the data image, initialises the original
-/// globals and drives the frame loop while the game systems attach to it.
+/// The portable client composition root: it initialises the original globals and drives the
+/// frame loop while the game systems attach to it.
 /// </summary>
 /// <remarks>
 /// The host owns the renderer and disposes it on shutdown; the platform services are supplied by
@@ -25,10 +25,9 @@ public sealed class ClientHost : IDisposable
 	private long _frameCount;
 
 	/// <summary>
-	/// Creates the host, loads the data image through <paramref name="fileSystem"/> and resets
-	/// <see cref="GlobalState"/> to its data-image values.
+	/// Creates the host and resets <see cref="GlobalState"/> to its start-up values.
 	/// </summary>
-	/// <param name="options">The data folder and image name.</param>
+	/// <param name="options">The data folder.</param>
 	/// <param name="fileSystem">The file system rooted at the data folder.</param>
 	/// <param name="clock">The monotonic and wall clock.</param>
 	/// <param name="settings">The persisted client settings.</param>
@@ -37,8 +36,6 @@ public sealed class ClientHost : IDisposable
 	/// <param name="audioDevice">The host audio devices.</param>
 	/// <param name="renderer">The renderer this host owns and presents through.</param>
 	/// <exception cref="ArgumentNullException">A service is null.</exception>
-	/// <exception cref="FileNotFoundException">The data image is missing from the file system.</exception>
-	/// <exception cref="InvalidDataException">The data image is too large or malformed.</exception>
 	public ClientHost(
 		ClientOptions options,
 		IGameFileSystem fileSystem,
@@ -65,7 +62,6 @@ public sealed class ClientHost : IDisposable
 		Dispatcher = dispatcher;
 		AudioDevice = audioDevice;
 		Renderer = renderer;
-		DataImage = LoadDataImage(fileSystem, options.ImagePath);
 		GlobalState.Reset();
 	}
 
@@ -73,11 +69,6 @@ public sealed class ClientHost : IDisposable
 	/// Gets the options the host was created with.
 	/// </summary>
 	public ClientOptions Options => _options;
-
-	/// <summary>
-	/// Gets the parsed data image.
-	/// </summary>
-	public GuestImage DataImage { get; }
 
 	/// <summary>
 	/// Gets the file system rooted at the data folder.
@@ -181,25 +172,5 @@ public sealed class ClientHost : IDisposable
 		Renderer.EndFrame();
 		_frameCount++;
 		return true;
-	}
-
-	private static GuestImage LoadDataImage(IGameFileSystem fileSystem, GamePath path)
-	{
-		using IGameFile? file = fileSystem.Open(path, GameFileAccess.Read, GameFileMode.Open);
-		if (file is null)
-			throw new FileNotFoundException($"The data image '{path}' is missing from the data folder.", path.ToString());
-		long length = file.Length;
-		if (length > int.MaxValue)
-			throw new InvalidDataException($"The data image '{path}' is {length} bytes; the maximum is {int.MaxValue}.");
-		byte[] bytes = new byte[(int)length];
-		int read = 0;
-		while (read < bytes.Length)
-		{
-			int count = file.Read(bytes.AsSpan(read));
-			if (count == 0)
-				throw new EndOfStreamException($"The data image '{path}' ended after {read} of {bytes.Length} bytes.");
-			read += count;
-		}
-		return GuestImage.Parse(bytes);
 	}
 }

@@ -569,46 +569,46 @@ internal sealed class ShaderPipeline : IDisposable
 		int offset = 0;
 		if (format.IsPreTransformed)
 		{
-			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32A32_Float, 0, 0));
+			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32A32_Float, 0, 0, InputClassification.PerVertexData, 0));
 			offset += 16;
 		}
 		else
 		{
-			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0, 0));
+			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0));
 			offset += 12;
 		}
 		int weightCount = Math.Min(format.ExplicitWeightCount, 3);
 		for (int index = 0; index < weightCount; index++)
 		{
-			elements.Add(new InputElementDescription("BLENDWEIGHT", (uint)index, Format.R32_Float, (uint)offset, 0));
+			elements.Add(new InputElementDescription("BLENDWEIGHT", (uint)index, Format.R32_Float, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 4;
 		}
 		offset += (format.BlendValueCount - weightCount - (format.PackedIndices ? 1 : 0)) * 4;
 		if (format.PackedIndices)
 		{
-			elements.Add(new InputElementDescription("BLENDINDICES", 0, Format.R8G8B8A8_UInt, (uint)offset, 0));
+			elements.Add(new InputElementDescription("BLENDINDICES", 0, Format.R8G8B8A8_UInt, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 4;
 		}
 		if (format.HasNormal)
 		{
-			elements.Add(new InputElementDescription("NORMAL", 0, Format.R32G32B32_Float, (uint)offset, 0));
+			elements.Add(new InputElementDescription("NORMAL", 0, Format.R32G32B32_Float, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 12;
 		}
 		if (format.HasPointSize)
 			offset += 4;
 		if (format.HasDiffuse)
 		{
-			elements.Add(new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, (uint)offset, 0));
+			elements.Add(new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 4;
 		}
 		if (format.HasSpecular)
 		{
-			elements.Add(new InputElementDescription("COLOR", 1, Format.R8G8B8A8_UNorm, (uint)offset, 0));
+			elements.Add(new InputElementDescription("COLOR", 1, Format.R8G8B8A8_UNorm, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 4;
 		}
 		for (int index = 0; index < Math.Min(format.TextureCoordinateCount, StageCount); index++)
 		{
-			elements.Add(new InputElementDescription("TEXCOORD", (uint)index, TextureCoordinateFormat(format.GetTextureCoordinateSize(index)), (uint)offset, 0));
+			elements.Add(new InputElementDescription("TEXCOORD", (uint)index, TextureCoordinateFormat(format.GetTextureCoordinateSize(index)), (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += format.GetTextureCoordinateSize(index) * 4;
 		}
 		return [.. elements];
