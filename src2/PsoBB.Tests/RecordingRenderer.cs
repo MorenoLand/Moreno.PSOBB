@@ -9,6 +9,8 @@ namespace PsoBB.Tests;
 internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRenderer
 {
 	private readonly List<string> _commands = [];
+	private int _createdTextureCount;
+	private int _disposedTextureCount;
 	private int _disposeCount;
 
 	/// <summary>
@@ -25,6 +27,12 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 
 	/// <summary>Gets the number of times the renderer was disposed.</summary>
 	public int DisposeCount => _disposeCount;
+
+	/// <summary>Gets the number of textures the renderer created.</summary>
+	public int CreatedTextureCount => _createdTextureCount;
+
+	/// <summary>Gets the number of texture dispose calls the renderer received.</summary>
+	public int DisposedTextureCount => _disposedTextureCount;
 
 	/// <summary>Gets a value indicating whether the renderer was disposed.</summary>
 	public bool IsDisposed => _disposeCount != 0;
@@ -80,7 +88,11 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	}
 
 	/// <inheritdoc/>
-	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride) => new RecordingTexture(width, height);
+	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride)
+	{
+		_createdTextureCount++;
+		return new RecordingTexture(width, height, () => _disposedTextureCount++);
+	}
 
 	/// <inheritdoc/>
 	public void Dispose() => _disposeCount++;
@@ -90,15 +102,19 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	/// </summary>
 	private sealed class RecordingTexture : ITexture
 	{
+		private readonly Action _disposed;
+
 		/// <summary>
 		/// Creates the texture with its dimensions.
 		/// </summary>
 		/// <param name="width">Texture width.</param>
 		/// <param name="height">Texture height.</param>
-		public RecordingTexture(int width, int height)
+		/// <param name="disposed">Records a dispose call.</param>
+		public RecordingTexture(int width, int height, Action disposed)
 		{
 			Width = width;
 			Height = height;
+			_disposed = disposed;
 		}
 
 		/// <inheritdoc/>
@@ -115,6 +131,7 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 		/// <inheritdoc/>
 		public void Dispose()
 		{
+			_disposed();
 		}
 	}
 }
