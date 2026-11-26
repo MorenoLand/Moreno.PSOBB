@@ -64,8 +64,31 @@ bitmaps. `FontTextures` uploads the three `TextureImage` pages through `IRendere
 context or platform type is used by the portable library.
 
 Limitations: the exact GDI face metrics, the five registry-provided face names and the game's
-colour-table contents are supplied by the host or remain outside this port. The XVM
-texture-font path (`unknown_render_texturejapanese_xvm_font2_0071D924`) is ported for the
-printable ASCII range in `TextureFontSurface`; wide glyphs and page selection above code unit
-`0x00FF` remain outside it. The atlas cache policy is represented by the fixed three-page
-layout; the runtime texture-update counter is not needed when a font is built once.
+colour-table contents are supplied by the host or remain outside this port. The atlas cache
+policy is represented by the fixed three-page layout; the runtime texture-update counter is not
+needed when a font is built once.
+
+## Texture font
+
+The client has a second text path for windows whose item flag selects the XVM texture font.
+`0x0079324C` chooses `TextureJapanese.gvm`, `TextureEnglish.gvm`, `TextureGerman.gvm`,
+`TextureFrench.gvm`, `TextureSpanish.gvm` or `TextureChineseS.gvm`; `0x0078E1C0` strips the
+extension at the dot, appends `"."` from `0x0096B740` and `"xvm"` from `0x0092B2B8`, so the
+effective `data.gsl` entries are lower-case `texturejapanese.xvm`, `textureenglish.xvm`,
+`texturegerman.xvm`, `texturefrench.xvm` and `texturespanish.xvm`. `0x008009DC` resolves and
+loads the archive, and `0x0071D924` draws one line from the first 256-by-256 page.
+
+`TextureFontMetrics` holds the 96 advance and vertical-offset pairs from the table at
+`0x009FCE80`, covering codes 0x20 through 0x7F. The cell index is the character byte, the cell
+column is its low nibble times sixteen, the row is its high nibble, and the drawn height is
+thirteen pixels. `TextureFontAtlas` loads and uploads every page; `TextureFontSurface` advances
+by the metric width, uses a five-pixel space, shortens a glyph that crosses the remaining width
+without cropping its texture rectangle, and selects the alternate texture row at +109 pixels
+for the vertical window flag. `0x0071D58C`, the bitmap-font path, remains `TextRenderer`; the
+account rows use that path, not this one.
+
+Limitations: the printable-ASCII range is ported. Wide glyphs, page selection above code unit
+0x00FF, the text-window clipping rect applied by `0x0071BA64` and the anchor scale applied by
+`0x0071BBB4` are not established; those transforms remain host concerns, as does the
+`0x0082B440` projection. The account panel's own layout and hint substitution remain outside
+this path.

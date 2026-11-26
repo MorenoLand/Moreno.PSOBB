@@ -20,6 +20,12 @@ public sealed class TextureFont : IDisposable
 	/// <summary>The atlas page width and height in pixels.</summary>
 	public const float PageSize = 256f;
 
+	/// <summary>The advance of a space in the texture-font draw.</summary>
+	public const float SpaceAdvance = 5f;
+
+	/// <summary>The vertical texture offset used by the alternate glyph layout.</summary>
+	public const float VerticalTextureOffset = 109f;
+
 	private readonly ITexture[] _pages;
 	private readonly IReadOnlyList<TextureFontGlyph> _glyphs;
 	private bool _disposed;
@@ -60,6 +66,14 @@ public sealed class TextureFont : IDisposable
 		int index = value - TextureFontMetrics.FirstCharacter;
 		return index >= 0 && index < _glyphs.Count ? _glyphs[index] : default;
 	}
+
+	/// <summary>
+	/// Returns the low byte of a code unit, which is the atlas cell index the texture draw uses.
+	/// </summary>
+	/// <param name="value">The UTF-16 code unit.</param>
+	/// <returns>The byte index.</returns>
+	[Original(0x00789240, "unknown_get_texture_char_index")]
+	public static byte GetEncodedIndex(char value) => (byte)value;
 
 	/// <summary>
 	/// Releases every atlas page. Repeated calls do nothing.
