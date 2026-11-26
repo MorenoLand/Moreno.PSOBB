@@ -25,6 +25,10 @@
 - `0x4E` marks the tracked player as leaving and does not fire the original despawn animation or particle effect.
 - `0x71` sets the in-game phase but does not construct a missing local player or send the local 0x70 announcement; `0x72` sets the same phase and does not close the original menu object.
 
+## Server endpoints
+
+The client host names come from `PsoBB.Net.ServerHostTable` because the image strings are host-patched and the retail executable is not part of this repository. The mode, alternate-set and configuration-test results are selector inputs; the branches and ports match the original. See `server-endpoints.md` for the C# members and their inputs.
+
 ## Options
 
 `GameOptions` reads the original registry names and layouts. The original has no persisted key-binding value, no numeric music or sound-effect volume and no other chat preference; the fixed control map and the `SOUNDCTRL` enables are all it stores. `PsoBB.Input.Bindings`, `PsoBB.Audio.MusicVolume` and `PsoBB.Audio.SoundVolume` are portable additions documented in `configuration.md`.
