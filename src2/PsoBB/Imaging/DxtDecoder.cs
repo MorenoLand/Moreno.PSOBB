@@ -18,7 +18,7 @@ internal static class DxtDecoder
 	/// <exception cref="TextureFormatException">The block data is truncated.</exception>
 	internal static TextureImage Decode(ReadOnlySpan<byte> data, int width, int height, XvmTextureFormat format)
 	{
-		if (format is XvmTextureFormat.Bgra8888 or XvmTextureFormat.Bgrx8888 or XvmTextureFormat.A1R5G5B5 or XvmTextureFormat.A4R4G4B4)
+		if (format is XvmTextureFormat.Bgra8888 or XvmTextureFormat.R5G6B5 or XvmTextureFormat.A1R5G5B5 or XvmTextureFormat.A4R4G4B4)
 			return DecodeUncompressed(data, width, height, format);
 		bool colorOnly = format == XvmTextureFormat.Dxt1;
 		int blockBytes = colorOnly ? 8 : 16;
@@ -64,7 +64,7 @@ internal static class DxtDecoder
 	/// </summary>
 	private static TextureImage DecodeUncompressed(ReadOnlySpan<byte> data, int width, int height, XvmTextureFormat format)
 	{
-		int bytesPerPixel = format is XvmTextureFormat.Bgra8888 or XvmTextureFormat.Bgrx8888 ? 4 : 2;
+		int bytesPerPixel = format is XvmTextureFormat.Bgra8888 ? 4 : 2;
 		long required = (long)width * height * bytesPerPixel;
 		if (required > data.Length)
 			throw new TextureFormatException("The texture pixel data is truncated.", data.Length);
@@ -74,11 +74,17 @@ internal static class DxtDecoder
 			data[..(int)required].CopyTo(bgra);
 			return new TextureImage(width, height, bgra);
 		}
-		if (format == XvmTextureFormat.Bgrx8888)
+		if (format == XvmTextureFormat.R5G6B5)
 		{
-			data[..(int)required].CopyTo(bgra);
-			for (int index = 3; index < bgra.Length; index += 4)
-				bgra[index] = 0xFF;
+			for (int pixel = 0; pixel < width * height; pixel++)
+			{
+				ushort value = BinaryPrimitives.ReadUInt16LittleEndian(data[(pixel * 2)..]);
+				int offset = pixel * 4;
+				bgra[offset] = (byte)((value & 0x1F) * 0xFF / 0x1F);
+				bgra[offset + 1] = (byte)(((value >> 5) & 0x3F) * 0xFF / 0x3F);
+				bgra[offset + 2] = (byte)(((value >> 11) & 0x1F) * 0xFF / 0x1F);
+				bgra[offset + 3] = 0xFF;
+			}
 			return new TextureImage(width, height, bgra);
 		}
 		for (int pixel = 0; pixel < width * height; pixel++)
