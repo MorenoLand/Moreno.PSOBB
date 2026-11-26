@@ -12,8 +12,8 @@ public enum XvmTextureFormat : uint
 	/// <summary>Four-channel 8-bit BGRA pixels.</summary>
 	Bgra8888 = 1,
 
-	/// <summary>Three-channel 8-bit BGR pixels with an unused fourth byte.</summary>
-	Bgrx8888 = 2,
+	/// <summary>16-bit pixels with five red bits, six green bits and five blue bits.</summary>
+	R5G6B5 = 2,
 
 	/// <summary>16-bit pixels with one alpha bit and five bits each for red, green and blue.</summary>
 	A1R5G5B5 = 3,

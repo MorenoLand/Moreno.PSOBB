@@ -72,6 +72,8 @@ reloads from the model's source descriptor. The port retains the decoded `Textur
 cache instead, so a released GPU texture can be uploaded again; the renderer seam creates it from
 decoded BGRA pixels rather than the original's Direct3D 8 formats and pitch calculation.
 
+- The XVM chunk format selector indexes the original table at `0x00A21B40`. Indexes 2 and 12 are `D3DFMT_R5G6B5`, not BGRX8888; `XvmTextureReader` and `DxtDecoder` now decode the 16-bit layout. CPU expansion to BGRA uses 5/6-bit scaling; the original GPU conversion may round intermediate components differently.
+
 ## Interface controls
 
 The menu controls in `PsoBB.Gui` run above `UiElement` and take synthetic `UiEvent` messages. The original controls read the DirectInput and IME globals directly and are placed from data-driven layout records, so the port exposes positions, colours and text as properties instead of loading a layout.
@@ -100,6 +102,7 @@ The browser WebGL 2 renderer preserves the Direct3D 11 renderer's visible output
 - The original fast arc-tangent at `0x0084D1FC` is reproduced by its small-angle polynomials through absolute values of 1.25 and by the runtime arc-tangent beyond that. The result still passes through the original 16-bit turn rounding.
 - The original folds `inverse(view)` into the world upload so the fixed-function view cancels it. The port uploads the model matrix as `World` and the verified view as `View`, which composes to the same transform.
 - Fixed-function lighting, materials, fog, shadow projection and texture-stage combine state are not ported. The renderer sets culling, depth, alpha and texture bindings only, and lighting and shadows stop at this boundary.
+- Direct3D 11 rejects colour blend factors in the alpha slot on feature-level devices. The backend substitutes the matching alpha factor (`SourceColour` to `SourceAlpha`, and so on) when separate alpha blending is off; the colour operation is unchanged.
 - Blended surfaces are sorted back to front by camera distance; the original orders its per-mesh alpha geometry by the same distance.
 
 ## Start-up runs the hook registrations before the engine chain

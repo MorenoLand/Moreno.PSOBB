@@ -27,11 +27,12 @@ public sealed class XvmArchiveTests
 	}
 
 	[Fact]
-	public void BgrxPixelsBecomeOpaque()
+	public void R5G6B5PixelsExpandToOpaqueBgra()
 	{
-		byte[] archive = TextureTestData.Xvm([TextureTestData.Xvr((XvmTextureFormat)12, 1, 1, 1, [0x10, 0x20, 0x30, 0x00])]);
+		byte[] archive = TextureTestData.Xvm([TextureTestData.Xvr((XvmTextureFormat)12, 1, 1, 1, [0x00, 0xF8])]);
 		XvmTexture texture = Assert.Single(XvmArchive.Read(archive));
-		Assert.Equal([0x10, 0x20, 0x30, 0xFF], texture.Image.Pixels.ToArray());
+		Assert.Equal(XvmTextureFormat.R5G6B5, texture.Format);
+		Assert.Equal([0x00, 0x00, 0xFF, 0xFF], texture.Image.Pixels.ToArray());
 	}
 
 	[Fact]

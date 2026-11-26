@@ -78,7 +78,7 @@ internal static class XvmTextureReader
 	private static XvmTextureFormat ReadFormat(uint code, int offset) => code switch
 	{
 		1 or 11 => XvmTextureFormat.Bgra8888,
-		2 or 12 => XvmTextureFormat.Bgrx8888,
+		2 or 12 => XvmTextureFormat.R5G6B5,
 		3 or 13 => XvmTextureFormat.A1R5G5B5,
 		4 or 14 => XvmTextureFormat.A4R4G4B4,
 		6 => XvmTextureFormat.Dxt1,

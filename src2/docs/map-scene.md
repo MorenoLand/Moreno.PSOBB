@@ -29,7 +29,7 @@ A fixup entry is a 16-bit count of four-byte words from the previous pointer slo
 
 Each chunk is 0x34 bytes: section id, position, three int rotations, view distance, static-tree offset and count, animated-tree offset and count, flags. Static trees are 0x10 bytes and animated trees are 0x20 bytes. A tree roots a node chain; nodes are 0x34 bytes with evaluation flags, mesh, position, rotations, scale, child and next links. The `0x200` tree flag makes the stored root a word that points at the first node.
 
-A mesh is 0x1C bytes. It points at a vertex-buffer table and two index-buffer tables. Vertex buffers are 0x10 bytes and hold the original vertex format, stride, count and bytes. Index buffers are 0x14 bytes and hold raw render-state arguments plus 16-bit indices. The batch stops here: NJCM/NJTL rendering, vertex-buffer creation and render-state setter semantics remain unported.
+A mesh is 0x1C bytes. It points at a vertex-buffer table and two index-buffer tables. Vertex buffers are 0x10 bytes and hold the original vertex format, stride, count and bytes. Index buffers are 0x14 bytes and hold raw render-state arguments, 16-bit indices and the fifth word that selects the vertex-buffer table entry used by the draw. NJCM/NJTL rendering, vertex-buffer creation and render-state setter semantics remain unported.
 
 ## Collision: `c.rel`
 
