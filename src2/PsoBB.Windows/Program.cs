@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using PsoBB.Client;
+using PsoBB.Compression;
 using PsoBB.Data;
 using PsoBB.Graphics;
 using PsoBB.Gui;
@@ -17,6 +18,7 @@ internal static class Program
 {
 	private const int WindowWidth = 1024;
 	private const int WindowHeight = 768;
+	private const int PreviewDecompressionLimit = 16 * 1024 * 1024;
 
 	/// <summary>
 	/// Runs the Windows client until the window closes.
@@ -78,6 +80,12 @@ internal static class Program
 		using DataFileRegistry registry = new(files, DataArchiveSource.Gsl("data/data.gsl"));
 		if (!registry.TryRead(entryName, out ReadOnlyMemory<byte> bytes))
 			throw new FileNotFoundException($"The data archive has no entry named '{entryName}'.", entryName);
+		if (entryName.EndsWith(".prs", StringComparison.OrdinalIgnoreCase))
+		{
+			byte[] decompressed = new byte[PreviewDecompressionLimit];
+			int length = PrsDecompressor.Decompress(bytes.Span, decompressed);
+			bytes = decompressed.AsMemory(0, length);
+		}
 		XvmTexture image = XvmArchive.Read(bytes.Span)[0];
 		using Direct3D11Renderer renderer = new(window.Handle, RenderSettings.Default);
 		using ITexture texture = renderer.CreateTexture(image.Width, image.Height, image.Image.Pixels.Span, image.Image.Stride);
