@@ -195,6 +195,86 @@ public sealed class AudioPipeline : IDisposable
 	}
 
 	/// <summary>
+	/// Opens a music track through the library and makes it the current music source.
+	/// </summary>
+	/// <param name="library">The music library that resolves and decodes the track.</param>
+	/// <param name="trackName">The track name passed to the client.</param>
+	/// <returns>The stream assigned to <see cref="Music"/>; the caller owns it.</returns>
+	/// <exception cref="ArgumentNullException">The library is null.</exception>
+	/// <exception cref="FileNotFoundException">The track is absent.</exception>
+	/// <exception cref="ArgumentException">The track is not readable OGG Vorbis or its rate differs from the output rate.</exception>
+	public MusicStream PlayMusic(MusicLibrary library, string trackName)
+	{
+		ArgumentNullException.ThrowIfNull(library);
+		MusicStream stream = library.Open(trackName);
+		try
+		{
+			Music = stream;
+		}
+		catch
+		{
+			stream.Source.Dispose();
+			throw;
+		}
+		return stream;
+	}
+
+	/// <summary>
+	/// Starts a sound effect from a loaded bank.
+	/// </summary>
+	/// <param name="library">The library that resolves the sound-effect identifier.</param>
+	/// <param name="soundEffectId">The sound-effect identifier.</param>
+	/// <param name="volume">The voice gain from zero through one.</param>
+	/// <param name="loop">Whether the clip repeats over its loop region.</param>
+	/// <returns>The voice identifier.</returns>
+	/// <exception cref="ArgumentNullException">The library is null.</exception>
+	/// <exception cref="KeyNotFoundException">No loaded bank supplies the identifier.</exception>
+	public int PlaySound(SoundEffectLibrary library, int soundEffectId, float volume = 1f, bool loop = false)
+	{
+		ArgumentNullException.ThrowIfNull(library);
+		PacSoundSample sample = library.Find(soundEffectId) ?? throw new KeyNotFoundException($"No loaded sound bank supplies sound effect {soundEffectId}.");
+		return PlaySound(sample.ToClip(), volume, loop);
+	}
+
+	/// <summary>
+	/// Stops every effect voice and loads the bank for a map.
+	/// </summary>
+	/// <param name="library">The library that owns the bank tables and sample slots.</param>
+	/// <param name="map">The map identifier.</param>
+	/// <returns>The library result; a missing bank is not an error.</returns>
+	/// <exception cref="ArgumentNullException">The library is null.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">The map has no table row.</exception>
+	/// <exception cref="AudioFormatException">The bank header or a sample range is invalid.</exception>
+	public bool LoadMapSounds(SoundEffectLibrary library, int map)
+	{
+		ArgumentNullException.ThrowIfNull(library);
+		lock (_gate)
+		{
+			ThrowIfDisposed();
+			_sounds.StopAll();
+			return library.LoadMapBank(map);
+		}
+	}
+
+	/// <summary>
+	/// Stops every effect voice and loads the common bank.
+	/// </summary>
+	/// <param name="library">The library that owns the bank tables and sample slots.</param>
+	/// <returns><see langword="true"/> when the common bank file was present and parsed.</returns>
+	/// <exception cref="ArgumentNullException">The library is null.</exception>
+	/// <exception cref="AudioFormatException">The bank header or a sample range is invalid.</exception>
+	public bool LoadCommonSounds(SoundEffectLibrary library)
+	{
+		ArgumentNullException.ThrowIfNull(library);
+		lock (_gate)
+		{
+			ThrowIfDisposed();
+			_sounds.StopAll();
+			return library.LoadCommonBank();
+		}
+	}
+
+	/// <summary>
 	/// Moves the music decoder and discards queued decoded audio.
 	/// </summary>
 	/// <param name="frame">The absolute frame.</param>
