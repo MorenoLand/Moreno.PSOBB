@@ -115,6 +115,9 @@ public sealed class GameStartupTests : IDisposable
             ["SceneArgument1"] = 0x00AAB3A0,
             ["SceneArgument2"] = 0x00AAB3A4,
             ["SceneArgument3"] = 0x00AAB3A8,
+            ["SceneScreenState"] = 0x00A165F0,
+            ["PreviousSceneScreenState"] = 0x00A165F8,
+            ["SceneFadeState"] = 0x00ACA4E4,
         };
         PropertyInfo[] members = typeof(GameState).GetProperties(BindingFlags.Public | BindingFlags.Static);
         Assert.Equal(expected.Count, members.Length);

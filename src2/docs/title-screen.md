@@ -47,8 +47,8 @@ path.
 
 ## Limitations
 
-- Scene 2's own initialiser and update are not ported. The preview keeps the menu surface visible in
-  place of the scene 2 loop after the original scene 2 request.
+- Scene 2's shared state and fade are ported in `PsoBB.Scenes.Scene2`; its screen controller, menu,
+  assets and draw are not. The preview keeps the menu surface visible in place of the scene 2 loop.
 - The eight logo pieces are drawn as a 3x2 arrangement from their stored dimensions rather than the
   original vertex fan and rotation.
 - The press-start prompt accepts the confirm action; the original callback reacts to any window input.
