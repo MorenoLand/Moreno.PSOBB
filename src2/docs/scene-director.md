@@ -52,9 +52,11 @@ the zero result is available), selects the login endpoint through `ServerEndpoin
 and calls `OnlineScene.Connect`. The scene then pumps the flow from its update path.
 
 The endpoint inputs are the original selector inputs: client mode, alternate-endpoint-set flag,
-configuration-test result, and the mode-1 runtime host and port. Command `0x19` stops at
-`LoginFlowState.Redirected` and is exposed through `SceneDirectory.OnlineScene.Redirect`; the
-director does not open the redirected game connection or invent a scene change.
+configuration-test result, and the mode-1 runtime host and port. Command `0x19` opens the named
+target through `GameServerFlow` on the next update and is exposed through
+`SceneDirectory.OnlineScene.Redirect`. The director does not invent a scene change: the scene
+reports `OnlineSceneState.GameServer` when the 0x64/0x67 replies arrive, and an unsupported list
+command stops with a diagnostic.
 
 ## Host integration
 
@@ -70,8 +72,9 @@ renderer, input device, clock, dispatcher or file system of its own.
 through 3, a transition outside that range, initialiser and release overrides, the pre-init clear,
 scene zero, missing and out-of-table numbers, and disposal. `SceneDirectoryTests` uses synthetic GSL
 data, a synthetic connection and a synthetic host table for the three login endpoint selections,
-the login phases through character selection, the redirect boundary, a rejected login, cancel, exit,
-loading without a host table, and release; it also runs scene 2's `Start`/`Update`/`Draw`/`Release`
+the login phases through character selection, the redirect and redirected connection, a rejected
+login, cancel, exit, loading without a host table, and release; it also runs scene 2's
+`Start`/`Update`/`Draw`/`Release`
 through the director in order, checks the missing-factory diagnostic, and asserts the scene 1→2
 request uses transition 1. `ClientHostTests` covers host ownership of an attached director.
 
@@ -80,7 +83,9 @@ request uses transition 1. `ClientHostTests` covers host ownership of an attache
 - Scene 2 stops when no interface factory is supplied; every other scene without a ported screen
   stops at the diagnostic boundary.
 - The download transport and its nonzero loading results are not ported; only result zero is used.
-- The redirected game connection, ship/block/lobby lists and the in-game scene are not ported.
+- The ship/block list record layouts are not ported; the redirected game connection handles the
+  0x64/0x67 game and lobby lists and stops at commands 0x1A, 0x81 or 0x83 with a diagnostic. The
+  in-game scene is not ported.
 - Scene 5 runs without music, scene 13 without the save-file state machine, and scene 10 without the
   field systems its release path normally tears down.
 - Scene arguments are consumed only through the existing `GameState` fields; no new flow uses them.

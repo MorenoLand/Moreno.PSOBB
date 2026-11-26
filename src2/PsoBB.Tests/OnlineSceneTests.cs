@@ -200,7 +200,7 @@ public sealed class OnlineSceneTests : IDisposable
 	}
 
 	[Fact]
-	public void RedirectStopsAtTheMergedFlowBoundary()
+	public void RedirectIsRecordedWithoutASceneTransition()
 	{
 		using FlowFixture fixture = new();
 		fixture.AdvanceToCharacterSelect();
@@ -215,6 +215,62 @@ public sealed class OnlineSceneTests : IDisposable
 		Assert.Equal((ushort)0x1F90, fixture.Scene.Redirect.Port);
 		Assert.Equal(0u, GameState.SceneTransition);
 		Assert.Null(fixture.Scene.FailureReason);
+	}
+
+	[Fact]
+	public void RedirectOpensTheGameServerConnection()
+	{
+		using FlowFixture fixture = new();
+		fixture.AdvanceToCharacterSelect();
+		PushEncrypted(fixture.Connection, new ReconnectPacket { Address = 0x0A000102, Port = 0x1F90 }.ToPacket());
+		fixture.Update();
+		Assert.Equal(OnlineSceneState.Redirected, fixture.Scene.State);
+		fixture.Update();
+		Assert.Equal(OnlineSceneState.Connecting, fixture.Scene.State);
+		Assert.NotNull(fixture.Scene.GameServerFlow);
+		Assert.Equal("10.0.1.2", fixture.Connection.LastHost);
+		Assert.Equal(0x1F90, fixture.Connection.LastPort);
+		fixture.Connection.Push(Welcome().ToArray());
+		fixture.Update();
+		Assert.Equal(GameServerFlowState.Authenticating, fixture.Scene.GameServerFlow!.State);
+		Assert.Equal(OnlineSceneState.Connecting, fixture.Scene.State);
+		Assert.Equal(0u, GameState.SceneTransition);
+	}
+
+	[Fact]
+	public void CancelAfterRedirectClosesTheGameServer()
+	{
+		using FlowFixture fixture = new();
+		fixture.AdvanceToCharacterSelect();
+		PushEncrypted(fixture.Connection, new ReconnectPacket { Address = 0x0A000102, Port = 0x1F90 }.ToPacket());
+		fixture.Update();
+		fixture.Update();
+		fixture.Connection.Push(Welcome().ToArray());
+		fixture.Update();
+		fixture.Scene.Cancel();
+		Assert.Equal(OnlineSceneState.Canceled, fixture.Scene.State);
+		Assert.Equal(GameConnectionState.Disconnected, fixture.Connection.State);
+		Assert.Equal(GameServerFlowState.Disconnected, fixture.Scene.GameServerFlow!.State);
+		Assert.Equal(0u, GameState.RequestedScene);
+		Assert.Equal(1u, GameState.SceneTransition);
+	}
+
+	[Fact]
+	public void ReleaseAfterRedirectClosesTheGameServerOnce()
+	{
+		using FlowFixture fixture = new();
+		fixture.AdvanceToCharacterSelect();
+		PushEncrypted(fixture.Connection, new ReconnectPacket { Address = 0x0A000102, Port = 0x1F90 }.ToPacket());
+		fixture.Update();
+		fixture.Update();
+		fixture.Connection.Push(Welcome().ToArray());
+		fixture.Update();
+		fixture.Scene.Dispose();
+		fixture.Scene.Dispose();
+		Assert.True(fixture.Scene.IsDisposed);
+		Assert.Equal(OnlineSceneState.Released, fixture.Scene.State);
+		Assert.Equal(GameConnectionState.Disconnected, fixture.Connection.State);
+		Assert.Equal(1, fixture.Renderer.DisposedTextureCount);
 	}
 
 	[Fact]
@@ -385,10 +441,14 @@ public sealed class OnlineSceneTests : IDisposable
 		private readonly Queue<byte> _received = new();
 
 		public GameConnectionState State { get; private set; } = GameConnectionState.Disconnected;
+		public string? LastHost { get; private set; }
+		public int LastPort { get; private set; }
 		public List<byte> Sent { get; } = [];
 
 		public bool Connect(string host, int port)
 		{
+			LastHost = host;
+			LastPort = port;
 			State = GameConnectionState.Connected;
 			return true;
 		}
