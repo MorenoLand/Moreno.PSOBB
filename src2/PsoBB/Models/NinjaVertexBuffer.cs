@@ -58,6 +58,18 @@ public sealed class NinjaVertexBuffer
 	}
 
 	/// <summary>
+	/// Encodes the decoded vertices back into the original flexible vertex format.
+	/// </summary>
+	/// <returns>The vertex bytes with the stored stride.</returns>
+	public byte[] Encode()
+	{
+		byte[] data = new byte[Stride * Vertices.Count];
+		for (int index = 0; index < Vertices.Count; index++)
+			WriteVertex(data.AsSpan(index * Stride), Vertices[index], Format & 0xFFFF);
+		return data;
+	}
+
+	/// <summary>
 	/// Decodes the vertices at a body-relative offset.
 	/// </summary>
 	/// <param name="body">The NJCM body.</param>
@@ -164,6 +176,85 @@ public sealed class NinjaVertexBuffer
 		7 => 36,
 		_ => throw new ModelFormatException($"The vertex format {layout} is unsupported.", offset),
 	};
+
+	/// <summary>
+	/// Writes one vertex in its format's field order.
+	/// </summary>
+	/// <param name="destination">The destination stride.</param>
+	/// <param name="vertex">The decoded vertex.</param>
+	/// <param name="layout">The format number without flag bits.</param>
+	private static void WriteVertex(Span<byte> destination, NinjaVertex vertex, uint layout)
+	{
+		WriteVector(destination, vertex.Position);
+		switch (layout)
+		{
+			case 1:
+				WriteSingle(destination, 12, vertex.U);
+				WriteSingle(destination, 16, vertex.V);
+				break;
+			case 2:
+				WriteVector(destination[12..], vertex.Normal);
+				break;
+			case 3:
+				WriteVector(destination[12..], vertex.Normal);
+				WriteSingle(destination, 24, vertex.U);
+				WriteSingle(destination, 28, vertex.V);
+				break;
+			case 4:
+				WriteColor(destination, 12, vertex);
+				break;
+			case 5:
+				WriteColor(destination, 12, vertex);
+				WriteSingle(destination, 16, vertex.U);
+				WriteSingle(destination, 20, vertex.V);
+				break;
+			case 6:
+				WriteColor(destination, 12, vertex);
+				WriteVector(destination[16..], vertex.Normal);
+				break;
+			default:
+				WriteVector(destination[12..], vertex.Normal);
+				WriteColor(destination, 24, vertex);
+				WriteSingle(destination, 28, vertex.U);
+				WriteSingle(destination, 32, vertex.V);
+				break;
+		}
+	}
+
+	/// <summary>
+	/// Writes a three-component float vector.
+	/// </summary>
+	/// <param name="destination">The destination.</param>
+	/// <param name="value">The vector.</param>
+	private static void WriteVector(Span<byte> destination, Vector3 value)
+	{
+		WriteSingle(destination, 0, value.X);
+		WriteSingle(destination, 4, value.Y);
+		WriteSingle(destination, 8, value.Z);
+	}
+
+	/// <summary>
+	/// Writes the four packed colour bytes.
+	/// </summary>
+	/// <param name="destination">The destination stride.</param>
+	/// <param name="offset">The colour offset.</param>
+	/// <param name="vertex">The decoded vertex.</param>
+	private static void WriteColor(Span<byte> destination, int offset, NinjaVertex vertex)
+	{
+		destination[offset] = vertex.R;
+		destination[offset + 1] = vertex.G;
+		destination[offset + 2] = vertex.B;
+		destination[offset + 3] = vertex.A;
+	}
+
+	/// <summary>
+	/// Writes one little-endian float.
+	/// </summary>
+	/// <param name="destination">The destination.</param>
+	/// <param name="offset">The field offset.</param>
+	/// <param name="value">The value.</param>
+	private static void WriteSingle(Span<byte> destination, int offset, float value) =>
+		BinaryPrimitives.WriteSingleLittleEndian(destination[offset..], value);
 
 	/// <summary>
 	/// Reads a three-component float vector.

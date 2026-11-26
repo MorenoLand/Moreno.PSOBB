@@ -37,7 +37,8 @@ A mesh is 0x1C bytes: flags, vertex-buffer offset and count, index-buffer offset
 | 6 | position, color, normal | 28 |
 | 7 | position, normal, color, UV | 36 |
 
-Flag `0x10000` marks translucent geometry. Colors are stored in R, G, B, A byte order.
+Flag `0x10000` marks translucent geometry. Colors are stored in R, G, B, A byte order. The decoded
+vertex array can be written back in its original layout and stride for `SceneSurface` submission.
 
 An index buffer is 0x14 bytes: render-state argument offset and count, index-data offset and count, and the vertex-buffer index. Indices are 16-bit triangle-strip values. Render-state arguments are 0x10 bytes: setter index, two arguments and a reserved word. Setter 2 is blend, 3 texture, 4 addressing, 5 material color, 6 lighting, 7 camera-space normals and 8 material source. The accumulated state for each index buffer is exposed as `NinjaMaterial`.
 

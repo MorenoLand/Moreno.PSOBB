@@ -46,6 +46,24 @@ public sealed class NinjaModelTests
 	}
 
 	/// <summary>
+	/// The decoded vertex buffer can be written back in the original format and stride.
+	/// </summary>
+	[Fact]
+	public void VertexBufferEncodesBackToTheOriginalFormat()
+	{
+		NinjaModel model = NinjaModelReader.Read(ModelTestData.ModelCore());
+		NinjaVertexBuffer buffer = Assert.Single(model.RootNodes[0].Mesh!.VertexBuffers);
+		byte[] encoded = buffer.Encode();
+		Assert.Equal(64, encoded.Length);
+		Assert.Equal(1f, BinaryPrimitives.ReadSingleLittleEndian(encoded));
+		Assert.Equal(2f, BinaryPrimitives.ReadSingleLittleEndian(encoded.AsSpan(4)));
+		Assert.Equal(3f, BinaryPrimitives.ReadSingleLittleEndian(encoded.AsSpan(8)));
+		Assert.Equal(1f, BinaryPrimitives.ReadSingleLittleEndian(encoded.AsSpan(16)));
+		Assert.Equal(0.25f, BinaryPrimitives.ReadSingleLittleEndian(encoded.AsSpan(24)));
+		Assert.Equal(0.5f, BinaryPrimitives.ReadSingleLittleEndian(encoded.AsSpan(28)));
+	}
+
+	/// <summary>
 	/// Hidden and break-flagged child nodes are excluded from the draw order.
 	/// </summary>
 	[Fact]
