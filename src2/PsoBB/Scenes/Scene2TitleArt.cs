@@ -700,11 +700,11 @@ public sealed class TitleArtDrawList
 	private static void WriteOverlay(Span<byte> vertices, TitleArtOverlayQuad quad)
 	{
 		WriteVertex(vertices[..VertexStride], quad.P0.Position.X, quad.P0.Position.Y, quad.Depth, quad.P0.TextureCoordinates.X, quad.P0.TextureCoordinates.Y, quad.Color);
-		WriteVertex(vertices[VertexStride..(VertexStride * 2)], quad.P1.Position.X, quad.P1.Position.Y, quad.Depth, quad.P1.TextureCoordinates.X, quad.P1.TextureCoordinates.Y, quad.Color);
-		WriteVertex(vertices[(VertexStride * 2)..(VertexStride * 3)], quad.P2.Position.X, quad.P2.Position.Y, quad.Depth, quad.P2.TextureCoordinates.X, quad.P2.TextureCoordinates.Y, quad.Color);
-		WriteVertex(vertices[(VertexStride * 3)..(VertexStride * 4)], quad.P0.Position.X, quad.P0.Position.Y, quad.Depth, quad.P0.TextureCoordinates.X, quad.P0.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[VertexStride..(VertexStride * 2)], quad.P3.Position.X, quad.P3.Position.Y, quad.Depth, quad.P3.TextureCoordinates.X, quad.P3.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 2)..(VertexStride * 3)], quad.P1.Position.X, quad.P1.Position.Y, quad.Depth, quad.P1.TextureCoordinates.X, quad.P1.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 3)..(VertexStride * 4)], quad.P3.Position.X, quad.P3.Position.Y, quad.Depth, quad.P3.TextureCoordinates.X, quad.P3.TextureCoordinates.Y, quad.Color);
 		WriteVertex(vertices[(VertexStride * 4)..(VertexStride * 5)], quad.P2.Position.X, quad.P2.Position.Y, quad.Depth, quad.P2.TextureCoordinates.X, quad.P2.TextureCoordinates.Y, quad.Color);
-		WriteVertex(vertices[(VertexStride * 5)..], quad.P3.Position.X, quad.P3.Position.Y, quad.Depth, quad.P3.TextureCoordinates.X, quad.P3.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 5)..], quad.P1.Position.X, quad.P1.Position.Y, quad.Depth, quad.P1.TextureCoordinates.X, quad.P1.TextureCoordinates.Y, quad.Color);
 	}
 }
 

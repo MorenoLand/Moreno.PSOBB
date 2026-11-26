@@ -120,7 +120,15 @@ internal static class Program
 		WindowsAudioDevice audio = new();
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
-		NowLoadingPreview.Run(host, window.Pump);
+		string? captureDirectory = Environment.GetEnvironmentVariable("PSOBB_CAPTURE");
+		Action<int>? capture = captureDirectory is null ? null : frame =>
+		{
+			if (frame != 10)
+				return;
+			Directory.CreateDirectory(captureDirectory);
+			WriteBmp(Path.Combine(captureDirectory, "nowloading-010.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());
+		};
+		NowLoadingPreview.Run(host, window.Pump, null, capture);
 		host.RequestStop();
 	}
 
