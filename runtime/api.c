@@ -775,16 +775,6 @@ int api_dispatch_host(u32 target)
             return 1;
         }
     }
-    {
-        MEMORY_BASIC_INFORMATION m0;
-        u32 off0 = 0;
-        char path0[MAX_PATH] = "?";
-        if (VirtualQuery((void *)(uintptr_t)target, &m0, sizeof m0) && m0.AllocationBase) {
-            GetModuleFileNameA((HMODULE)m0.AllocationBase, path0, sizeof path0);
-            off0 = target - (u32)(uintptr_t)m0.AllocationBase;
-        }
-        fprintf(stderr, "api: unresolved host call %08x in %s+%x\n", target, path0, off0);
-    }
     /* a host function the program resolved by walking another module's export table: name it from the
      * module image, look its argument count up, and dispatch it through the same bridge. */
     char name[256];
