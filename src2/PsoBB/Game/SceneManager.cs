@@ -79,6 +79,42 @@ public static class SceneManager
     public static void SetSceneParameter(uint value) => GameState.SceneParameter = value;
 
     /// <summary>
+    /// Gets a value indicating whether the map loader has raised the floor-ready flag.
+    /// </summary>
+    [Original(0x007A616C)]
+    public static bool MapLoaded => GameState.MapLoaded != 0;
+
+    /// <summary>
+    /// Raises the floor-ready flag the scene updates consume.
+    /// </summary>
+    [Original(0x007A6160)]
+    public static void SetMapLoaded() => GameState.MapLoaded = 1;
+
+    /// <summary>
+    /// Clears the floor-ready flag.
+    /// </summary>
+    [Original(0x007A6154)]
+    public static void ClearMapLoaded() => GameState.MapLoaded = 0;
+
+    /// <summary>
+    /// Gets a value indicating whether a scene system has raised its update flag.
+    /// </summary>
+    [Original(0x007A6120)]
+    public static bool SceneEvent => GameState.SceneEvent != 0;
+
+    /// <summary>
+    /// Raises the scene-system update flag.
+    /// </summary>
+    [Original(0x007A6114)]
+    public static void SetSceneEvent() => GameState.SceneEvent = 1;
+
+    /// <summary>
+    /// Clears the scene-system update flag.
+    /// </summary>
+    [Original(0x007A6108)]
+    public static void ClearSceneEvent() => GameState.SceneEvent = 0;
+
+    /// <summary>
     /// Gets the scene that is currently running.
     /// </summary>
     /// <returns>The current scene number.</returns>
