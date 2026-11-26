@@ -20,11 +20,6 @@ internal static class Program
 	private static int Main(string[] args)
 	{
 		string dataFolder = args.Length > 0 ? args[0] : Environment.GetEnvironmentVariable("PSOBB_DATA") ?? AppContext.BaseDirectory;
-		if (!File.Exists(Path.Combine(dataFolder, "image.bin")))
-		{
-			MessageBox(0, $"The data folder does not contain image.bin.\n\nFolder: {dataFolder}\n\nPass the folder that holds image.bin as the first argument, or set PSOBB_DATA.", "Phantasy Star Online Blue Burst", 0x10);
-			return 1;
-		}
 		GameWindow? window = null;
 		try
 		{
@@ -36,7 +31,7 @@ internal static class Program
 			WindowsDispatcher dispatcher = new(clock);
 			WindowsAudioDevice audio = new();
 			Direct3D11Renderer renderer = new(window.Handle, RenderSettings.Default);
-			using ClientHost host = new(new ClientOptions(dataFolder, "image.bin"), files, clock, settings, input, dispatcher, audio, renderer);
+			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			while (window.Pump())
 				host.RunFrames(1);
 			host.RequestStop();

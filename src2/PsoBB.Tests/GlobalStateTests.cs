@@ -13,7 +13,7 @@ public sealed class GlobalStateTests : IDisposable
 	public void Dispose() => GlobalState.Reset();
 
 	[Fact]
-	public void ResetRestoresDataImageInitialValues()
+	public void ResetRestoresStartupValues()
 	{
 		GlobalState.CommandLine = 0x00123456;
 		GlobalState.ArgumentCount = 7;
