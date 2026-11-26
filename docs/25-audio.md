@@ -29,15 +29,32 @@ Facts observed with `RECOMP_COMLOG=1` on the native host.
 
 All calls in the sequence return `S_OK`.
 
+## Measured output
+
+An 18.4 second capture (3,252,224 bytes) was taken across the title screen and
+the intro transition.
+
+- RMS is about 0.21 of full scale; peaks reach full scale from the fourth
+  second onwards.
+- Zero-crossing rate is about 0.29 and spectral flatness stays between 0.6 and
+  0.8. Music normally has a much lower flatness; this is noise-like.
+- The byte order is correct: aligning the stream as signed 16-bit little-endian
+  gives a smoother waveform than a one-byte shift.
+- The native host presents at 29.9 to 30.0 frames per second during the capture.
+
+The DirectSound setup is therefore not the cause. The guest is writing
+noise-like PCM into a correctly created buffer.
+
 ## Open questions
 
 - The stream is generated at 44100 Hz while the primary buffer runs at 48000 Hz.
-  DirectSound resamples the secondary buffer; the original client does the same
-  on this device, so this alone should not change pitch.
-- The unlocked PCM has not been compared with a reference capture. A lifted
-  mixer path (fixed point, MMX/SSE, x87 rounding) or a stale sample-rate
-  constant in the guest would produce incorrect content rather than incorrect
-  DirectSound setup.
+  DirectSound resamples the secondary buffer; this should not turn music into
+  noise.
+- The lifted mixer or decoder may be producing incorrect samples (fixed point,
+  MMX/SSE, x87 rounding).
+- The retail Patch client expects `patch.dll`; that DLL bundles SDL2 and may
+  provide the audio decoder or the sample data path. The host currently does not
+  load it.
 - The stream buffer uses position notifications. If the guest consumes the
   notifications at the wrong rate, it can underrun or overwrite unplayed data.
 - The client may call `IDirectSoundBuffer::SetFrequency`; the current log does
