@@ -15,6 +15,7 @@ SESSION*/
 __pycache__/
 *.pyc
 *.o
+*.cmd
 *.exe
 *.map
 *.log
