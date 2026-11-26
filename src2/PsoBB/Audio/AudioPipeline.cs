@@ -220,20 +220,20 @@ public sealed class AudioPipeline : IDisposable
 	}
 
 	/// <summary>
-	/// Starts a sound effect from a loaded bank.
+	/// Starts a sound effect from a loaded bank using the client's slot and attenuation tables.
 	/// </summary>
 	/// <param name="library">The library that resolves the sound-effect identifier.</param>
-	/// <param name="soundEffectId">The sound-effect identifier.</param>
-	/// <param name="volume">The voice gain from zero through one.</param>
+	/// <param name="soundEffectId">The global sound-effect identifier.</param>
+	/// <param name="volume">The voice gain from zero through one, or null to use the bank table's gain.</param>
 	/// <param name="loop">Whether the clip repeats over its loop region.</param>
 	/// <returns>The voice identifier.</returns>
 	/// <exception cref="ArgumentNullException">The library is null.</exception>
 	/// <exception cref="KeyNotFoundException">No loaded bank supplies the identifier.</exception>
-	public int PlaySound(SoundEffectLibrary library, int soundEffectId, float volume = 1f, bool loop = false)
+	public int PlaySound(SoundEffectLibrary library, int soundEffectId, float? volume = null, bool loop = false)
 	{
 		ArgumentNullException.ThrowIfNull(library);
-		PacSoundSample sample = library.Find(soundEffectId) ?? throw new KeyNotFoundException($"No loaded sound bank supplies sound effect {soundEffectId}.");
-		return PlaySound(sample.ToClip(), volume, loop);
+		SoundEffectMapping mapping = library.Resolve(soundEffectId) ?? throw new KeyNotFoundException($"No loaded sound bank supplies sound effect {soundEffectId}.");
+		return PlaySound(mapping.Sample.ToClip(), volume ?? mapping.Gain, loop);
 	}
 
 	/// <summary>

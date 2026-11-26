@@ -118,19 +118,43 @@ The original has two sound containers:
   Every sample is a 0x20-byte header followed by its stored PCM. The header is
   a 16-byte `WAVEFORMATEX` PCM layout, a four-byte opaque tag, a size word, two
   reserved words and the audio byte count at `0x1C`. The client's fixed table
-  supplies the header offset, the sound-effect identifier and the loop points
+  supplies the header offset, the loaded-slot identifier and the loop points
   for every sample. `load_common_pac` (`0x00828E4C`) keeps bank 7 loaded while
   `load_map_sound_data` (`0x00828D40`, wrapper `0x00815584`) swaps the bank for
   the current map; `unload_map_sound_data` (`0x00828C38`) clears the sample
   table and rebinds bank 7. The table names 26 banks, including
   `common.pac`, and 50 map rows covering 1,811 samples.
+- The per-bank identifier lists are absolute slots in the client's 0x700-entry
+  table, not bank-local indices. `common.pac` holds slots 1 through 184 (with
+  gaps at 51 and 56), then 1391 through 1405 and 1407 through 1423; `city.pac`
+  holds 1047 through 1052, 1055 and 1056. The title scene calls
+  `0x00815584(0)`, which is map row 0 and bank 6 (`city.pac`), so identifier
+  1056 resolves from the map bank while 1391 and 1392 resolve from
+  `common.pac`.
+- `0x00814298` resolves global identifiers below 0x700 through `0x0081443C`:
+  the dword table at `0x00A1F840` maps the identifier to a slot, and
+  `0x00A13B20[slot]` supplies the attenuation index in bits 8 through 14.
+  The wrapper negates that index, scales it by the master setting at
+  `0x00AB59F8` and the constant 127, cubes it and multiplies by 6400 to obtain
+  the DirectSound volume in hundredths of a decibel. Bits 24 through 27 select
+  the buffer type, bit 28 stops voices with the same slot and bit 31 enables
+  the positional attenuation curve. Areas 0x15 and 0x16 replace identifiers
+  0x559 through 0x55C with slots 0x4B1 through 0x4B4 before the table lookup.
+  The port keeps the remap and attenuation tables in `SoundEffectIds` and
+  evaluates the volume curve at the image's initial master value of zero. The
+  DirectSound buffer type, the stop-previous flag and the positional
+  attenuation bit are not modelled; every clip plays as a two-dimensional
+  voice.
 
 `PacSoundBank` validates a bank against its fixed table and exposes each
 sample's `AudioFormat`, PCM bytes and loop region. `SoundBankCatalog` holds the
 client's 26 bank names, 50 map rows and per-bank identifiers and metadata.
-`SoundEffectLibrary` performs the common/map load and slot binding.
+`SoundEffectLibrary` performs the common/map load and slot binding;
+`FindSlot` is the original `0x00829110` lookup and `Find` resolves a global
+identifier through `SoundEffectIds` first.
 `MusicLibrary` resolves the legacy track name, reads the OGG entry through
 `IDataFiles` and returns a `MusicStream`; `AudioPipeline.PlayMusic` assigns it.
-`AudioPipeline.PlaySound(SoundEffectLibrary, id)` decodes the selected sample
-and starts a normal `SoundEffectPlayer` voice. Sound-effect voices honour a
-clip's loop region, so the metadata's start and end frames are preserved.
+`AudioPipeline.PlaySound(SoundEffectLibrary, id)` decodes the selected sample,
+uses the slot's gain when no explicit volume is passed and starts a normal
+`SoundEffectPlayer` voice. Sound-effect voices honour a clip's loop region, so
+the metadata's start and end frames are preserved.
