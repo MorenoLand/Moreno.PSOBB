@@ -37,6 +37,11 @@ internal sealed unsafe class SdlGameWindow : IDisposable
 			_window = _sdl.CreateWindow(title, Sdl.WindowposCentered, Sdl.WindowposCentered, width, height, (uint)(WindowFlags.Opengl | WindowFlags.Shown));
 			if (_window is null)
 				throw new InvalidOperationException($"SDL could not create the game window: {_sdl.GetErrorS()}");
+			int clientWidth = width;
+			int clientHeight = height;
+			_sdl.GetWindowSize(_window, ref clientWidth, ref clientHeight);
+			ClientWidth = clientWidth;
+			ClientHeight = clientHeight;
 		}
 		catch
 		{
@@ -47,6 +52,12 @@ internal sealed unsafe class SdlGameWindow : IDisposable
 
 	/// <summary>Gets the <c>SDL_Window</c> pointer the renderer and input present through.</summary>
 	public nint Handle => (nint)_window;
+
+	/// <summary>Gets the client-area width in pixels.</summary>
+	public int ClientWidth { get; }
+
+	/// <summary>Gets the client-area height in pixels.</summary>
+	public int ClientHeight { get; }
 
 	/// <summary>
 	/// Processes pending SDL events and reports whether the window is still open.
