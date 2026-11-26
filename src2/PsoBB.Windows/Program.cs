@@ -20,9 +20,15 @@ internal static class Program
 	private static int Main(string[] args)
 	{
 		string dataFolder = args.Length > 0 ? args[0] : Environment.GetEnvironmentVariable("PSOBB_DATA") ?? AppContext.BaseDirectory;
+		if (!File.Exists(Path.Combine(dataFolder, "image.bin")))
+		{
+			MessageBox(0, $"The data folder does not contain image.bin.\n\nFolder: {dataFolder}\n\nPass the folder that holds image.bin as the first argument, or set PSOBB_DATA.", "Phantasy Star Online Blue Burst", 0x10);
+			return 1;
+		}
+		GameWindow? window = null;
 		try
 		{
-			using GameWindow window = new("Phantasy Star Online Blue Burst", 1024, 768);
+			window = new GameWindow("Phantasy Star Online Blue Burst", 1024, 768);
 			WindowsFileSystem files = new(dataFolder);
 			WindowsGameClock clock = new();
 			using WindowsGameSettings settings = new(@"Software\PsoBBRecomp");
@@ -40,6 +46,10 @@ internal static class Program
 		{
 			MessageBox(0, exception.Message, "Phantasy Star Online Blue Burst", 0x10);
 			return 1;
+		}
+		finally
+		{
+			window?.Dispose();
 		}
 	}
 
