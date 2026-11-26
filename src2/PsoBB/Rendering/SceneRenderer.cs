@@ -5,7 +5,7 @@ using RenderMatrix = System.Numerics.Matrix4x4;
 namespace PsoBB.Rendering;
 
 /// <summary>
-/// Submits a <see cref="Scene"/> to an <see cref="IRenderer"/> with the original camera, per-surface world transform and opaque, alpha-tested and blended draw order.
+/// Submits a <see cref="RenderScene"/> to an <see cref="IRenderer"/> with the original camera, per-surface world transform and opaque, alpha-tested and blended draw order.
 /// </summary>
 /// <remarks>
 /// The host calls <see cref="Render"/> between <see cref="IRenderer.BeginFrame"/> and
@@ -20,7 +20,7 @@ public sealed class SceneRenderer
 	/// </summary>
 	/// <param name="renderer">The renderer that receives the frame commands.</param>
 	/// <param name="scene">The camera and surfaces to draw.</param>
-	public void Render(IRenderer renderer, Scene scene)
+	public void Render(IRenderer renderer, RenderScene scene)
 	{
 		ArgumentNullException.ThrowIfNull(renderer);
 		ArgumentNullException.ThrowIfNull(scene);

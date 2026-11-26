@@ -34,7 +34,7 @@ public sealed class SceneRendererTests
 		using RecordingRenderer renderer = new(RenderSettings.Default);
 		SceneRenderer sceneRenderer = new();
 		renderer.BeginFrame();
-		sceneRenderer.Render(renderer, new Scene());
+		sceneRenderer.Render(renderer, new RenderScene());
 		renderer.EndFrame();
 		Assert.Equal(3, renderer.Transforms.Count);
 		Assert.Equal(ToRenderMatrix(SceneCamera.Default.CreateView()), renderer.Transforms[0].Transform);
@@ -53,7 +53,7 @@ public sealed class SceneRendererTests
 	{
 		using RecordingRenderer renderer = new(RenderSettings.Default);
 		SceneRenderer sceneRenderer = new();
-		Scene scene = new() { Camera = new SceneCamera(new Vector3(4, 5, 6), new Vector3(0, 1, 0), new Vector3(0, 1, 0), 0x3555, 1.1333334f, 1.0f, 21000.0f) };
+		RenderScene scene = new() { Camera = new SceneCamera(new Vector3(4, 5, 6), new Vector3(0, 1, 0), new Vector3(0, 1, 0), 0x3555, 1.1333334f, 1.0f, 21000.0f) };
 		renderer.BeginFrame();
 		sceneRenderer.Render(renderer, scene);
 		renderer.EndFrame();
@@ -70,7 +70,7 @@ public sealed class SceneRendererTests
 		using RecordingRenderer renderer = new(RenderSettings.Default);
 		using ITexture baseTexture = renderer.CreateTexture(8, 4, ReadOnlySpan<byte>.Empty, 0);
 		using ITexture detailTexture = renderer.CreateTexture(16, 2, ReadOnlySpan<byte>.Empty, 0);
-		Scene scene = new()
+		RenderScene scene = new()
 		{
 			Opaque = [Surface(1, texture: baseTexture, detail: detailTexture)],
 			AlphaTested = [Surface(2, cull: SceneCullMode.CounterClockwise, alphaReference: 16)],
@@ -122,7 +122,7 @@ public sealed class SceneRendererTests
 		using RecordingRenderer renderer = new(RenderSettings.Default);
 		using ITexture firstTexture = renderer.CreateTexture(8, 4, ReadOnlySpan<byte>.Empty, 0);
 		using ITexture secondTexture = renderer.CreateTexture(16, 2, ReadOnlySpan<byte>.Empty, 0);
-		Scene scene = new()
+		RenderScene scene = new()
 		{
 			Opaque = [Surface(1, texture: firstTexture), Surface(2, texture: secondTexture)],
 		};
@@ -145,7 +145,7 @@ public sealed class SceneRendererTests
 	public void TransparentSurfacesSortBackToFront()
 	{
 		using RecordingRenderer renderer = new(RenderSettings.Default);
-		Scene scene = new()
+		RenderScene scene = new()
 		{
 			Transparent = [Surface(11, z: 1), Surface(33, z: 3), Surface(22, z: 2)],
 		};
@@ -173,7 +173,7 @@ public sealed class SceneRendererTests
 		};
 		SceneRenderer sceneRenderer = new();
 		renderer.BeginFrame();
-		sceneRenderer.Render(renderer, new Scene { Opaque = [surface] });
+		sceneRenderer.Render(renderer, new RenderScene { Opaque = [surface] });
 		renderer.EndFrame();
 		Assert.Equal(new byte[] { 0x30, 0x31, 0x10, 0x11, 0x20, 0x21 }, renderer.DrawVertices[0]);
 		Assert.Contains("Draw TriangleList 1 2 112", renderer.Commands);
@@ -196,7 +196,7 @@ public sealed class SceneRendererTests
 		};
 		SceneRenderer sceneRenderer = new();
 		renderer.BeginFrame();
-		sceneRenderer.Render(renderer, new Scene { Opaque = [surface] });
+		sceneRenderer.Render(renderer, new RenderScene { Opaque = [surface] });
 		renderer.EndFrame();
 		Assert.Contains("Draw TriangleStrip 2 2 112", renderer.Commands);
 	}
@@ -210,7 +210,7 @@ public sealed class SceneRendererTests
 		using RecordingRenderer renderer = new(RenderSettings.Default);
 		SceneRenderer sceneRenderer = new();
 		renderer.BeginFrame();
-		sceneRenderer.Render(renderer, new Scene { Opaque = [Surface(1, cull: SceneCullMode.CounterClockwise)] });
+		sceneRenderer.Render(renderer, new RenderScene { Opaque = [Surface(1, cull: SceneCullMode.CounterClockwise)] });
 		renderer.EndFrame();
 		Assert.Contains("State 22:3", renderer.Commands);
 	}
