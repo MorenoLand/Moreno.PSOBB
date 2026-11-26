@@ -261,6 +261,11 @@ ValidateVertexShader = 4
 SnmpUtilVarBindFree = 1
 SnmpUtilOidNCmp = 3
 SnmpUtilOidCpy = 2
+SnmpExtensionInit = 3
+SnmpExtensionInitEx = 1
+SnmpExtensionQuery = 4
+SnmpExtensionTrap = 5
+SnmpExtensionClose = 0
 
 [wasm]
 emcc           = "emcc"
@@ -288,7 +293,7 @@ timeout  = 900
 skip_categories = ["other"]
 skip = []
 wrap = []
-extra = [0x85AB43, 0x83747A, 0x837481, 0x837488, 0x83748F, 0x837496, 0x83749D, 0x8374A4, 0x8374AB, 0x8374B2, 0x8374B9, 0x8374E8, 0x83750D, 0x7A628C, 0x864057]
+extra = [0x85AB43, 0x83747A, 0x837481, 0x837488, 0x83748F, 0x837496, 0x83749D, 0x8374A4, 0x8374AB, 0x8374B2, 0x8374B9, 0x8374E8, 0x83750D, 0x7A628C, 0x864057, 0x819240, 0x81924C, 0x81930C, 0x6AA0B8, 0x6A32F0]
 data = []
 chunk = 120
 max_functions_per_file = 150

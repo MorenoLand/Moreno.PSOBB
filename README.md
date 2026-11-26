@@ -1,4 +1,4 @@
-﻿# Static recompiler that translates the Phantasy Star Online Blue Burst client into portable C
+# Static recompiler that translates the Phantasy Star Online Blue Burst client into portable C
 
 This is a StaticShock project. It lifts the original 32-bit Windows client
 instruction by instruction into C, then builds a native Win32 host and a
@@ -12,13 +12,13 @@ The original executable and game data are not part of this repository.
 |---|---|
 | Native host | Boots the CRT startup, creates the D3D8 device and renders the title screen. |
 | Keyboard and mouse | DirectInput devices are created, formatted, acquired and polled. The title screen advances on Enter. |
-| Audio | DirectSound buffers are created and streamed, but the produced stream is still incorrect. |
-| Patch patch | The loader stub and `patch.dll` are intentionally not loaded. |
+| Audio | Music is decoded by a host Vorbis backend and matches the reference `title.ogg`. Seeks and sound-effect mixing still need verification. |
+| Patch DLL | The loader stub and the patch library are intentionally not loaded. |
 | WebAssembly | The build and browser shell exist; the Win32 import layer is incomplete. |
 
 ## How it works
 
-- The PE entry (`0x00B60000`) is the Patch loader stub. The host boots at the
+- The PE entry (`0x00B60000`) is the patch loader stub. The host boots at the
   statically identified CRT startup (`0x0085AB43`) and lets the lifted code run
   the application's `WinMain`.
 - Calls into Direct3D 8, DirectInput 8 and DirectSound go through guest-side
@@ -30,6 +30,9 @@ The original executable and game data are not part of this repository.
 - Delphi exception handlers are entered by `_HandleAnyException`; the lift
   resolves their landing blocks without treating ordinary jump-table targets as
   handlers.
+- Music streams through the guest libvorbisfile interface. On the native host a
+  vendored `stb_vorbis` decoder replaces the corrupted lifted samples while the
+  lifted call still advances the guest decoder state.
 
 ## Requirements
 
@@ -70,6 +73,12 @@ run.cmd
 ```
 
 `run.cmd` adds `bin` and `%PSOBB_DIR%` to `PATH` and starts the host from `bin`.
+It defaults `PSOBB_DIR` to `bin`, so a client whose `data` directory is copied
+under `bin` runs without further configuration.
+
+`RECOMP_PSO_HOST` replaces the client endpoint in the loaded image
+(five string sites) before the CRT runs, so an alternative compatible server
+can be selected without rebuilding.
 
 Regenerating the analysis and the lift requires IDA and the original client:
 
@@ -107,8 +116,9 @@ not tracked.
 
 ## Limits
 
-- The Patch patch loader and `patch.dll` are not lifted or loaded.
-- DirectSound playback format and stream content are still being corrected.
+- The patch loader and the patch library are not lifted or loaded.
+- Music seeks and loops do not yet move the host Vorbis decoder with the guest
+  position; sound effects are outside the host decoder path.
 - The wasm host needs a per-import Win32 implementation; calls without one abort
   with the missing `module!name`.
 - The guest is a single thread on wasm; guest threads are serialized.

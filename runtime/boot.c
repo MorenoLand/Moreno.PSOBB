@@ -149,8 +149,8 @@ int main(int argc, char **argv)
             freopen("CONOUT$", "w", stderr);
         }
     }
-    /* the original image is embedded in this exe (scripts/build.sh); the argument is only the client's data folder
-     * (levels, sounds, config, fmod.dll), default the current folder */
+    /* the original image is embedded in this exe (scripts/build.sh); the argument is the client's install folder
+     * (the folder that contains data\), default the exe folder */
     rt_trace = getenv("RECOMP_TRACE") != NULL;
     const char *watch = getenv("RECOMP_WATCH");      /* RECOMP_WATCH=lo-hi (hex): report writes into that range (watch.exe, built with -DRT_WATCH) */
     if (watch) { char *end; rt_watch_lo = (u32)strtoul(watch, &end, 16); if (*end == '-') rt_watch_hi = (u32)strtoul(end + 1, NULL, 16); }
@@ -175,7 +175,29 @@ int main(int argc, char **argv)
         }
         return 3;
     }
-    /* The Patch loader installs patch.dll's exports into fixed slots at startup. Loading the DLL here
+    /* RECOMP_PSO_HOST=<host> and RECOMP_PSO_OLD_HOST=<host>: replace every copy of the old endpoint in the
+     * loaded image before the CRT runs, so the client resolves the alternative server for patch, login and
+     * game connections. */
+    {
+        const char *host = getenv("RECOMP_PSO_HOST");
+        const char *old = getenv("RECOMP_PSO_OLD_HOST");
+        if (host && *host && old && *old) {
+            size_t ol = strlen(old), nl = strlen(host);
+            if (nl > ol) fprintf(stderr, "host override: %s is too long (max %u)\n", host, (unsigned)ol);
+            else {
+                int sites = 0;
+                for (u32 a = SS_IMAGE_BASE; a + ol <= SS_IMAGE_BASE + SS_DATA_SIZE; ++a) {
+                    if (!memcmp((void *)(uintptr_t)a, old, ol)) {
+                        memset((void *)(uintptr_t)a, 0, ol);
+                        memcpy((void *)(uintptr_t)a, host, nl);
+                        ++sites;
+                    }
+                }
+                fprintf(stderr, "host override: %s (%d sites)\n", host, sites);
+            }
+        }
+    }
+    /* The patch loader installs the patch library's exports into fixed slots at startup. Loading the DLL here
      * would let its DllMain hook the client's own function tables, which a static lift cannot follow, so the
      * one gate the client needs before its own code takes over is answered by a real image function that
      * returns 0 (sub_6DC358: xor eax,eax; ret). */
@@ -183,17 +205,21 @@ int main(int argc, char **argv)
 
     char dir[MAX_PATH];
     const char *env_dir = getenv("RECOMP_DIR");
+    if (!env_dir && argc > 1 && argv[1] && argv[1][0]) env_dir = argv[1];
     if (env_dir) {
         if (!GetFullPathNameA(env_dir, sizeof dir, dir, NULL)) return 2;
     } else {
         if (!GetModuleFileNameA(NULL, dir, sizeof dir)) return 2;
         char *slash = strrchr(dir, '\\');
         if (slash) *slash = 0;
-        char own[MAX_PATH];
-        snprintf(own, sizeof own, "%s\\data", dir);
-        DWORD a = GetFileAttributesA(own);
-        if (a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY)) snprintf(dir, sizeof dir, "%s", own);
-        else if (!GetFullPathNameA(".", sizeof dir, dir, NULL)) return 2;
+    }
+    {   /* the client's relative paths start at the folder that contains data\ */
+        char gsl[MAX_PATH];
+        snprintf(gsl, sizeof gsl, "%s\\data.gsl", dir);
+        if (GetFileAttributesA(gsl) != INVALID_FILE_ATTRIBUTES) {
+            char *slash = strrchr(dir, '\\');
+            if (slash) *slash = 0;
+        }
     }
     DWORD attr = GetFileAttributesA(dir);
     if (attr == INVALID_FILE_ATTRIBUTES) {

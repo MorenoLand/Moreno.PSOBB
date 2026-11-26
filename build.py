@@ -247,6 +247,7 @@ def main():
                  "-Wl,--section-start=.tail=0x%x" % tail,
                  "-Wl,--section-start=.text=0x%x" % text,
                  "-Wl,--disable-reloc-section", "-Wl,--disable-dynamicbase",
+                 "-Wl,--wrap=f_00873508",
                  "-Wl,--large-address-aware", "-Wl,-e,rt_preentry",
                  "-Wl,--stack,0x%x" % int(cfg.BUILD_CFG.get("stack", 0x10000000)),
                  "-Wl,--heap,0x%x" % int(cfg.BUILD_CFG.get("heap", 0x10000000)),

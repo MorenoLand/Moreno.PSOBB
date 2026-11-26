@@ -2,6 +2,7 @@ bin/*
 !bin/README.md
 build/*
 !build/README.md
+server/
 ida/
 asm/
 pseudo/
@@ -15,6 +16,7 @@ SESSION*/
 __pycache__/
 *.pyc
 *.o
+*.cmd
 *.exe
 *.map
 *.log

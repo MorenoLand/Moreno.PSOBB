@@ -20,15 +20,24 @@
 #endif
 
 #define API_BASE 0xFE000000u
-#define MAX_API 8192
+#define MAX_API 65536
 #define SENT_RET 0xDEAD0000u
 
 ApiEnt api_tab[MAX_API];
 int api_count;
 
+static struct { u32 handle; char path[260]; } ogg_files[32];
+const char *rt_ogg_path(u32 handle)
+{
+    for (int i = 0; i < 32; ++i)
+        if (ogg_files[i].handle && ogg_files[i].handle == handle) return ogg_files[i].path;
+    return NULL;
+}
+
 
 #if defined(_WIN32)
 static CRITICAL_SECTION gil;
+static volatile DWORD gil_owner;
 static DWORD ts_index = TLS_OUT_OF_INDEXES;
 #else
 static pthread_mutex_t gil = PTHREAD_MUTEX_INITIALIZER;
@@ -62,8 +71,8 @@ void gil_init(void)
     ts_index = TlsAlloc();
     EnterCriticalSection(&gil);
 }
-static void gil_enter(void) { EnterCriticalSection(&gil); }
-static void gil_leave(void) { LeaveCriticalSection(&gil); }
+static void gil_enter(void) { EnterCriticalSection(&gil); gil_owner = GetCurrentThreadId(); }
+static void gil_leave(void) { gil_owner = 0; LeaveCriticalSection(&gil); }
 #else
 void gil_init(void)
 {
@@ -401,15 +410,19 @@ static DWORD WINAPI sample_main(LPVOID arg)
         CONTEXT c;
         Sleep(1);
         if (GetTickCount() - last >= 5000) { last = GetTickCount(); sample_print(++round); }          /* the counts so far, every 5 seconds: the program may be closed before it stops by itself */
-        if (SuspendThread(sample_thread) == (DWORD)-1) continue;
+        DWORD tid = gil_owner;
+        HANDLE h = (tid && tid != GetCurrentThreadId()) ? OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, tid) : NULL;
+        HANDLE target = h ? h : sample_thread;
+        if (SuspendThread(target) == (DWORD)-1) { if (h) CloseHandle(h); continue; }
         c.ContextFlags = CONTEXT_CONTROL;
-        if (GetThreadContext(sample_thread, &c)) {
-            u32 block = (u32)c.Eip & ~15u, h = (block >> 4) * 2654435761u >> 16;
-            while (sample_eip[h & (SAMPLE_SLOTS - 1)] && sample_eip[h & (SAMPLE_SLOTS - 1)] != block) ++h;
-            sample_eip[h & (SAMPLE_SLOTS - 1)] = block;
-            ++sample_count[h & (SAMPLE_SLOTS - 1)];
+        if (GetThreadContext(target, &c)) {
+            u32 block = (u32)c.Eip & ~15u, hh = (block >> 4) * 2654435761u >> 16;
+            while (sample_eip[hh & (SAMPLE_SLOTS - 1)] && sample_eip[hh & (SAMPLE_SLOTS - 1)] != block) ++hh;
+            sample_eip[hh & (SAMPLE_SLOTS - 1)] = block;
+            ++sample_count[hh & (SAMPLE_SLOTS - 1)];
         }
-        ResumeThread(sample_thread);
+        ResumeThread(target);
+        if (h) CloseHandle(h);
     }
     return 0;
 }
@@ -431,6 +444,16 @@ static void sample_dump(void)
 static void sample_start(void) {}
 static void sample_dump(void) {}
 #endif
+
+static int api_unlock_ok(ApiEnt *e)
+{
+    if (e->module && !strcmp(e->module, "com")) {
+        if (!strcmp(e->name, "IDirect3DDevice8#17")) return 1;
+        if (!strcmp(e->name, "IDirect3D8#15")) return 1;
+        return 0;
+    }
+    return 1;
+}
 
 void api_dispatch(u32 sentinel)
 {
@@ -562,10 +585,24 @@ void api_dispatch(u32 sentinel)
         }
     }
     if (e->module && !strcmp(e->module, "com") && !strcmp(e->name, "IDirectSoundBuffer#19") && a[0] && a[1] && rt_readable(a[0], a[1])) {
+        extern int rt_audio_music;
         const char *dump = getenv("RECOMP_AUDIODUMP");
         static FILE *af;
-        if (dump && !af) af = fopen(dump, "wb");
-        if (af) fwrite((void *)(uintptr_t)a[0], 1, a[1], af);
+        if (dump && rt_audio_music && !af) af = fopen(dump, "wb");
+        if (af && rt_audio_music) fwrite((void *)(uintptr_t)a[0], 1, a[1], af);
+    }
+    if (e->module && !strcmp(e->module, "com") && getenv("RECOMP_AUDIOTRACE") &&
+        (!strcmp(e->name, "IDirectSoundBuffer#19") || !strcmp(e->name, "IDirectSoundBuffer#11") || !strcmp(e->name, "IDirectSoundBuffer#12")))
+        fprintf(stderr, "[audiotrace] %s ret=%08x esp=%08x tid=%lu\n", e->name, R32(r_esp), r_esp, (unsigned long)GetCurrentThreadId());
+    if (e->module && !strcmp(e->module, "user32") && !strcmp(e->name, "CreateWindowExA") &&
+        (a[3] & WS_CAPTION) && !(a[3] & WS_CHILD))
+        a[3] |= WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME;
+    if (e->module && !strcmp(e->module, "kernel32") && !strcmp(e->name, "Sleep") && a[0] == 0) a[0] = 1;
+    if (e->module && !strcmp(e->module, "com") && !strcmp(e->name, "IDirect3D8#15")) {
+        u32 pp = a[4];
+        if (pp > 0x10000 && rt_readable(pp, 52)) {
+            fprintf(stderr, "[d3d] backbuffer %ux%u fmt %u windowed %u ms %u\n", R32(pp), R32(pp + 4), R32(pp + 8), R32(pp + 28), R32(pp + 16));
+        }
     }
 #if defined(_WIN32)
     if (special) {
@@ -596,7 +633,8 @@ void api_dispatch(u32 sentinel)
         cpu_save(&keep);
         ts->saved_esp = r_esp;
         ts->in_api++;
-        gil_leave();
+        int unlock = api_unlock_ok(e);
+        if (unlock) gil_leave();
         u32 ecx = e->thiscall_ ? com_real_this(this_val) : keep.ecx;
         void *fp0 = __builtin_frame_address(0);
         if (e->thiscall_ && extra_args) {
@@ -611,9 +649,20 @@ void api_dispatch(u32 sentinel)
         }
         if (__builtin_frame_address(0) != fp0)
             fprintf(stderr, "[stack] frame moved across %s!%s n=%d\n", e->module, e->name, n);
-        gil_enter();
+        if (unlock) gil_enter();
         ts->in_api--;
         cpu_load(&keep);
+    }
+    if (e->module && !strcmp(e->module, "kernel32") && !strcmp(e->name, "CreateFileA") &&
+        (u32)r != 0xFFFFFFFFu && a[0] && rt_readable(a[0], 5) && strstr((const char *)(uintptr_t)a[0], ".ogg")) {
+        for (int i = 0; i < 32; ++i) {
+            if (!ogg_files[i].handle || ogg_files[i].handle == (u32)r) {
+                ogg_files[i].handle = (u32)r;
+                strncpy(ogg_files[i].path, (const char *)(uintptr_t)a[0], sizeof ogg_files[i].path - 1);
+                ogg_files[i].path[sizeof ogg_files[i].path - 1] = 0;
+                break;
+            }
+        }
     }
     {   /* RECOMP_LOGAPI=Name,module,...: show those calls and their results (for a Shell_NotifyIconA call also its NOTIFYICONDATA) */
         static const char *logapi = (const char *)1;
@@ -624,6 +673,8 @@ void api_dispatch(u32 sentinel)
             fprintf(stderr, ") -> %llx", (unsigned long long)r);
             if ((!strcmp(e->name, "inet_addr") || !strcmp(e->name, "gethostbyname")) && a[0] > 0x10000 && rt_readable(a[0], 64))
                 fprintf(stderr, "  \"%.63s\"", (const char *)(uintptr_t)a[0]);
+            if ((!strcmp(e->name, "CreateFileA") || !strcmp(e->name, "LoadLibraryA") || !strcmp(e->name, "DeleteFileA")) && a[0] > 0x10000 && rt_readable(a[0], 260))
+                fprintf(stderr, "  \"%s\"", (const char *)(uintptr_t)a[0]);
             if (!strcmp(e->name, "send") && a[1] > 0x10000 && a[2] > 0 && rt_readable(a[1], a[2] < 24 ? a[2] : 24)) {
                 const unsigned char *sb = (const unsigned char *)(uintptr_t)a[1];
                 fprintf(stderr, "  \"");
@@ -751,16 +802,6 @@ int api_dispatch_host(u32 target)
             api_dispatch(API_BASE + (u32)i * 16);
             return 1;
         }
-    }
-    {
-        MEMORY_BASIC_INFORMATION m0;
-        u32 off0 = 0;
-        char path0[MAX_PATH] = "?";
-        if (VirtualQuery((void *)(uintptr_t)target, &m0, sizeof m0) && m0.AllocationBase) {
-            GetModuleFileNameA((HMODULE)m0.AllocationBase, path0, sizeof path0);
-            off0 = target - (u32)(uintptr_t)m0.AllocationBase;
-        }
-        fprintf(stderr, "api: unresolved host call %08x in %s+%x\n", target, path0, off0);
     }
     /* a host function the program resolved by walking another module's export table: name it from the
      * module image, look its argument count up, and dispatch it through the same bridge. */
