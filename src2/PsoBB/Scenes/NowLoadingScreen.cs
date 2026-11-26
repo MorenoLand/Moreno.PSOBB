@@ -49,10 +49,10 @@ public sealed class NowLoadingScreen : IDisposable
 	public const float EmblemScale = 2f;
 
 	/// <summary>The drawn emblem rectangle after the 2x scale around the element centre.</summary>
-	public static readonly Vector2 EmblemDrawPosition = new(464f, 384f);
+	public static readonly Vector2 EmblemDrawPosition = new(496f, 416f);
 
 	/// <summary>The drawn emblem size after the 2x scale.</summary>
-	public static readonly Vector2 EmblemDrawSize = new(128f, 128f);
+	public static readonly Vector2 EmblemDrawSize = new(64f, 64f);
 
 	/// <summary>The full texture coordinates both halves sample.</summary>
 	public static readonly Vector4 TextureCoordinates = new(0f, 0f, 1f, 1f);
@@ -123,9 +123,9 @@ public sealed class NowLoadingScreen : IDisposable
 			return;
 		Rotation = unchecked(Rotation + RotationStep);
 		uint color = GetColor(Rotation);
+		draw.AddOverlay(CreateQuad(_textures[2], EmblemDrawPosition, EmblemDrawSize, TextureCoordinates, color, 1f, TitleArtBlend.Additive));
 		draw.AddOverlay(CreateQuad(_textures[0], LeftPosition, LeftSize, TextureCoordinates, 0xFFFFFFFFu, 1f, TitleArtBlend.Opaque));
 		draw.AddOverlay(CreateQuad(_textures[1], RightPosition, RightSize, TextureCoordinates, 0xFFFFFFFFu, 1f, TitleArtBlend.Opaque));
-		draw.AddOverlay(CreateQuad(_textures[2], EmblemDrawPosition, EmblemDrawSize, TextureCoordinates, color, 1f, TitleArtBlend.AdditiveAlpha));
 	}
 
 	/// <summary>

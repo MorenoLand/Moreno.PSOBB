@@ -23,18 +23,39 @@ rows have item flags `0x41` (enabled and coloured), so their text takes the bitm
 `0x0071D58C`; they do not use the texture-font atlas.
 
 The header label is created by the list base `0x0073566C` through `0x00761320` and `0x00760A28`
-with unitxt list 41 string 2. The panel rectangle passed in the online branch is the four floats
-at `0x00974E08` (210, 340, 220, 120); the first twenty pixels hold the header and the remaining
+with unitxt list 41 string 2. The two-row online branch passes the four floats at `0x00974E08`
+(210, 340, 220, 120). The five-row title branch, which this port implements, passes the pair
+`(210, 300)`, or `(210, 336)` when `dword_A96968` selects the Episode 4 layout, and then the
+size at `0x00974E10` (220, 120). The first twenty pixels hold the header and the remaining
 hundred hold the four rows and hint. The data-image hint is `[%s]`; the retail frame shows `[d]`,
 so `LoginDialog.DefaultHintKey` is `d` and `DefaultHint` is `[d]`.
 
 The account list draw is `0x007352D0`. It calls `0x00710F80` for the window frame, `0x0072A648`
 for child windows, `0x007353E8` for the selected row and `0x00735428` for the normal rows. The
-row routine `0x007120EC` binds `dword_A983D8` (the `f256_hyouji` UI texture) and draws three
-horizontal slices: left 18 pixels from UV `(151, 57)`, middle 30 pixels from UV `(169, 57)` and
-right 16 pixels from UV `(183, 57)`, with the selected row using V `76` instead of `57`. The
-window frame `0x00710F80` draws the nine-slice background and border; the header child is
-`0x0073566C` → `0x00761320` → `0x00761390`.
+row routine `0x007120EC` binds `dword_A983D8` and draws three sixteen-pixel slices from
+`dword_A983D8` page 2: left `U 151..167`, right `U 183..199` and middle `U 167..183`, each sixteen
+pixels high from `V 57..73`; the hovered row uses `V 76..92`. The left cap is drawn at `x-2`, the
+right cap at `x+width-14` and the middle from `x+14` to `x+width-14`. The tint passed to
+`0x0082BB60` is `-1` (`0xFFFFFFFF`).
+
+`dword_A983D8` is written only by `0x00712D14`. Its only caller is `0x0071A198`, called with
+argument `1` at `0x004E2CC9`, so the name is `f256_hyoujismall` and the page array is
+`off_9F58F4`: a pointer to the three descriptors at `0x009F58D0` followed by the count `3`. The
+descriptors are `f256_hyoujismall_a`, `_b` and `_c`; `0x0082A7D8` fills them in XVRT order, so
+page 2 is `_c`. `0x0082BB60(2, -1)` selects that page through `0x00839838`.
+
+The title-menu panel is drawn at `(210, 288)` with the `220 x 120` size at `0x00974E10`. The
+constructor's body top is `308` when `dword_A96968` is nonzero and `300` otherwise, and the
+twenty-pixel header is drawn above it, which gives the observed `288` top. The
+`(210, 340, 220, 120)` data at `0x00974E08` is the online account-edit form, not this title menu.
+The panel body and orange header come from `f256_hyoujismall_b` page 1: the body is a nine-slice
+with an eight-pixel mirrored border from the `(0,0,80,80)` panel and the header is a three-slice
+from `(4,128,76,147)` with twelve-pixel caps. Those two source rectangles are observed from the
+decoded page and the `t09` capture; the exact `0x00710F80` corner/tile UVs are not reconstructed.
+
+`LoginDialogFrame` draws the body, the header and the selected row in that order and is installed
+through `LoginDialog.Frame`. Its tests pin the row slices, the header caps, the panel corners, the
+draw order and release.
 
 `0x006FF0D4` is the scene-2 selector object, not the account list. It drives the element table
 `0x009CFF00`: element 15 at (192, 308), rows 11 through 14 at (193, 300), (193, 332), (193, 364)
@@ -82,4 +103,5 @@ The account panel itself is `PsoBB.Scenes.LoginDialog`: the list 41 string 2 hea
 enabled rows, a disabled yellow hint, wrapping selection, the data-value confirm mapping and
 close. Data value 0 closes the account panel to start the game; it is not a separate Exit
 action. The scene-2 selector frames are reached through `SelectorFrameDraw`; their proven
-addresses and positions are constants on `LoginDialog`.
+addresses and positions are constants on `LoginDialog`. `LoginDialogFrame` supplies the textured
+title body, header and selected-row strip, and `LoginDialog.Dispose` releases its two skin pages.

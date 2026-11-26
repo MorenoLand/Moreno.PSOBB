@@ -68,6 +68,43 @@ public sealed class AudioAssetTests
 	}
 
 	[Fact]
+	public void PlaysTheTitleSoundEffectsFromTheCommonAndMapBanks()
+	{
+		(byte[] commonData, SoundBankDefinition common) = SyntheticPacBank.Build("common.pac", new PacSoundSpec(1391, 8000, 1, 16, [100, -100, 200, -200]));
+		(byte[] mapData, SoundBankDefinition map) = SyntheticPacBank.Build("map.pac", new PacSoundSpec(1056, 8000, 1, 16, [100, -100]));
+		using DataFileRegistry files = Files(("data/sound/common.pac", commonData), ("data/sound/map.pac", mapData));
+		SoundBankCatalog catalog = new(["common.pac", "map.pac"], [1], [common, map], 0);
+		SoundEffectLibrary library = new(files, catalog);
+		CapturingAudioOutput output = new(Format, 4096);
+		using AudioPipeline pipeline = new(output, 1024, 256);
+		Assert.True(pipeline.LoadCommonSounds(library));
+		Assert.True(pipeline.LoadMapSounds(library, 0));
+		Assert.True(pipeline.PlaySound(library, 1391) > 0);
+		Assert.True(pipeline.PlaySound(library, 1056) > 0);
+		Assert.Equal(2, pipeline.Sounds.VoiceCount);
+	}
+
+	[Fact]
+	public void RetailBanksResolveTheTitleSoundEffectsWhenTheDataRootIsConfigured()
+	{
+		string? root = Environment.GetEnvironmentVariable("PSOBB_RETAIL_DATA");
+		if (string.IsNullOrEmpty(root))
+			return;
+		using DataFileRegistry files = Files(
+			("data/sound/common.pac", File.ReadAllBytes(Path.Combine(root, "sound", "common.pac"))),
+			("data/sound/city.pac", File.ReadAllBytes(Path.Combine(root, "sound", "city.pac"))));
+		SoundEffectLibrary library = new(files);
+		Assert.True(library.LoadCommonBank());
+		Assert.True(library.LoadMapBank(0));
+		Assert.Equal(65, library.Resolve(1391)?.VolumeIndex);
+		Assert.Equal(35, library.Resolve(1056)?.VolumeIndex);
+		Assert.Equal(45, library.Resolve(1392)?.VolumeIndex);
+		Assert.Equal(1391, library.Find(1391)?.SoundEffectId);
+		Assert.Equal(1056, library.Find(1056)?.SoundEffectId);
+		Assert.Equal(1392, library.Find(1392)?.SoundEffectId);
+	}
+
+	[Fact]
 	public void MissingSoundEffectThrows()
 	{
 		using DataFileRegistry files = Files();

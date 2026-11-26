@@ -20,7 +20,7 @@ public sealed class PacSoundSample
 	}
 
 	/// <summary>
-	/// Gets the sound-effect identifier this sample answers.
+	/// Gets the loaded slot this sample answers.
 	/// </summary>
 	public int SoundEffectId { get; }
 

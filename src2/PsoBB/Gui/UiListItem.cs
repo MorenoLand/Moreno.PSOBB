@@ -12,12 +12,14 @@ public sealed class UiListItem
 	/// <param name="enabled">Whether the row can be selected and activated.</param>
 	/// <param name="data">The value the original stores beside the row's state word.</param>
 	/// <param name="color">The row text colour in 0xAARRGGBB form, or <see langword="null"/> to use the list colours.</param>
-	public UiListItem(string text, bool enabled = true, int data = 0, uint? color = null)
+	/// <param name="centered">Whether the row text is centred inside the list width.</param>
+	public UiListItem(string text, bool enabled = true, int data = 0, uint? color = null, bool centered = false)
 	{
 		Text = text ?? string.Empty;
 		Enabled = enabled;
 		Data = data;
 		Color = color;
+		Centered = centered;
 	}
 
 	/// <summary>Gets or sets the row text.</summary>
@@ -31,4 +33,7 @@ public sealed class UiListItem
 
 	/// <summary>Gets or sets the row text colour in 0xAARRGGBB form, or <see langword="null"/> to use the list colours.</summary>
 	public uint? Color { get; set; }
+
+	/// <summary>Gets or sets a value indicating whether the row text is centred inside the list width.</summary>
+	public bool Centered { get; set; }
 }

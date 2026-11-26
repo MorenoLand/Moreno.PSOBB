@@ -1,7 +1,7 @@
 namespace PsoBB.Audio;
 
 /// <summary>
-/// The fixed table row that names one bank file and binds its samples to sound-effect identifiers.
+/// The fixed table row that names one bank file and binds its samples to the client's loaded-slot identifiers.
 /// </summary>
 /// <remarks>
 /// The client keeps these rows in its executable. They are not stored in the bank file, so a bank cannot be interpreted without its definition.
@@ -15,7 +15,7 @@ public sealed class SoundBankDefinition
 	/// Creates a bank definition.
 	/// </summary>
 	/// <param name="fileName">The bank file name without a directory.</param>
-	/// <param name="sampleIds">The sound-effect identifier for each metadata entry, in bank order.</param>
+	/// <param name="sampleIds">The loaded slot for each metadata entry, in bank order.</param>
 	/// <param name="metadata">The sample metadata in bank order.</param>
 	/// <exception cref="ArgumentNullException">An argument is null.</exception>
 	/// <exception cref="ArgumentException">The file name is empty, has a directory, or the two tables have different lengths.</exception>
@@ -37,7 +37,7 @@ public sealed class SoundBankDefinition
 		{
 			int soundEffectId = _sampleIds[index];
 			if (soundEffectId is < 0 or >= SoundEffectLibrary.SoundEffectSlots)
-				throw new ArgumentOutOfRangeException(nameof(sampleIds), soundEffectId, $"A sound-effect identifier is between 0 and {SoundEffectLibrary.SoundEffectSlots - 1}.");
+				throw new ArgumentOutOfRangeException(nameof(sampleIds), soundEffectId, $"A loaded slot is between 0 and {SoundEffectLibrary.SoundEffectSlots - 1}.");
 			PacSoundMetadata entry = _metadata[index];
 			if (entry.FileOffset < 0)
 				throw new ArgumentOutOfRangeException(nameof(metadata), entry.FileOffset, "A bank offset cannot be negative.");
