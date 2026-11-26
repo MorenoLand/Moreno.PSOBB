@@ -15,15 +15,16 @@ internal static class TitleTestData
 	/// <param name="includeSelect">Whether the select-game archive is present.</param>
 	/// <param name="includeTitle">Whether the title archive is present.</param>
 	/// <param name="includeStandalone">Whether the standalone title atlas is present.</param>
+	/// <param name="logo">Optional logo archive bytes.</param>
 	/// <returns>The opened registry.</returns>
-	internal static DataFileRegistry Registry(bool includeSelect = true, bool includeTitle = true, bool includeStandalone = true)
+	internal static DataFileRegistry Registry(bool includeSelect = true, bool includeTitle = true, bool includeStandalone = true, byte[]? logo = null)
 	{
 		MemoryFileSystem fileSystem = new();
 		fileSystem.CreateDirectory(GamePath.Parse("data"));
 		List<(string Name, byte[] Stored, int UncompressedSize)> entries = [];
 		if (includeTitle)
 			entries.Add(("title.prs", Xvm((256, 256)), 0));
-		entries.Add(("logo.prs", LogoXvm(), 0));
+		entries.Add(("logo.prs", logo ?? LogoXvm(), 0));
 		if (includeStandalone)
 			entries.Add(("title2_eng.xvm", Xvm((256, 256)), 0));
 		if (includeSelect)
@@ -62,4 +63,17 @@ internal static class TitleTestData
 	/// </summary>
 	/// <returns>The complete logo archive.</returns>
 	internal static byte[] LogoXvm() => Xvm((256, 256), (256, 256), (256, 256), (256, 256), (128, 128), (128, 128), (128, 128), (128, 128));
+
+	/// <summary>
+	/// Builds an eight-texture logo archive whose first texture has one white and one blue pixel.
+	/// </summary>
+	/// <returns>The complete logo archive.</returns>
+	internal static byte[] ColorKeyLogoXvm()
+	{
+		byte[][] chunks = new byte[8][];
+		chunks[0] = TextureTestData.Xvr(XvmTextureFormat.Bgra8888, 0, 2, 2, [255, 255, 255, 255, 0, 0, 255, 255, 255, 255, 255, 255, 0, 0, 255, 255]);
+		for (int index = 1; index < chunks.Length; index++)
+			chunks[index] = TextureTestData.Xvr(XvmTextureFormat.Bgra8888, (uint)index, 1, 1, [0, 0, 0, 255]);
+		return TextureTestData.Xvm(chunks);
+	}
 }
