@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="PsoBB.Platform.Windows" />
+    <InternalsVisibleTo Include="PsoBB.Tests" />
   </ItemGroup>
 
 </Project>
