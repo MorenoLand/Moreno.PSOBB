@@ -33,6 +33,56 @@ public sealed class Scene2TitleArt : IDisposable
 	/// <summary>The depth divisor the alpha strip pass passes to the original vertex helper.</summary>
 	public const float AlphaDepthDivisor = -130f;
 
+	/// <summary>Gets the selected title set.</summary>
+	public Scene2TitleSet TitleSet { get; }
+
+	/// <summary>
+	/// Maps a title set to the archive name the original loader builds by appending <c>.prs</c>.
+	/// </summary>
+	/// <param name="titleSet">The selected title set.</param>
+	/// <returns>The archive name.</returns>
+	/// <exception cref="ArgumentOutOfRangeException">The set has no archive name.</exception>
+	public static string GetArchiveName(Scene2TitleSet titleSet) => titleSet switch
+	{
+		Scene2TitleSet.Title => TitleArchiveName,
+		Scene2TitleSet.TitleEp4 => TitleEp4ArchiveName,
+		Scene2TitleSet.TitleCs => TitleCsArchiveName,
+		_ => throw new ArgumentOutOfRangeException(nameof(titleSet), titleSet, "The title set has no archive name."),
+	};
+
+	/// <summary>
+	/// Mirrors <c>0x00708514</c>: the Episode 4 configuration is selected by mode 3, the network flag or an <c>Episode4</c> account name.
+	/// </summary>
+	/// <param name="mode">The value compared with 3.</param>
+	/// <param name="networkMode">Whether <c>0x0082D2F8</c> is set.</param>
+	/// <param name="accountName">The account name compared with <c>Episode4</c>.</param>
+	/// <returns><see langword="true"/> when the Episode 4 configuration is selected.</returns>
+	public static bool IsEpisode4Configuration(int mode, bool networkMode, ReadOnlySpan<char> accountName) =>
+		mode == 3 || networkMode || accountName.StartsWith("Episode4", StringComparison.Ordinal);
+
+	/// <summary>
+	/// Mirrors <c>0x006FB914</c>: any nonzero mode keeps the <c>Title</c> set, otherwise the Episode 4 flag selects <c>TitleEP4</c>.
+	/// </summary>
+	/// <param name="mode">The value returned by <c>0x006DC358</c>.</param>
+	/// <param name="episode4Configuration">Whether <c>0x00708514</c> selected the Episode 4 configuration.</param>
+	/// <returns>The title set the original initialiser selects.</returns>
+	public static Scene2TitleSet SelectTitleSet(int mode, bool episode4Configuration)
+	{
+		if (mode != 0)
+			return Scene2TitleSet.Title;
+		return episode4Configuration ? Scene2TitleSet.TitleEp4 : Scene2TitleSet.Title;
+	}
+
+	/// <summary>
+	/// Selects a title set from the mode, network flag and account name using both original checks.
+	/// </summary>
+	/// <param name="mode">The value returned by <c>0x006DC358</c> and compared with 3.</param>
+	/// <param name="networkMode">Whether <c>0x0082D2F8</c> is set.</param>
+	/// <param name="accountName">The account name compared with <c>Episode4</c>.</param>
+	/// <returns>The title set the original initialiser selects.</returns>
+	public static Scene2TitleSet SelectTitleSet(int mode, bool networkMode, ReadOnlySpan<char> accountName) =>
+		SelectTitleSet(mode, IsEpisode4Configuration(mode, networkMode, accountName));
+
 	/// <summary>The original texture-set strip table at <c>0x009A3840</c>.</summary>
 	public static readonly IReadOnlyList<TitleArtStrip> Strips =
 	[
@@ -46,26 +96,38 @@ public sealed class Scene2TitleArt : IDisposable
 		new(256, 0, 256, 256, 2),
 	];
 
-	private static readonly string[] TitleNames = ["title_eng.prs", "title.prs"];
+	private static readonly (float X, float Y)[] RingPoints = [(-137f, -79f), (137f, -79f), (0f, 156f)];
+
+	/// <summary>The archive name the original <c>Title</c> pointer builds.</summary>
+	public const string TitleArchiveName = "Title.prs";
+
+	/// <summary>The archive name the original <c>TitleEP4</c> pointer builds.</summary>
+	public const string TitleEp4ArchiveName = "TitleEP4.prs";
+
+	/// <summary>The archive name the original <c>Title_cs</c> pointer builds.</summary>
+	public const string TitleCsArchiveName = "Title_cs.prs";
+
 	private readonly ITexture[] _textures;
 	private readonly TitleEffectRecord[] _effectRecords;
 	private readonly Dictionary<uint, ITexture> _effectTextures;
 	private bool _disposed;
 
 	/// <summary>
-	/// Loads the title texture set and, when present, the title effect records and particle textures.
+	/// Loads the selected title texture set and, when present, the title effect records and particle textures.
 	/// </summary>
 	/// <param name="files">The data registry that resolves the retail archives.</param>
 	/// <param name="renderer">The renderer that owns the created textures.</param>
+	/// <param name="titleSet">The set selected by the caller; the default is the mode-zero <c>Title</c> set.</param>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
-	/// <exception cref="FileNotFoundException">No title texture archive is present.</exception>
+	/// <exception cref="FileNotFoundException">The selected title texture archive is absent.</exception>
 	/// <exception cref="TextureFormatException">A title or effect archive is malformed.</exception>
 	/// <exception cref="InvalidDataException">The effect record table or a referenced effect texture is malformed.</exception>
-	public Scene2TitleArt(IDataFiles files, IRenderer renderer)
+	public Scene2TitleArt(IDataFiles files, IRenderer renderer, Scene2TitleSet titleSet = Scene2TitleSet.Title)
 	{
 		ArgumentNullException.ThrowIfNull(files);
 		ArgumentNullException.ThrowIfNull(renderer);
-		IReadOnlyList<XvmTexture> title = ReadTitleTextures(files);
+		TitleSet = titleSet;
+		IReadOnlyList<XvmTexture> title = ReadTitleTextures(files, titleSet);
 		if (title.Count != TextureCount)
 			throw new TextureFormatException($"The title texture set has {title.Count} textures; the original set has {TextureCount}.", 0);
 		_textures = new ITexture[title.Count];
@@ -99,6 +161,82 @@ public sealed class Scene2TitleArt : IDisposable
 		DrawOpaqueStrips(draw);
 		DrawAlphaStrips(draw);
 	}
+
+	/// <summary>
+	/// Adds the rotating 430/178 radius emblem and the three 104-radius ring quads from <c>0x006F475C</c>.
+	/// </summary>
+	/// <param name="draw">The draw list that receives the overlay quads.</param>
+	/// <param name="frame">The controller frame counter at <c>0x006F475C+0x8</c>.</param>
+	/// <param name="state">The runtime centre, flags and UV origins; the image defaults are used when null.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The title art is released.</exception>
+	public void DrawEmblem(TitleArtDrawList draw, int frame, TitleEmblemState? state = null)
+	{
+		ArgumentNullException.ThrowIfNull(draw);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		TitleEmblemState emblem = state ?? TitleEmblemState.ImageDefault;
+		int angle = GetEmblemAngle(frame, emblem.RotationFlags);
+		uint color = GetEmblemColor(frame);
+		AddEmblemQuad(draw, 11, emblem.Center, 430f, -angle, emblem.PrimaryU, emblem.PrimaryV, 0.83984375f, color, 1f - 0.008333334f);
+		AddEmblemQuad(draw, 12, emblem.Center, 178f, angle, emblem.PrimaryU, emblem.PrimaryV, 0.34765625f, color, 1f - 0.008403362f);
+		float cosine = MathF.Cos(AngleRadians(angle));
+		float sine = MathF.Sin(AngleRadians(angle));
+		foreach ((float x, float y) in RingPoints)
+		{
+			Vector2 center = new(
+				sine * y + emblem.Center.X - x * cosine,
+				cosine * y + x * sine + emblem.Center.Y);
+			AddEmblemQuad(draw, 12, center, 104f, -2 * angle, emblem.RingU, emblem.RingV, 0.203125f, color, 1f - 0.008474576f);
+		}
+	}
+
+	/// <summary>
+	/// Returns the original 16-bit angle for a controller frame and <c>dword_A96920</c> flags.
+	/// </summary>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <param name="rotationFlags">The <c>dword_A96920</c> value.</param>
+	/// <returns>The signed 16-bit angle.</returns>
+	public static int GetEmblemAngle(int frame, int rotationFlags)
+	{
+		int angle = unchecked(frame << 16);
+		angle = (rotationFlags & 2) != 0 ? angle / 450 : angle / 900;
+		return (rotationFlags & 1) != 0 ? -angle : angle;
+	}
+
+	/// <summary>
+	/// Returns the original <c>0x007A919C(0, 88, 115, frame, 300, 150, 165, 180)</c> colour.
+	/// </summary>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <returns>The diffuse colour in 0xAARRGGBB form.</returns>
+	public static uint GetEmblemColor(int frame)
+	{
+		int position = frame % 300;
+		if (position < 150 || position > 180)
+			return 0xFF005873u;
+		double fraction = position >= 165 ? (180 - position) / 15.0 : (position - 150) / 15.0;
+		byte red = (byte)(255 * fraction);
+		byte green = (byte)(88 + 167 * fraction);
+		byte blue = (byte)(115 + 140 * fraction);
+		return 0xFF000000u | ((uint)red << 16) | ((uint)green << 8) | blue;
+	}
+
+	private void AddEmblemQuad(TitleArtDrawList draw, int frame, Vector2 center, float radius, int angle, float u, float v, float extent, uint color, float depth)
+	{
+		float cosine = MathF.Cos(AngleRadians(angle));
+		float sine = MathF.Sin(AngleRadians(angle));
+		float width = cosine * radius;
+		float height = sine * radius;
+		Vector2 origin = new(
+			(height - width) * 0.5f + center.X,
+			(height + width) * -0.5f + center.Y);
+		TitleArtVertex p0 = new(origin, new Vector2(u, v));
+		TitleArtVertex p1 = new(origin + new Vector2(width, height), new Vector2(u + extent, v));
+		TitleArtVertex p2 = new(origin + new Vector2(width - height, height + width), new Vector2(u + extent, v + extent));
+		TitleArtVertex p3 = new(origin + new Vector2(-height, width), new Vector2(u, v + extent));
+		draw.AddOverlay(new TitleArtOverlayQuad(_textures[frame], p0, p1, p2, p3, color, depth, TitleArtBlend.Additive));
+	}
+
+	private static float AngleRadians(int angle) => angle * (MathF.PI * 2f / 65536f);
 
 	/// <summary>
 	/// Adds the eight s256 first-title strips with alpha blending disabled.
@@ -153,17 +291,19 @@ public sealed class Scene2TitleArt : IDisposable
 		}
 	}
 
-	private static IReadOnlyList<XvmTexture> ReadTitleTextures(IDataFiles files)
+	private static IReadOnlyList<XvmTexture> ReadTitleTextures(IDataFiles files, Scene2TitleSet titleSet)
 	{
-		foreach (string name in TitleNames)
-		{
-			if (!files.TryRead(name, out ReadOnlyMemory<byte> data))
-				continue;
-			IReadOnlyList<XvmTexture> textures = ReadXvm(data, name);
-			if (textures.Count != 0)
-				return textures;
-		}
-		throw new FileNotFoundException("No title texture archive is present.", TitleNames[0]);
+		string name = GetArchiveName(titleSet);
+		ReadOnlyMemory<byte> data = default;
+		bool found = files.TryRead(name, out data);
+		if (!found)
+			found = files.TryRead($"data/{name}", out data);
+		if (!found)
+			throw new FileNotFoundException($"The title texture archive '{name}' is missing.", name);
+		IReadOnlyList<XvmTexture> textures = ReadXvm(data, name);
+		if (textures.Count == 0)
+			throw new TextureFormatException($"The title archive '{name}' has no textures.", 0);
+		return textures;
 	}
 
 	private static (TitleEffectRecord[] Records, Dictionary<uint, ITexture> Textures) LoadEffects(IDataFiles files, IRenderer renderer)
@@ -253,6 +393,19 @@ public sealed class Scene2TitleArt : IDisposable
 }
 
 /// <summary>
+/// The three title sets assigned by <c>0x006FB914</c>.
+/// </summary>
+public enum Scene2TitleSet
+{
+	/// <summary>The <c>Title</c> archive used by mode 0 and the fallback path.</summary>
+	Title,
+	/// <summary>The <c>TitleEP4</c> archive used by the Episode 4 configuration.</summary>
+	TitleEp4,
+	/// <summary>The <c>Title_cs</c> archive used for Chinese.</summary>
+	TitleCs,
+}
+
+/// <summary>
 /// One row of the original logo strip table at <c>0x009A3840</c>.
 /// </summary>
 /// <param name="X">Left position.</param>
@@ -261,6 +414,41 @@ public sealed class Scene2TitleArt : IDisposable
 /// <param name="Height">Height.</param>
 /// <param name="FrameOffset">Texture offset added to the pass frame base.</param>
 public readonly record struct TitleArtStrip(int X, int Y, int Width, int Height, int FrameOffset);
+
+/// <summary>
+/// The runtime inputs to the rotating emblem and ring overlay.
+/// </summary>
+/// <param name="Center">The original <c>dword_A96918</c>/<c>dword_A9691C</c> centre.</param>
+/// <param name="RotationFlags">The original <c>dword_A96920</c> flags.</param>
+/// <param name="PrimaryU">The original <c>dword_A96924</c> primary U origin.</param>
+/// <param name="PrimaryV">The original <c>dword_A96928</c> primary V origin.</param>
+/// <param name="RingU">The original <c>dword_A9692C</c> ring U origin.</param>
+/// <param name="RingV">The original <c>dword_A96930</c> ring V origin.</param>
+public readonly record struct TitleEmblemState(Vector2 Center, int RotationFlags, float PrimaryU, float PrimaryV, float RingU, float RingV)
+{
+	/// <summary>Gets the centre, flags and UV origins observed in the running host.</summary>
+	public static TitleEmblemState ImageDefault => new(new Vector2(320f, 220f), 0, 0f, 0f, 0.35f, 0f);
+}
+
+/// <summary>
+/// One overlay vertex with its texture coordinate.
+/// </summary>
+/// <param name="Position">The screen position.</param>
+/// <param name="TextureCoordinates">The texture coordinate.</param>
+public readonly record struct TitleArtVertex(Vector2 Position, Vector2 TextureCoordinates);
+
+/// <summary>
+/// One four-corner overlay quad.
+/// </summary>
+/// <param name="Texture">The bound texture.</param>
+/// <param name="P0">The first corner.</param>
+/// <param name="P1">The second corner.</param>
+/// <param name="P2">The third corner.</param>
+/// <param name="P3">The fourth corner.</param>
+/// <param name="Color">The diffuse colour in 0xAARRGGBB form.</param>
+/// <param name="Depth">The transformed z value.</param>
+/// <param name="Blend">The original alpha-blend mode.</param>
+public readonly record struct TitleArtOverlayQuad(ITexture Texture, TitleArtVertex P0, TitleArtVertex P1, TitleArtVertex P2, TitleArtVertex P3, uint Color, float Depth, TitleArtBlend Blend);
 
 /// <summary>
 /// One title strip draw command.
@@ -281,8 +469,10 @@ public enum TitleArtBlend
 {
 	/// <summary>Alpha blending disabled.</summary>
 	Opaque = 0,
-	/// <summary>Alpha blending enabled.</summary>
+	/// <summary>Source-alpha over inverse-source-alpha blending.</summary>
 	Alpha = 1,
+	/// <summary>Additive source-one, destination-zero blending.</summary>
+	Additive = 2,
 }
 
 /// <summary>
@@ -297,18 +487,30 @@ public sealed class TitleArtDrawList
 	public const int VertexStride = 28;
 
 	private readonly List<TitleArtQuad> _quads = [];
+	private readonly List<TitleArtOverlayQuad> _overlay = [];
 
-	/// <summary>Gets the collected quads in submission order.</summary>
+	/// <summary>Gets the collected strip quads in submission order.</summary>
 	public IReadOnlyList<TitleArtQuad> Quads => _quads;
 
-	/// <summary>Adds a quad.</summary>
+	/// <summary>Gets the collected emblem and ring quads in submission order.</summary>
+	public IReadOnlyList<TitleArtOverlayQuad> OverlayQuads => _overlay;
+
+	/// <summary>Adds a strip quad.</summary>
 	/// <param name="quad">The quad to add.</param>
 	public void Add(TitleArtQuad quad) => _quads.Add(quad);
 
-	/// <summary>Removes every collected quad.</summary>
-	public void Clear() => _quads.Clear();
+	/// <summary>Adds an emblem or ring overlay quad.</summary>
+	/// <param name="quad">The quad to add.</param>
+	public void AddOverlay(TitleArtOverlayQuad quad) => _overlay.Add(quad);
 
-	/// <summary>Submits the collected quads to a renderer in order.</summary>
+	/// <summary>Removes every collected quad.</summary>
+	public void Clear()
+	{
+		_quads.Clear();
+		_overlay.Clear();
+	}
+
+	/// <summary>Submits the collected strip and overlay quads to a renderer in order.</summary>
 	/// <param name="renderer">The renderer that receives the state, texture binds and draw calls.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="renderer"/> is null.</exception>
 	public void Render(IRenderer renderer)
@@ -321,19 +523,45 @@ public sealed class TitleArtDrawList
 			if (currentBlend != quad.Blend)
 			{
 				currentBlend = quad.Blend;
-				renderer.SetRenderState(RenderStateId.AlphaBlendEnable, quad.Blend == TitleArtBlend.Alpha ? 1u : 0u);
-				renderer.SetRenderState(RenderStateId.Lighting, 0);
-				renderer.SetRenderState(RenderStateId.DiffuseMaterialSource, RenderStateId.MaterialColorDiffuse);
-				if (renderer is IFixedFunctionRenderer fixedRenderer)
-				{
-					fixedRenderer.SetTextureStageState(0, 4, quad.Blend == TitleArtBlend.Opaque ? 3u : 4u);
-					fixedRenderer.SetTextureStageState(0, 13, 3);
-					fixedRenderer.SetTextureStageState(0, 14, 3);
-				}
+				SetBlend(renderer, quad.Blend);
 			}
 			renderer.SetTexture(0, quad.Texture);
 			WriteQuad(vertices, quad);
 			renderer.Draw(PrimitiveType.TriangleList, 2, vertices, VertexStride, VertexFormat);
+		}
+		foreach (TitleArtOverlayQuad quad in _overlay)
+		{
+			if (currentBlend != quad.Blend)
+			{
+				currentBlend = quad.Blend;
+				SetBlend(renderer, quad.Blend);
+			}
+			renderer.SetTexture(0, quad.Texture);
+			WriteOverlay(vertices, quad);
+			renderer.Draw(PrimitiveType.TriangleList, 2, vertices, VertexStride, VertexFormat);
+		}
+	}
+
+	private static void SetBlend(IRenderer renderer, TitleArtBlend blend)
+	{
+		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, blend == TitleArtBlend.Opaque ? 0u : 1u);
+		if (blend == TitleArtBlend.Alpha)
+		{
+			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
+			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
+		}
+		else if (blend == TitleArtBlend.Additive)
+		{
+			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendOne);
+			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendZero);
+		}
+		renderer.SetRenderState(RenderStateId.Lighting, 0);
+		renderer.SetRenderState(RenderStateId.DiffuseMaterialSource, RenderStateId.MaterialColorDiffuse);
+		if (renderer is IFixedFunctionRenderer fixedRenderer)
+		{
+			fixedRenderer.SetTextureStageState(0, 4, blend == TitleArtBlend.Opaque ? 3u : 4u);
+			fixedRenderer.SetTextureStageState(0, 13, 3);
+			fixedRenderer.SetTextureStageState(0, 14, 3);
 		}
 	}
 
@@ -360,6 +588,16 @@ public sealed class TitleArtDrawList
 		BinaryPrimitives.WriteUInt32LittleEndian(destination[16..], color);
 		BinaryPrimitives.WriteSingleLittleEndian(destination[20..], u);
 		BinaryPrimitives.WriteSingleLittleEndian(destination[24..], v);
+	}
+
+	private static void WriteOverlay(Span<byte> vertices, TitleArtOverlayQuad quad)
+	{
+		WriteVertex(vertices[..VertexStride], quad.P0.Position.X, quad.P0.Position.Y, quad.Depth, quad.P0.TextureCoordinates.X, quad.P0.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[VertexStride..(VertexStride * 2)], quad.P1.Position.X, quad.P1.Position.Y, quad.Depth, quad.P1.TextureCoordinates.X, quad.P1.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 2)..(VertexStride * 3)], quad.P2.Position.X, quad.P2.Position.Y, quad.Depth, quad.P2.TextureCoordinates.X, quad.P2.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 3)..(VertexStride * 4)], quad.P0.Position.X, quad.P0.Position.Y, quad.Depth, quad.P0.TextureCoordinates.X, quad.P0.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 4)..(VertexStride * 5)], quad.P2.Position.X, quad.P2.Position.Y, quad.Depth, quad.P2.TextureCoordinates.X, quad.P2.TextureCoordinates.Y, quad.Color);
+		WriteVertex(vertices[(VertexStride * 5)..], quad.P3.Position.X, quad.P3.Position.Y, quad.Depth, quad.P3.TextureCoordinates.X, quad.P3.TextureCoordinates.Y, quad.Color);
 	}
 }
 
