@@ -61,6 +61,34 @@ these files. The observed labels are in `unitxt_e.prs` as shown above, but the f
 them for this screen is still unidentified. The draw function that composes the reference screen was
 not identified.
 
+## Draw-path investigation
+
+The oracle captures show the Login menu at `t09` without input. The transition path to scene 2 is
+proven:
+
+1. `0x00411C94` state 9 counts past 60 frames and schedules `0x00411E94`.
+2. `0x00411E94` writes `dword_A3B078 = 1` when `0x006DC358() == 1`.
+3. The title-UI virtual method `0x007A44F0` sees `dword_A3B078`, hides its child, enters state 3, and
+   the next state-3 call invokes `0x007A60DC(2)`, requesting scene 2.
+4. Scene 2 runs the fade and `0x0081AAC8` state 0 constructs `0x006F8130`.
+
+The selector object is confirmed from the vtable at `0x00B3EAF8`: destructor `0x006FEC44`, update
+`0x006FED04`, draw `0x006FF0D4`, null slot `0x0061CDB0`.
+
+`0x006FF0D4` is the only caller of `0x006FB8D4`, which indexes the 32-byte element table at
+`0x009CFF00`. It draws element 10 with frame 10 from the 20-byte frame table at `0x009CFB60`:
+element 10 is a 256x32 strip at `(193,338)`, and frame 10 covers `(0,0)-(255,31)`. The call passes
+scale `-10.0` and flags `0x22` to `0x0082B6BC`. The static elements 11–14 are 256x32 strips at
+`(193,300)`, `(193,332)`, `(193,364)` and `(193,396)`, and element 15 is at `(192,308)`. The function
+that draws elements 11–15, the text lookup for `unitxt_e.prs` IDs 3–7, and the mapping from the
+element/frame tables to an archive texture are **not identified**. No C# member reproduces a menu
+element; `Scene2.SelectSharedScreenState` reproduces only `0x00824860`.
+
+`0x006FED04` dispatches update state 0 to `0x006FEDE0` and state 1 to `0x006FED2C`, then increments
+the frame counter. `0x006FED2C` changes the four-slot index in `[object+0x20]`, wraps it at both
+ends and sets `[object+0x24] = 2` on confirm. `0x006FEDE0` creates the account dialog at
+`0x007617E8`. Their input globals, dialog controls and draw destinations are not ported.
+
 ## Scene 1 screen 9 is not the login screen
 
 The scene-1 renderer container at `0x004D3408` allocates thirteen screen objects from the table at
@@ -103,6 +131,9 @@ draws them has not been identified; no screen is assigned them.
 - No layout or menu entries are reconstructed from the reference image.
 - The selector table transition is recorded as constants only; the selector object and state 9's
   screen object are not ported.
+- Missing reference: the draw path for the four static rows and the Login header (elements 11–15 of
+  `0x009CFF00`), the text lookup/draw for `unitxt_e.prs` IDs 3–7, and the texture-atlas mapping for
+  the `0x0082B6BC` element draw.
 
 ## Verification
 
