@@ -1,5 +1,6 @@
 using PsoBB.Game;
 using PsoBB.Graphics;
+using PsoBB.Graphics.Textures;
 using PsoBB.Input;
 using PsoBB.Mathematics;
 using PsoBB.Models;
@@ -14,15 +15,16 @@ namespace PsoBB.Scenes;
 /// Runs the in-game field or lobby over the ported scene-10 shell, lobby world, player, map tables and model renderer.
 /// </summary>
 /// <remarks>
-/// The host supplies the field camera, a loaded map scene and the NJCM models for object placements and player slots.
-/// Map render geometry, the camera controller and the HUD stay with their unported managers; this scene reconciles lobby
-/// entities, submits placed object models, the local player and the other player slots in that order, and leaves the
-/// scene-10 flags to <see cref="OfflineScene"/>.
+/// The host supplies the field camera, a loaded map scene, an optional texture cache and the NJCM models for object
+/// placements and player slots. The camera controller and the HUD stay with their unported managers. Scene 10 has no
+/// draw entry that fixes the order between the map and the object systems, so <see cref="DrawMap"/> and
+/// <see cref="DrawModels"/> are separate stages; <see cref="Draw"/> submits the map stage before the model stage.
 /// </remarks>
 public sealed class FieldScene : IDisposable
 {
 	private readonly OfflineScene _offline;
 	private readonly LobbyWorld? _world;
+	private readonly MapSceneRenderer _mapRenderer;
 	private readonly ModelRenderer _models;
 	private readonly List<FieldEntityView> _entities = [];
 	private readonly Dictionary<ushort, NinjaModel> _objectModels = [];
@@ -37,11 +39,13 @@ public sealed class FieldScene : IDisposable
 	/// </summary>
 	/// <param name="offline">The initialised scene-10 shell that owns the save, light table and flag transitions.</param>
 	/// <param name="world">The lobby world that supplies player slots and packet-driven movement, or null for an offline field.</param>
+	/// <param name="textures">The cache used to bind map texture-list entries, or null to leave them unbound.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="offline"/> is null.</exception>
-	public FieldScene(OfflineScene offline, LobbyWorld? world = null)
+	public FieldScene(OfflineScene offline, LobbyWorld? world = null, TextureCache? textures = null)
 	{
 		_offline = offline ?? throw new ArgumentNullException(nameof(offline));
 		_world = world;
+		_mapRenderer = new MapSceneRenderer(textures);
 		_models = new ModelRenderer();
 	}
 
@@ -122,7 +126,7 @@ public sealed class FieldScene : IDisposable
 	}
 
 	/// <summary>
-	/// Submits the placed object models, the local player and the lobby player views through the scene renderer.
+	/// Submits the loaded map and then the placed objects, the local player and the lobby player views.
 	/// </summary>
 	/// <param name="renderer">The renderer that receives the frame commands.</param>
 	/// <param name="camera">The field camera supplied by the host.</param>
@@ -130,6 +134,36 @@ public sealed class FieldScene : IDisposable
 	/// <exception cref="ArgumentNullException"><paramref name="renderer"/> is null.</exception>
 	/// <exception cref="ObjectDisposedException">The scene is released.</exception>
 	public int Draw(IRenderer renderer, SceneCamera camera)
+	{
+		ArgumentNullException.ThrowIfNull(renderer);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		return DrawMap(renderer, camera) + DrawModels(renderer, camera);
+	}
+
+	/// <summary>
+	/// Submits the loaded map through the merged map renderer with the supplied camera.
+	/// </summary>
+	/// <param name="renderer">The renderer that receives the frame commands.</param>
+	/// <param name="camera">The field camera supplied by the host.</param>
+	/// <returns>The number of map surfaces submitted.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="renderer"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The scene is released.</exception>
+	public int DrawMap(IRenderer renderer, SceneCamera camera)
+	{
+		ArgumentNullException.ThrowIfNull(renderer);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		return _map is null ? 0 : _mapRenderer.Render(renderer, _map, camera);
+	}
+
+	/// <summary>
+	/// Submits the placed object models, the local player and the lobby player views through the scene renderer.
+	/// </summary>
+	/// <param name="renderer">The renderer that receives the frame commands.</param>
+	/// <param name="camera">The field camera supplied by the host.</param>
+	/// <returns>The number of model surfaces submitted.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="renderer"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The scene is released.</exception>
+	public int DrawModels(IRenderer renderer, SceneCamera camera)
 	{
 		ArgumentNullException.ThrowIfNull(renderer);
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -162,6 +196,7 @@ public sealed class FieldScene : IDisposable
 		_entityModels.Clear();
 		_playerModel = null;
 		_map = null;
+		_mapRenderer.Dispose();
 		_models.Dispose();
 	}
 

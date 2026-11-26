@@ -74,10 +74,13 @@ public sealed class MapSceneRenderer : IDisposable
 	/// <param name="renderer">The renderer that receives the frame commands.</param>
 	/// <param name="scene">The loaded map.</param>
 	/// <param name="camera">The camera that supplies the view and projection transforms.</param>
-	public void Render(IRenderer renderer, MapScene scene, SceneCamera camera)
+	/// <returns>The number of map surfaces submitted.</returns>
+	public int Render(IRenderer renderer, MapScene scene, SceneCamera camera)
 	{
 		ArgumentNullException.ThrowIfNull(renderer);
-		_sceneRenderer.Render(renderer, BuildScene(scene, camera));
+		RenderScene renderScene = BuildScene(scene, camera);
+		_sceneRenderer.Render(renderer, renderScene);
+		return renderScene.Opaque.Count + renderScene.Transparent.Count;
 	}
 
 	/// <summary>
