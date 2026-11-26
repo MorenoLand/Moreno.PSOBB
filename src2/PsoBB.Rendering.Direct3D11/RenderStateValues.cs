@@ -70,13 +70,30 @@ internal sealed class RenderStateValues
 		if (enabled && !separateAlpha)
 		{
 			RenderTargetBlendDescription target = description.RenderTarget[0];
-			target.SourceBlendAlpha = target.SourceBlend;
-			target.DestinationBlendAlpha = target.DestinationBlend;
+			target.SourceBlendAlpha = ToAlphaBlend(target.SourceBlend);
+			target.DestinationBlendAlpha = ToAlphaBlend(target.DestinationBlend);
 			target.BlendOperationAlpha = target.BlendOperation;
 			description.RenderTarget[0] = target;
 		}
 		return description;
 	}
+
+	/// <summary>
+	/// Replaces a colour blend factor with its alpha-channel equivalent when the device does not
+	/// accept colour factors in the alpha slot.
+	/// </summary>
+	/// <param name="blend">The colour blend factor.</param>
+	/// <returns>An alpha blend factor that preserves the colour operation.</returns>
+	private static Blend ToAlphaBlend(Blend blend) => blend switch
+	{
+		Blend.SourceColor => Blend.SourceAlpha,
+		Blend.InverseSourceColor => Blend.InverseSourceAlpha,
+		Blend.DestinationColor => Blend.DestinationAlpha,
+		Blend.InverseDestinationColor => Blend.InverseDestinationAlpha,
+		Blend.Source1Color => Blend.Source1Alpha,
+		Blend.InverseSource1Color => Blend.InverseSource1Alpha,
+		_ => blend,
+	};
 
 	/// <summary>Builds the Direct3D 11 rasterizer state for the current values.</summary>
 	/// <param name="multisampled">Whether the render target uses multisampling.</param>
