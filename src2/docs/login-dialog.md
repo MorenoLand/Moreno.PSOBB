@@ -48,18 +48,23 @@ as constants and a `SelectorFrameDraw` hook instead of drawing them twice.
 | 5, 6 Chinese | `TextureChineseS.gvm` | not present in the shipped archive |
 | anything else, including 1 English | `TextureEnglish.gvm` | `textureenglish.xvm` |
 
-The English archive contains five pages: three 256 by 256, one 128 by 128 and one 64 by 64.
-The shared metric table is loaded at `0x009FCE80`; each printable character from space through
-tilde has one advance and one vertical offset. `0x00789044` returns the advance, and
+`0x0078E1C0` rewrites each stored name before lookup: it keeps the stem up to the dot and
+appends `"."` from `0x0096B740` and `"xvm"` from `0x0092B2B8`, so no `.gvm` entry is requested
+from the shipped archive. The English and Japanese archives contain five pages: three 256 by
+256, one 128 by 128 and one 64 by 64.
+The shared metric table is loaded at `0x009FCE80`; each entry from `0x20` through `0x7F` has
+one advance and one vertical offset. `0x00789044` returns the advance, and
 `0x007893A4` uses the character's low nibble times sixteen as the cell column and the high
 nibble as the cell row in a 256-pixel page.
 
 ## Port boundary
 
 `TextureFontMetrics`, `TextureFont`, `TextureFontSurface` and `TextureFontAtlas` cover the ASCII
-texture-font path: the metric table, the cell quad, advancing, wrapping, atlas loading, texture
-binding and release. Wide glyphs and the page-selection rule above code unit `0x00FF` are not
-established; the account rows do not use that path.
+texture-font path: the metric table, the cell quad, advancing, remaining-width clipping, the
+vertical texture row, atlas loading, texture binding and release. Wide glyphs and the
+page-selection rule above code unit `0x00FF` are not established, and the window clip
+`0x0071BA64`, the anchor scale `0x0071BBB4` and the projection `0x0082B440` remain host
+transforms; the account rows do not use that path.
 
 The account panel itself is `PsoBB.Scenes.LoginDialog`: the list 41 string 2 header label, four
 enabled rows, a disabled yellow hint, wrapping selection, the data-value confirm mapping and
