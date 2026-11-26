@@ -180,7 +180,7 @@ public sealed class Scene2TitleArtTests
 		Assert.All(draw.OverlayQuads, quad => Assert.Equal(TitleArtBlend.Additive, quad.Blend));
 		draw.Render(renderer);
 		Assert.Contains("State 19:2", renderer.Commands);
-		Assert.Contains("State 20:1", renderer.Commands);
+		Assert.Contains("State 20:2", renderer.Commands);
 		Assert.Equal(5, renderer.Commands.Count(command => command == "Draw TriangleList 2 28 144"));
 	}
 

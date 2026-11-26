@@ -22,9 +22,12 @@ internal static class Program
 	private static int Main(string[] args)
 	{
 		string dataFolder = Environment.GetEnvironmentVariable("PSOBB_DATA") ?? AppContext.BaseDirectory;
+		bool scene2 = false;
 		for (int index = 0; index < args.Length; index++)
 		{
-			if (!args[index].StartsWith("--", StringComparison.Ordinal))
+			if (args[index] == "--scene2")
+				scene2 = true;
+			else if (!args[index].StartsWith("--", StringComparison.Ordinal))
 				dataFolder = args[index];
 		}
 		dataFolder = dataFolder.Trim().Trim('"');
@@ -49,9 +52,9 @@ internal static class Program
 			renderer = new OpenGLRenderer(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			_ = new ClientStartup(renderer).Start();
-			Scene1Preview.Run(host, window.Pump);
-			while (!host.IsStopRequested && window.Pump())
-				host.RunFrames(1);
+			if (!scene2)
+				Scene1Preview.Run(host, window.Pump);
+			Scene2TitlePreview.Run(host, window.Pump);
 			host.RequestStop();
 			return 0;
 		}

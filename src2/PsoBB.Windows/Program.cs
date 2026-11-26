@@ -31,12 +31,15 @@ internal static class Program
 		string dataFolder = Environment.GetEnvironmentVariable("PSOBB_DATA") ?? AppContext.BaseDirectory;
 		string? previewEntry = null;
 		bool scene1 = false;
+		bool scene2 = false;
 		for (int index = 0; index < args.Length; index++)
 		{
 			if (args[index] == "--preview" && index + 1 < args.Length)
 				previewEntry = args[++index];
 			else if (args[index] == "--scene1")
 				scene1 = true;
+			else if (args[index] == "--scene2")
+				scene2 = true;
 			else if (!args[index].StartsWith("--", StringComparison.Ordinal))
 				dataFolder = args[index];
 		}
@@ -56,6 +59,8 @@ internal static class Program
 				RunPreview(window, dataFolder, previewEntry);
 			else if (scene1)
 				RunScene1(window, dataFolder);
+			else if (scene2)
+				RunScene2(window, dataFolder);
 			else
 				RunClient(window, dataFolder);
 			return 0;
@@ -83,8 +88,21 @@ internal static class Program
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
 		Scene1Preview.Run(host, window.Pump);
-		while (!host.IsStopRequested && window.Pump())
-			host.RunFrames(1);
+		Scene2TitlePreview.Run(host, window.Pump);
+		host.RequestStop();
+	}
+
+	private static void RunScene2(GameWindow window, string dataFolder)
+	{
+		WindowsFileSystem files = new(dataFolder);
+		WindowsGameClock clock = new();
+		using WindowsGameSettings settings = new(@"Software\PsoBBRecomp");
+		using WindowsGameInput input = new(window.Handle);
+		WindowsDispatcher dispatcher = new(clock);
+		WindowsAudioDevice audio = new();
+		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
+		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
+		Scene2TitlePreview.Run(host, window.Pump);
 		host.RequestStop();
 	}
 
