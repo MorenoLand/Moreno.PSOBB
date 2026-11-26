@@ -7,7 +7,7 @@ namespace PsoBB.Models;
 /// </summary>
 public sealed class NinjaMesh
 {
-	private NinjaMesh(uint flags, NinjaVertexBuffer[] vertexBuffers, NinjaIndexBuffer[] indexBuffers, NinjaIndexBuffer[] alphaIndexBuffers)
+	internal NinjaMesh(uint flags, NinjaVertexBuffer[] vertexBuffers, NinjaIndexBuffer[] indexBuffers, NinjaIndexBuffer[] alphaIndexBuffers)
 	{
 		Flags = flags;
 		VertexBuffers = vertexBuffers;

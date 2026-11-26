@@ -42,6 +42,16 @@ vertex array can be written back in its original layout and stride for `SceneSur
 
 An index buffer is 0x14 bytes: render-state argument offset and count, index-data offset and count, and the vertex-buffer index. Indices are 16-bit triangle-strip values. Render-state arguments are 0x10 bytes: setter index, two arguments and a reserved word. Setter 2 is blend, 3 texture, 4 addressing, 5 material color, 6 lighting, 7 camera-space normals and 8 material source. The accumulated state for each index buffer is exposed as `NinjaMaterial`.
 
+### Retail chunk model
+
+A retail BML entry stores the unconverted `NJS_CNK_MODEL` at the node's mesh pointer: the first word is the vlist offset, the second the plist offset, followed by the center and radius. The model reader detects this layout and parses both streams; the converted 0x1C mesh path is unchanged.
+
+The vlist is a chain of 8-byte vertex chunks: format word, size word, index offset and vertex count. The stored data starts after the header and the next chunk is `4 + size*4` bytes later; `0xFF` ends the chain. `size` is `dataBytes/4 + 1`. The index offset selects the chunk's slots in the model-wide vertex scratch array. Implemented formats are `0x21`, `0x23`, `0x29`, `0x2A`, `0x2B`, `0x2C`, `0x2D`, `0x2E` and `0x2F`; `0x29` is position and normal, `0x2A` adds an ARGB color, and `0x2C` adds Ninja flags. The original vlist walker is `0x008453FC`.
+
+The plist is a chain of chunks with a 2-byte head and 2-byte payload size in 16-bit words; `0xFF` ends it. Type 4 caches a chunk, type 5 draws a cached chunk, type 8 selects a texture-list index, and types `0x10`-`0x3F` are material commands. Type `0x41` is a triangle-strip chunk. Its payload starts with `userOffset(2)|stripCount(14)`, followed by that many strips. Each strip starts with a signed 16-bit count; the absolute value is the vertex count. Each vertex record is `3 + userOffset` words: index, U and V. U and V are 8-bit fixed point scaled by 1/255. The strip is drawn with `DrawPrimitiveUP(D3DPT_TRIANGLESTRIP)` by `0x00847E00`; the plist dispatcher is `ProcessVertexDrawList_008370E4`. The port expands each strip into layout-7 vertices so the existing scene renderer and texture binding apply unchanged.
+
+The parser bakes each strip vertex through its owner node's world matrix and attaches one mesh to a synthetic identity node, matching the original upload-time transform. Static chunk models render through the existing `ModelRenderer`; animated chunk-model skinning is not ported.
+
 ## NJTL texture list
 
 The body stores a pointer to an array of 0x0C-byte entries and the entry count. Each entry starts with a pointer to a null-terminated ASCII name, followed by two words the client fills at runtime. The name order is the texture index that render-state setter 3 selects.
@@ -65,8 +75,9 @@ A PAE archive's model section is a relocated block, a raw NJCM body or a Ninja c
 ## Limitations
 
 - The readers take complete buffers, use flat offsets and reject malformed ranges. The original trusts its loaders and dereferences guest addresses directly.
-- The NJCM reader implements the converted mesh layout used by the port's fixtures, not the retail chunk-model mesh. In `bin/data/bm_ene_astark.bml`, entry `nj00_astark.nj` root node 0 points to a retail `njcm_model_t` at body offset 0x2590 whose first two words are the vertex-chunk offset 0x24C4 and the polygon-chunk offset 0x34. `NinjaMesh.Read` therefore rejects that file; retail model rendering remains unverified.
+- The NJCM reader accepts both the converted 0x1C mesh layout and the retail `NJS_CNK_MODEL` vlist/plist layout. In `bin/data/bm_ene_astark.bml`, entry `nj00_astark.nj` parses 21 vertex chunks and 238 strips into 1474 vertices and 1474 indices; `plAnj.bml` body `plAbdy00.nj` parses 976 vertices and 976 indices in 142 draws. Animated chunk-model skinning remains unsupported; static chunk models are baked through their node transforms.
 - The NMDM reader detects the retail quaternion track record (20 bytes) and the 16-bit and 32-bit Euler angle records. A retail motion such as `cstand_bm2c_s_moj_body.njm` parses with quaternion tracks; only the retail model mesh remains unsupported.
+- The BML archive reader aligns entries to 0x20 when the first entry carries an embedded texture block, otherwise to 0x800; real archives with external AFS textures use 0x800.
 - A `.rlc` file has no index or bone count; the caller supplies the model node count.
 - A BML archive with separate model and animation entries uses the first model entry's animated node count. Callers that pair a specific model with a specific motion can parse the exposed chunks with that model's count.
 - PAE texture names are paired with decoded archive textures by list order. The render-state index selects the NJTL entry; the client fills each entry's texture slot from the same archive.
