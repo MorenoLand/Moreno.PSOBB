@@ -105,3 +105,32 @@ sample data.
 - OGG decoding uses NVorbis 0.10.5 through `NVorbisOggDecoder` over a seekable
   stream. Tests use a generated 440 Hz tone and synthetic PCM; no game audio is
   committed.
+
+## Sound assets
+
+The original has two sound containers:
+
+- Music is OGG Vorbis under `data/ogg/`. Track names keep the legacy `.adx`
+  suffix; `play_bgm` (`0x00814AFC`) builds `data\ogg\<name>` and overwrites the
+  final three characters with `ogg` (`0x00814C00`), then hands the path to
+  `AudioPlayerPlaySound` (`0x0086DF38`). No ADX codec is used by this client.
+- Sound effects are `.pac` banks under `data/sound/`. A bank has no directory.
+  Every sample is a 0x20-byte header followed by its stored PCM. The header is
+  a 16-byte `WAVEFORMATEX` PCM layout, a four-byte opaque tag, a size word, two
+  reserved words and the audio byte count at `0x1C`. The client's fixed table
+  supplies the header offset, the sound-effect identifier and the loop points
+  for every sample. `load_common_pac` (`0x00828E4C`) keeps bank 7 loaded while
+  `load_map_sound_data` (`0x00828D40`, wrapper `0x00815584`) swaps the bank for
+  the current map; `unload_map_sound_data` (`0x00828C38`) clears the sample
+  table and rebinds bank 7. The table names 26 banks, including
+  `common.pac`, and 50 map rows covering 1,811 samples.
+
+`PacSoundBank` validates a bank against its fixed table and exposes each
+sample's `AudioFormat`, PCM bytes and loop region. `SoundBankCatalog` holds the
+client's 26 bank names, 50 map rows and per-bank identifiers and metadata.
+`SoundEffectLibrary` performs the common/map load and slot binding.
+`MusicLibrary` resolves the legacy track name, reads the OGG entry through
+`IDataFiles` and returns a `MusicStream`; `AudioPipeline.PlayMusic` assigns it.
+`AudioPipeline.PlaySound(SoundEffectLibrary, id)` decodes the selected sample
+and starts a normal `SoundEffectPlayer` voice. Sound-effect voices honour a
+clip's loop region, so the metadata's start and end frames are preserved.

@@ -148,16 +148,16 @@ public sealed class SoundEffectPlayer
 		int written = 0;
 		while (written < frames && !voice.IsFinished)
 		{
-			if (voice.Position >= voice.Clip.FrameCount)
+			if (voice.Position >= voice.LoopEnd)
 			{
 				if (!voice.Loop)
 				{
 					voice.IsFinished = true;
 					break;
 				}
-				voice.Position = 0;
+				voice.Position = voice.LoopStart;
 			}
-			int count = Math.Min(frames - written, voice.Clip.FrameCount - voice.Position);
+			int count = Math.Min(frames - written, voice.LoopEnd - voice.Position);
 			for (int frame = 0; frame < count; frame++)
 			{
 				int sourceFrame = (voice.Position + frame) * clipChannels;
@@ -182,7 +182,7 @@ public sealed class SoundEffectPlayer
 			}
 			voice.Position += count;
 			written += count;
-			if (voice.Position >= voice.Clip.FrameCount && !voice.Loop)
+			if (voice.Position >= voice.LoopEnd && !voice.Loop)
 				voice.IsFinished = true;
 		}
 	}
@@ -201,6 +201,8 @@ public sealed class SoundEffectPlayer
 		internal AudioClip Clip { get; }
 		internal float Volume { get; set; }
 		internal bool Loop { get; }
+		internal int LoopStart => Clip.LoopStart;
+		internal int LoopEnd => Clip.LoopEnd;
 		internal int Position { get; set; }
 		internal bool IsFinished { get; set; }
 	}
