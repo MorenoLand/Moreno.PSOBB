@@ -69,19 +69,23 @@ internal static class XvmTextureReader
 	}
 
 	/// <summary>
-	/// Maps a FourCC compression code to its decoder.
+	/// Maps a format index to its decoder.
 	/// </summary>
-	/// <param name="code">The four-character code.</param>
-	/// <param name="offset">The code's offset for the error message.</param>
-	/// <returns>The compression format.</returns>
-	/// <exception cref="TextureFormatException">The code is not a supported DXT format.</exception>
+	/// <param name="code">The format index.</param>
+	/// <param name="offset">The index's offset for the error message.</param>
+	/// <returns>The pixel format.</returns>
+	/// <exception cref="TextureFormatException">The index is not a supported pixel format.</exception>
 	private static XvmTextureFormat ReadFormat(uint code, int offset) => code switch
 	{
-		(uint)XvmTextureFormat.Dxt1 => XvmTextureFormat.Dxt1,
-		(uint)XvmTextureFormat.Dxt2 => XvmTextureFormat.Dxt2,
-		(uint)XvmTextureFormat.Dxt3 => XvmTextureFormat.Dxt3,
-		(uint)XvmTextureFormat.Dxt4 => XvmTextureFormat.Dxt4,
-		(uint)XvmTextureFormat.Dxt5 => XvmTextureFormat.Dxt5,
+		1 or 11 => XvmTextureFormat.Bgra8888,
+		2 or 12 => XvmTextureFormat.Bgrx8888,
+		3 or 13 => XvmTextureFormat.A1R5G5B5,
+		4 or 14 => XvmTextureFormat.A4R4G4B4,
+		6 => XvmTextureFormat.Dxt1,
+		7 => XvmTextureFormat.Dxt2,
+		8 => XvmTextureFormat.Dxt3,
+		9 => XvmTextureFormat.Dxt4,
+		10 => XvmTextureFormat.Dxt5,
 		_ => throw new TextureFormatException($"Texture format 0x{code:X8} is unsupported.", offset),
 	};
 }

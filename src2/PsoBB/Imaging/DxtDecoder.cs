@@ -18,6 +18,8 @@ internal static class DxtDecoder
 	/// <exception cref="TextureFormatException">The block data is truncated.</exception>
 	internal static TextureImage Decode(ReadOnlySpan<byte> data, int width, int height, XvmTextureFormat format)
 	{
+		if (format is XvmTextureFormat.Bgra8888 or XvmTextureFormat.Bgrx8888 or XvmTextureFormat.A1R5G5B5 or XvmTextureFormat.A4R4G4B4)
+			return DecodeUncompressed(data, width, height, format);
 		bool colorOnly = format == XvmTextureFormat.Dxt1;
 		int blockBytes = colorOnly ? 8 : 16;
 		int blocksWide = (width + 3) / 4;
@@ -53,6 +55,44 @@ internal static class DxtDecoder
 				}
 				WriteBlock(bgra, width, height, blockX, blockY, colors, colorOnly ? ReadOnlySpan<byte>.Empty : alpha);
 			}
+		}
+		return new TextureImage(width, height, bgra);
+	}
+
+	/// <summary>
+	/// Converts an uncompressed XVRT image to BGRA pixels.
+	/// </summary>
+	private static TextureImage DecodeUncompressed(ReadOnlySpan<byte> data, int width, int height, XvmTextureFormat format)
+	{
+		int bytesPerPixel = format is XvmTextureFormat.Bgra8888 or XvmTextureFormat.Bgrx8888 ? 4 : 2;
+		long required = (long)width * height * bytesPerPixel;
+		if (required > data.Length)
+			throw new TextureFormatException("The texture pixel data is truncated.", data.Length);
+		byte[] bgra = new byte[checked(width * height * 4)];
+		if (format == XvmTextureFormat.Bgra8888)
+		{
+			data[..(int)required].CopyTo(bgra);
+			return new TextureImage(width, height, bgra);
+		}
+		if (format == XvmTextureFormat.Bgrx8888)
+		{
+			data[..(int)required].CopyTo(bgra);
+			for (int index = 3; index < bgra.Length; index += 4)
+				bgra[index] = 0xFF;
+			return new TextureImage(width, height, bgra);
+		}
+		for (int pixel = 0; pixel < width * height; pixel++)
+		{
+			ushort value = BinaryPrimitives.ReadUInt16LittleEndian(data[(pixel * 2)..]);
+			byte alpha = format == XvmTextureFormat.A1R5G5B5 ? (byte)((value >> 15) * 0xFF) : (byte)(((value >> 12) & 0x0F) * 0x11);
+			byte red = format == XvmTextureFormat.A1R5G5B5 ? (byte)(((value >> 10) & 0x1F) * 0xFF / 0x1F) : (byte)(((value >> 8) & 0x0F) * 0x11);
+			byte green = format == XvmTextureFormat.A1R5G5B5 ? (byte)(((value >> 5) & 0x1F) * 0xFF / 0x1F) : (byte)(((value >> 4) & 0x0F) * 0x11);
+			byte blue = format == XvmTextureFormat.A1R5G5B5 ? (byte)((value & 0x1F) * 0xFF / 0x1F) : (byte)((value & 0x0F) * 0x11);
+			int offset = pixel * 4;
+			bgra[offset] = blue;
+			bgra[offset + 1] = green;
+			bgra[offset + 2] = red;
+			bgra[offset + 3] = alpha;
 		}
 		return new TextureImage(width, height, bgra);
 	}
