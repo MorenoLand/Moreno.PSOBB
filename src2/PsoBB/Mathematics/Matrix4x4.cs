@@ -106,8 +106,8 @@ public readonly record struct Matrix4x4(
 	[Original(0x0082FA0C)]
 	public Matrix4x4 ScaleRows(float first, float second, float third) => this with
 	{
-		M11 = M11 * first, M12 = M12 * first, M13 = M13 * first, M14 = M14 * first,
-		M21 = M21 * second, M22 = M22 * second, M23 = M23 * second, M24 = M24 * second,
-		M31 = M31 * third, M32 = M32 * third, M33 = M33 * third, M34 = M34 * third,
+		M11 = (float)((double)M11 * first), M12 = (float)((double)M12 * first), M13 = (float)((double)M13 * first), M14 = (float)((double)M14 * first),
+		M21 = (float)((double)M21 * second), M22 = (float)((double)M22 * second), M23 = (float)((double)M23 * second), M24 = (float)((double)M24 * second),
+		M31 = (float)((double)M31 * third), M32 = (float)((double)M32 * third), M33 = (float)((double)M33 * third), M34 = (float)((double)M34 * third),
 	};
 }

@@ -1,4 +1,5 @@
 using PsoBB.Mathematics;
+using PsoBB.Models;
 
 namespace PsoBB.Rendering;
 
@@ -83,6 +84,38 @@ public sealed class TransformationStack
 	}
 
 	/// <summary>
+	/// Applies the original quaternion rotation matrix before the current transform.
+	/// </summary>
+	/// <param name="quaternion">The quaternion rotation.</param>
+	[Original(0x008431A4, "matrix_rotation_quaternion")]
+	public void RotateQuaternion(NinjaQuaternion quaternion)
+	{
+		double x = quaternion.X;
+		double y = quaternion.Y;
+		double z = quaternion.Z;
+		double w = quaternion.W;
+		double baseValue = (w + w) * w + -1.0;
+		Matrix4x4 rotation = new(
+			(float)((x + x) * x + baseValue),
+			(float)((y * x + w * z) * 2.0),
+			(float)((z * x - w * y) * 2.0),
+			0.0f,
+			(float)((x * y - w * z) * 2.0),
+			(float)((y + y) * y + baseValue),
+			(float)((z * y + w * x) * 2.0),
+			0.0f,
+			(float)((w * y + x * z) * 2.0),
+			(float)((y * z - w * x) * 2.0),
+			(float)(baseValue + z * (z + z)),
+			0.0f,
+			0.0f,
+			0.0f,
+			0.0f,
+			1.0f);
+		_matrices[_depth] = Matrix4x4.Multiply(rotation, _matrices[_depth]);
+	}
+
+	/// <summary>
 	/// Scales the three basis rows of the current matrix, leaving its translation row unchanged.
 	/// </summary>
 	/// <param name="scale">The scale factors.</param>
@@ -93,19 +126,19 @@ public sealed class TransformationStack
 	{
 		if (angle == 0)
 			return;
-		float sine = (float)FixedPointTrigonometry.Sine(angle);
-		float cosine = (float)FixedPointTrigonometry.Cosine(angle);
+		double sine = FixedPointTrigonometry.Sine(angle);
+		double cosine = FixedPointTrigonometry.Cosine(angle);
 		Matrix4x4 m = _matrices[_depth];
 		_matrices[_depth] = m with
 		{
-			M11 = cosine * m.M11 + sine * m.M21,
-			M12 = cosine * m.M12 + sine * m.M22,
-			M13 = cosine * m.M13 + sine * m.M23,
-			M14 = cosine * m.M14 + sine * m.M24,
-			M21 = m.M21 * cosine - sine * m.M11,
-			M22 = m.M22 * cosine - sine * m.M12,
-			M23 = m.M23 * cosine - sine * m.M13,
-			M24 = m.M24 * cosine - sine * m.M14,
+			M11 = (float)(cosine * m.M11 + sine * m.M21),
+			M12 = (float)(cosine * m.M12 + sine * m.M22),
+			M13 = (float)(cosine * m.M13 + sine * m.M23),
+			M14 = (float)(cosine * m.M14 + sine * m.M24),
+			M21 = (float)(m.M21 * cosine - sine * m.M11),
+			M22 = (float)(m.M22 * cosine - sine * m.M12),
+			M23 = (float)(m.M23 * cosine - sine * m.M13),
+			M24 = (float)(m.M24 * cosine - sine * m.M14),
 		};
 	}
 
@@ -113,19 +146,19 @@ public sealed class TransformationStack
 	{
 		if (angle == 0)
 			return;
-		float sine = (float)FixedPointTrigonometry.Sine(angle);
-		float cosine = (float)FixedPointTrigonometry.Cosine(angle);
+		double sine = FixedPointTrigonometry.Sine(angle);
+		double cosine = FixedPointTrigonometry.Cosine(angle);
 		Matrix4x4 m = _matrices[_depth];
 		_matrices[_depth] = m with
 		{
-			M11 = -sine * m.M31 + cosine * m.M11,
-			M12 = cosine * m.M12 - sine * m.M32,
-			M13 = cosine * m.M13 - sine * m.M33,
-			M14 = cosine * m.M14 - sine * m.M34,
-			M31 = m.M11 * sine + m.M31 * cosine,
-			M32 = m.M12 * sine + m.M32 * cosine,
-			M33 = m.M33 * cosine + m.M13 * sine,
-			M34 = m.M14 * sine + m.M34 * cosine,
+			M11 = (float)(-sine * m.M31 + cosine * m.M11),
+			M12 = (float)(cosine * m.M12 - sine * m.M32),
+			M13 = (float)(cosine * m.M13 - sine * m.M33),
+			M14 = (float)(cosine * m.M14 - sine * m.M34),
+			M31 = (float)(m.M11 * sine + m.M31 * cosine),
+			M32 = (float)(m.M12 * sine + m.M32 * cosine),
+			M33 = (float)(m.M33 * cosine + m.M13 * sine),
+			M34 = (float)(m.M14 * sine + m.M34 * cosine),
 		};
 	}
 
@@ -133,19 +166,19 @@ public sealed class TransformationStack
 	{
 		if (angle == 0)
 			return;
-		float sine = (float)FixedPointTrigonometry.Sine(angle);
-		float cosine = (float)FixedPointTrigonometry.Cosine(angle);
+		double sine = FixedPointTrigonometry.Sine(angle);
+		double cosine = FixedPointTrigonometry.Cosine(angle);
 		Matrix4x4 m = _matrices[_depth];
 		_matrices[_depth] = m with
 		{
-			M21 = cosine * m.M21 + sine * m.M31,
-			M22 = cosine * m.M22 + sine * m.M32,
-			M23 = cosine * m.M23 + sine * m.M33,
-			M24 = cosine * m.M24 + sine * m.M34,
-			M31 = m.M31 * cosine - sine * m.M21,
-			M32 = m.M32 * cosine - sine * m.M22,
-			M33 = m.M33 * cosine - sine * m.M23,
-			M34 = m.M34 * cosine - sine * m.M24,
+			M21 = (float)(cosine * m.M21 + sine * m.M31),
+			M22 = (float)(cosine * m.M22 + sine * m.M32),
+			M23 = (float)(cosine * m.M23 + sine * m.M33),
+			M24 = (float)(cosine * m.M24 + sine * m.M34),
+			M31 = (float)(m.M31 * cosine - sine * m.M21),
+			M32 = (float)(m.M32 * cosine - sine * m.M22),
+			M33 = (float)(m.M33 * cosine - sine * m.M23),
+			M34 = (float)(m.M34 * cosine - sine * m.M24),
 		};
 	}
 }

@@ -19,11 +19,7 @@ public sealed class NinjaModel
 		foreach (NinjaNode root in roots)
 			CollectDrawNodes(root, drawNodes);
 		_drawNodes = drawNodes.ToArray();
-		int animatedNodeCount = 0;
-		foreach (NinjaNode node in nodes)
-			if ((node.EvaluationFlags & 0x40) == 0)
-				animatedNodeCount++;
-		AnimatedNodeCount = animatedNodeCount;
+		AnimatedNodeCount = nodes.Length;
 	}
 
 	/// <summary>Gets the root nodes in sibling order.</summary>
