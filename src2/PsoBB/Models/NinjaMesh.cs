@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using PsoBB.Graphics;
 
 namespace PsoBB.Models;
 
@@ -129,8 +130,8 @@ public sealed class NinjaMesh
 	{
 		NinjaMaterial[] materials = new NinjaMaterial[buffers.Length];
 		int textureIndex = -1;
-		uint blendSource = 1;
-		uint blendDestination = 0;
+		uint blendSource = RenderStateId.BlendOne;
+		uint blendDestination = RenderStateId.BlendZero;
 		uint addressU = 1;
 		uint addressV = 1;
 		uint ambientColor = 0;
