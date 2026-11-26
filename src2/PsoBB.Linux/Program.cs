@@ -49,10 +49,12 @@ internal static class Program
 			renderer = new OpenGLRenderer(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			_ = new ClientStartup(renderer).Start();
-			Scene1Preview.Run(host, window.Pump);
-			while (window.Pump())
+			host.StartSceneDirector();
+			while (!host.IsStopRequested && window.Pump())
 				host.RunFrames(1);
 			host.RequestStop();
+			if (host.DirectorDiagnostic is { } diagnostic)
+				Console.Error.WriteLine(diagnostic);
 			return 0;
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
