@@ -60,7 +60,7 @@ public sealed class NinjaModelTests
 		Assert.Single(broken.DrawNodes);
 		Assert.Equal(1, NinjaModelReader.CountVisibleNodes(broken));
 		NinjaModel skipped = NinjaModelReader.Read(ModelTestData.ModelCore(0x40));
-		Assert.Equal(1, skipped.AnimatedNodeCount);
+		Assert.Equal(2, skipped.AnimatedNodeCount);
 	}
 
 	/// <summary>

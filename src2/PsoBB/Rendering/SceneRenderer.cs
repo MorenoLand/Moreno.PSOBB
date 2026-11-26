@@ -86,6 +86,11 @@ public sealed class SceneRenderer
 		renderer.SetRenderState(RenderStateId.CullMode, CullValue(surface.CullMode));
 		renderer.SetTexture(0, surface.Texture);
 		renderer.SetTexture(1, surface.DetailTexture);
+		if (renderer is IFixedFunctionRenderer fixedFunction)
+		{
+			fixedFunction.SetTextureStageState(0, TextureStageStateId.AddressU, surface.AddressU);
+			fixedFunction.SetTextureStageState(0, TextureStageStateId.AddressV, surface.AddressV);
+		}
 		renderer.Draw(surface.Primitive, primitiveCount, vertices, surface.Stride, surface.VertexFormat);
 	}
 

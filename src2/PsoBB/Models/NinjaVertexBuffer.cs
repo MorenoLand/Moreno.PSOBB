@@ -8,11 +8,12 @@ namespace PsoBB.Models;
 /// </summary>
 public sealed class NinjaVertexBuffer
 {
-	private NinjaVertexBuffer(uint format, int stride, NinjaVertex[] vertices)
+	private NinjaVertexBuffer(uint format, int stride, NinjaVertex[] vertices, ReadOnlyMemory<byte> data)
 	{
 		Format = format;
 		Stride = stride;
 		Vertices = vertices;
+		Data = data;
 	}
 
 	/// <summary>Gets the original vertex format word, including the translucent flag.</summary>
@@ -23,6 +24,12 @@ public sealed class NinjaVertexBuffer
 
 	/// <summary>Gets the decoded vertices.</summary>
 	public IReadOnlyList<NinjaVertex> Vertices { get; }
+
+	/// <summary>Gets the original vertex bytes in their stored stride.</summary>
+	public ReadOnlyMemory<byte> Data { get; }
+
+	/// <summary>Gets the Direct3D flexible vertex format code that matches <see cref="Format"/>.</summary>
+	public uint FlexibleVertexFormat => NinjaVertexFormat.ToFlexibleVertexFormat(Format);
 
 	/// <summary>Gets a value indicating whether the translucent geometry pass uses this buffer.</summary>
 	public bool IsTranslucent => (Format & 0x10000) != 0;
@@ -79,7 +86,7 @@ public sealed class NinjaVertexBuffer
 		NinjaVertex[] vertices = new NinjaVertex[count];
 		for (int index = 0; index < count; index++)
 			vertices[index] = ReadVertex(body.Slice(offset + index * stride, expected), layout);
-		return new NinjaVertexBuffer(format, stride, vertices);
+		return new NinjaVertexBuffer(format, stride, vertices, body.Slice(offset, count * stride).ToArray());
 	}
 
 	/// <summary>
