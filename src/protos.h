@@ -28077,6 +28077,8 @@ void f_008190bc(void);
 void f_008190dc(void);
 void f_00819170(void);
 void f_00819210(void);
+void f_00819240(void);
+void f_0081924c(void);
 void f_0081930c(void);
 void f_008193cc(void);
 void f_0081942c(void);
