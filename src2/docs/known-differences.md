@@ -56,6 +56,18 @@ class-model archive table, camera modes and IME conversion remain at the documen
 - Unitxt decompression uses the original 0x90000-byte temporary buffer, so a bundle that expands beyond it is rejected instead of overwriting adjacent memory.
 - The client also loads the locale `text*.pr2` string blobs, but the lift has no reader for their relocated root. The port decodes the containers and does not invent a string-ID mapping for those blobs; the title, menu, item and system strings exposed by `GameText` come from the unitxt tables.
 
+## Scene 13 is the post-credits save screen
+
+The scene at `0x006C8408` is the save-after-credits screen, not the visual lobby. Its two rows
+resolve to the retail `Save.` and `Exit without Saving.` strings, and it plays `title.adx`. The port
+keeps the scene parameter, both full-screen surfaces, the menu position and rows, and the cancel,
+save-request and root-scene transitions. It stops at `SaveRequested`: the save-file state machine
+at `0x006C7CD0` through `0x006C80FC`, the serializer at `0x006C2608` and the `0x0086B324` file write
+are not ported because the session and character records they write are not ported. The status
+rows, the tiled advertisement and background animations, the generic menu/camera/rendering
+initialisers from `0x009CEC28`, and the `-900` audio argument are also not reproduced. See
+`scene-13-save-game.md`.
+
 ## Archive readers
 
 The portable archive readers in `PsoBB.Archives` turn archive bytes into a validated directory. The original reads through a fixed zero-filled buffer and a host file API that returns short reads, so it has no equivalent truncation errors. The readers expose declared table values; the original's storage layer rounds every read to 2048-byte sectors.
