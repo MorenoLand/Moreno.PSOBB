@@ -9,6 +9,9 @@ namespace PsoBB.Tests;
 internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRenderer
 {
 	private readonly List<string> _commands = [];
+	private readonly List<(TransformKind Kind, Matrix4x4 Transform)> _transforms = [];
+	private readonly List<(int Stage, ITexture? Texture)> _textures = [];
+	private readonly List<byte[]> _drawVertices = [];
 	private int _disposeCount;
 
 	/// <summary>
@@ -22,6 +25,15 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 
 	/// <summary>Gets the commands recorded so far.</summary>
 	public IReadOnlyList<string> Commands => _commands;
+
+	/// <summary>Gets the transforms recorded so far, with their values.</summary>
+	public IReadOnlyList<(TransformKind Kind, Matrix4x4 Transform)> Transforms => _transforms;
+
+	/// <summary>Gets the texture-stage bindings recorded so far.</summary>
+	public IReadOnlyList<(int Stage, ITexture? Texture)> Textures => _textures;
+
+	/// <summary>Gets the vertex bytes of each draw call recorded so far.</summary>
+	public IReadOnlyList<byte[]> DrawVertices => _drawVertices;
 
 	/// <summary>Gets the number of times the renderer was disposed.</summary>
 	public int DisposeCount => _disposeCount;
@@ -42,7 +54,11 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	public void Clear(uint color) => _commands.Add($"Clear {color:X8}");
 
 	/// <inheritdoc/>
-	public void SetTransform(TransformKind kind, in Matrix4x4 transform) => _commands.Add($"Transform {kind}");
+	public void SetTransform(TransformKind kind, in Matrix4x4 transform)
+	{
+		_transforms.Add((kind, transform));
+		_commands.Add($"Transform {kind}");
+	}
 
 	/// <inheritdoc/>
 	public void SetWorldMatrix(int index, in Matrix4x4 transform) => _commands.Add($"WorldMatrix {index}");
@@ -60,14 +76,21 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	public void SetLightEnabled(int index, bool enabled) => _commands.Add($"LightEnabled {index}:{enabled}");
 
 	/// <inheritdoc/>
-	public void SetTexture(int stage, ITexture? texture) => _commands.Add($"Texture {stage}:{texture?.Width ?? 0}x{texture?.Height ?? 0}");
+	public void SetTexture(int stage, ITexture? texture)
+	{
+		_textures.Add((stage, texture));
+		_commands.Add($"Texture {stage}:{texture?.Width ?? 0}x{texture?.Height ?? 0}");
+	}
 
 	/// <inheritdoc/>
 	public void SetTextureStageState(int stage, uint state, uint value) => _commands.Add($"TextureStage {stage}:{state}:{value}");
 
 	/// <inheritdoc/>
 	public void Draw(PrimitiveType primitive, int primitiveCount, ReadOnlySpan<byte> vertices, int stride, uint vertexFormat)
-		=> _commands.Add($"Draw {primitive} {primitiveCount} {stride} {vertexFormat:X}");
+	{
+		_drawVertices.Add(vertices.ToArray());
+		_commands.Add($"Draw {primitive} {primitiveCount} {stride} {vertexFormat:X}");
+	}
 
 	/// <inheritdoc/>
 	public void EndFrame() => _commands.Add("EndFrame");
