@@ -18,6 +18,7 @@ internal sealed class GameWindow : IDisposable
 	private const int ApplicationIconResource = 32512;
 	private const int IconSmall = 0;
 	private const int IconBig = 1;
+	private const int BlackBrush = 4;
 	private readonly string _className;
 	private readonly WindowMessageHandler _windowProcedure;
 	private readonly nint _instance;
@@ -44,6 +45,7 @@ internal sealed class GameWindow : IDisposable
 			Instance = _instance,
 			ClassName = _className,
 			Cursor = LoadCursor(0, 32512),
+			Background = GetStockObject(BlackBrush),
 			Icon = icon,
 			SmallIcon = icon,
 		};
@@ -223,6 +225,9 @@ internal sealed class GameWindow : IDisposable
 
 	[DllImport("user32.dll")]
 	private static extern nint LoadCursor(nint instance, int cursorName);
+
+	[DllImport("gdi32.dll")]
+	private static extern nint GetStockObject(int index);
 
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	private static extern nint LoadIcon(nint instance, nint iconName);
