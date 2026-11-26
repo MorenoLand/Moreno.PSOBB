@@ -439,7 +439,15 @@ public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRende
 			AlphaMode = AlphaMode.Ignore,
 			Flags = Settings.Windowed ? SwapChainFlags.None : SwapChainFlags.AllowModeSwitch,
 		};
-		_swapChain = factory.CreateSwapChainForHwnd(_device, _windowHandle, swapChainDescription, null, null);
+		try
+		{
+			_swapChain = factory.CreateSwapChainForHwnd(_device, _windowHandle, swapChainDescription, null, null);
+		}
+		catch (SharpGenException) when (Settings.Windowed)
+		{
+			swapChainDescription.SwapEffect = SwapEffect.Discard;
+			_swapChain = factory.CreateSwapChainForHwnd(_device, _windowHandle, swapChainDescription, null, null);
+		}
 		if (!Settings.Windowed)
 			_swapChain.SetFullscreenState(true, null).CheckError();
 	}
@@ -540,7 +548,8 @@ public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRende
 		_vertexBufferCapacity = 0;
 		_indexBufferCapacity = 0;
 		ReleaseSizedResources();
-		_swapChain.SetFullscreenState(false, null);
+		if (!Settings.Windowed)
+			_swapChain.SetFullscreenState(false, null);
 		_swapChain.Dispose();
 		_context.Dispose();
 		_device.Dispose();
