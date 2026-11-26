@@ -23,7 +23,7 @@ public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRende
 	private const int TextureStageCount = 4;
 	private const int LightCount = 8;
 	private const int WorldMatrixCount = 256;
-	private const int SwapChainBufferCount = 1;
+	private const int SwapChainBufferCount = 2;
 
 	private readonly nint _windowHandle;
 	private readonly RenderStateValues _states = new();
@@ -435,7 +435,7 @@ public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRende
 			BufferUsage = Usage.RenderTargetOutput,
 			BufferCount = SwapChainBufferCount,
 			Scaling = Scaling.Stretch,
-			SwapEffect = SwapEffect.Discard,
+			SwapEffect = SwapEffect.FlipDiscard,
 			AlphaMode = AlphaMode.Ignore,
 			Flags = Settings.Windowed ? SwapChainFlags.None : SwapChainFlags.AllowModeSwitch,
 		};
