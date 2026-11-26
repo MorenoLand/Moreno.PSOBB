@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
@@ -9,6 +9,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="PsoBB.Platform.Windows" />
     <InternalsVisibleTo Include="PsoBB.Platform.Linux" />
+    <PackageReference Include="NVorbis" Version="0.10.5" />
   </ItemGroup>
 
 </Project>
