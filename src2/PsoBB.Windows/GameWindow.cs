@@ -49,8 +49,11 @@ internal sealed class GameWindow : IDisposable
 		};
 		if (RegisterClassEx(ref windowClass) == 0)
 			throw new InvalidOperationException($"RegisterClassEx failed with error {Marshal.GetLastWin32Error()}.");
-		_handle = CreateWindowEx(0, _className, title, WindowStyleOverlapped | WindowStyleVisible | WindowStyleClipSiblings | WindowStyleClipChildren,
-			unchecked((int)0x80000000), unchecked((int)0x80000000), width, height, 0, 0, _instance, 0);
+		uint style = WindowStyleOverlapped | WindowStyleVisible | WindowStyleClipSiblings | WindowStyleClipChildren;
+		Rect outer = new() { Left = 0, Top = 0, Right = width, Bottom = height };
+		AdjustWindowRect(ref outer, style, false);
+		_handle = CreateWindowEx(0, _className, title, style,
+			unchecked((int)0x80000000), unchecked((int)0x80000000), outer.Right - outer.Left, outer.Bottom - outer.Top, 0, 0, _instance, 0);
 		if (_handle == 0)
 		{
 			UnregisterClass(_className, _instance);
@@ -176,6 +179,10 @@ internal sealed class GameWindow : IDisposable
 
 	[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern nint CreateWindowEx(uint extendedStyle, string className, string windowName, uint style, int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
+
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	private static extern bool AdjustWindowRect(ref Rect rect, uint style, [MarshalAs(UnmanagedType.Bool)] bool menu);
 
 	[DllImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
