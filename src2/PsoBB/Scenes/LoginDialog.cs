@@ -141,7 +141,7 @@ public sealed class LoginDialog : IDisposable
 	public UiListWindow Menu => _menu;
 
 	/// <summary>
-	/// Gets or sets the scene-2 selector frame renderer that draws the element-table header and row frames behind this panel.
+	/// Gets or sets the scene-2 selector renderer that draws its selected-row strip at (193, 338).
 	/// </summary>
 	public Action<UiDrawList>? SelectorFrameDraw { get; set; }
 
