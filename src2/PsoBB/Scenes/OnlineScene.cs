@@ -1,11 +1,8 @@
-using System.Buffers.Binary;
 using System.Numerics;
-using PsoBB.Compression;
 using PsoBB.Data;
 using PsoBB.Game;
 using PsoBB.Graphics;
 using PsoBB.Gui;
-using PsoBB.Imaging;
 using PsoBB.Input;
 using PsoBB.Net;
 using PsoBB.Text;
@@ -305,48 +302,8 @@ public sealed class OnlineScene : IDisposable
 	private static ITexture LoadProgressTexture(IDataFiles files, IRenderer renderer)
 	{
 		foreach (string name in ProgressTextureNames)
-		{
-			foreach (string candidate in TextureCandidates(name))
-			{
-				if (!files.TryRead(candidate, out ReadOnlyMemory<byte> data))
-					continue;
-				ReadOnlyMemory<byte> xvm = IsXvm(data.Span) ? data : Decompress(data, candidate);
-				IReadOnlyList<XvmTexture> textures = XvmArchive.Read(xvm.Span);
-				if (textures.Count == 0)
-					throw new TextureFormatException($"The progress texture archive '{candidate}' has no textures.", 0);
-				XvmTexture texture = textures[0];
-				return renderer.CreateTexture(texture.Width, texture.Height, texture.Image.Pixels.Span, texture.Image.Stride);
-			}
-		}
+			if (SceneTextureLoader.TryLoad(files, renderer, name, out ITexture? texture))
+				return texture!;
 		throw new FileNotFoundException("No online progress texture archive is present.", ProgressTextureName + ".prs");
-	}
-
-	private static IEnumerable<string> TextureCandidates(string name)
-	{
-		yield return name + ".prs";
-		yield return name;
-		yield return name + ".xvm";
-	}
-
-	private static bool IsXvm(ReadOnlySpan<byte> data) =>
-		data.Length >= 4 && BinaryPrimitives.ReadUInt32LittleEndian(data) == 0x484D5658;
-
-	private static ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> data, string name)
-	{
-		int capacity = Math.Max(0x10000, data.Length * 4);
-		while (capacity <= 0x4000000)
-		{
-			byte[] destination = new byte[capacity];
-			try
-			{
-				int written = PrsDecompressor.Decompress(data.Span, destination);
-				return destination.AsMemory(0, written);
-			}
-			catch (ArgumentException)
-			{
-				capacity *= 2;
-			}
-		}
-		throw new TextureFormatException($"The archive '{name}' is neither XVM nor a supported PRS stream.", 0);
 	}
 }

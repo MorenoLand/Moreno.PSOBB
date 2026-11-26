@@ -1,12 +1,9 @@
-using System.Buffers.Binary;
 using System.Numerics;
 using PsoBB.Audio;
-using PsoBB.Compression;
 using PsoBB.Data;
 using PsoBB.Game;
 using PsoBB.Graphics;
 using PsoBB.Gui;
-using PsoBB.Imaging;
 using PsoBB.Input;
 using PsoBB.Models;
 
@@ -207,8 +204,8 @@ public sealed class CharacterMakingScene : IDisposable
 	{
 		_preview = new CharacterPreview();
 		_preview.SelectScreen(CharacterPreview.InitialScreen);
-		_adTexture = LoadTexture(files, renderer, AdTextureName);
-		_backgroundTexture = LoadTexture(files, renderer, BackgroundTextureName);
+		_adTexture = SceneTextureLoader.Load(files, renderer, AdTextureName);
+		_backgroundTexture = SceneTextureLoader.Load(files, renderer, BackgroundTextureName);
 		_modelArchive = BmlArchive.Parse(files.Read(ModelArchiveName).Span);
 		MusicTrackPath = MusicLibrary.GetTrackPath(MusicTrackName);
 		HasMusic = files.TryRead(MusicTrackPath, out _);
@@ -220,52 +217,6 @@ public sealed class CharacterMakingScene : IDisposable
 			_audio = audio;
 			_audio.Music = _music;
 		}
-	}
-
-	[Original(0x0081A93C, "load_compressed_texture_0081a93c")]
-	private static ITexture LoadTexture(IDataFiles files, IRenderer renderer, string name)
-	{
-		foreach (string candidate in TextureCandidates(name))
-		{
-			if (!files.TryRead(candidate, out ReadOnlyMemory<byte> data))
-				continue;
-			ReadOnlyMemory<byte> xvm = IsXvm(data.Span) ? data : Decompress(data, candidate);
-			IReadOnlyList<XvmTexture> textures = XvmArchive.Read(xvm.Span);
-			if (textures.Count == 0)
-				throw new TextureFormatException($"The texture archive '{candidate}' has no textures.", 0);
-			XvmTexture texture = textures[0];
-			return renderer.CreateTexture(texture.Width, texture.Height, texture.Image.Pixels.Span, texture.Image.Stride);
-		}
-		throw new FileNotFoundException($"No texture archive named '{name}' is present.", name + ".prs");
-	}
-
-	private static IEnumerable<string> TextureCandidates(string name)
-	{
-		yield return name + ".prs";
-		yield return name;
-		yield return name + ".xvm";
-	}
-
-	private static bool IsXvm(ReadOnlySpan<byte> data) =>
-		data.Length >= 4 && BinaryPrimitives.ReadUInt32LittleEndian(data) == 0x484D5658;
-
-	private static ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> data, string name)
-	{
-		int capacity = Math.Max(0x10000, data.Length * 4);
-		while (capacity <= 0x4000000)
-		{
-			byte[] destination = new byte[capacity];
-			try
-			{
-				int written = PrsDecompressor.Decompress(data.Span, destination);
-				return destination.AsMemory(0, written);
-			}
-			catch (ArgumentException)
-			{
-				capacity *= 2;
-			}
-		}
-		throw new TextureFormatException($"The texture archive '{name}' is neither XVM nor a supported PRS stream.", 0);
 	}
 
 	private static InvalidOperationException NotLoaded() =>
