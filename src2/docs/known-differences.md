@@ -37,7 +37,7 @@ that override is not ported.
 
 `SceneLibrary` contains the 19 rows of three function pointers at `0x009FF7C0`, copied from the
 mapped piece at `0x009A2000` in the shipped `src/image.bin` (228 bytes, 12 bytes per row). The
-scene loop at `0x007A5E84` uses a 12-byte stride, not the 24-byte stride assumed by the first port.
+scene loop at `0x007A5E84` uses a 12-byte stride.
 
 ## The display mode comes from the renderer settings
 
