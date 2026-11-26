@@ -8,6 +8,8 @@
 - A remote orderly close moves the session to `Disconnected`. The original latches an error byte and runs its disconnect handler. A transport error moves this session to `Failed` with a reason instead of only setting the error byte.
 - Partial sends are retained in an ordered queue and retried. The original calls the socket send wrapper once per packet and treats a short result as an error.
 - The session validates and applies the command 0x03 and 0x9B welcomes, then returns the welcome packet to the caller. The original welcome handlers also build and send the client login or 0xDB registration packet from account state; that response belongs to the protocol layer above the session.
+- `LoginFlow` stops at the command 0x19 redirect. The notes establish the 0x93 login, 0xE6 client initialization, 0xE0 system-file request, 0xE1 or 0xE2 answer, 0xE3 preview request, 0xE4 choice answer and 0x19 redirect, but no ship, block or lobby list command and no 0xE5 preview body. The caller re-arms a flow on the next connection with the login phase that connection needs.
+- `LoginFlow` has no protocol timer. The transport is non-blocking and the host pumps the flow; a stalled server leaves the current stage waiting, and an orderly close or transport failure moves the flow to `Failed`.
 - A browser page cannot open a raw TCP stream. `BrowserGameConnection` refuses transport operations and a host relay must implement `IGameConnection` over WebSockets.
 
 ## Options
