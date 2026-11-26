@@ -198,6 +198,43 @@ public sealed class Scene2TitleArtTests
 	}
 
 	[Fact]
+	public void FlashWindowAndColourRampMatchTheOriginal()
+	{
+		Assert.False(Scene2TitleArt.IsFlashVisible(149));
+		Assert.True(Scene2TitleArt.IsFlashVisible(150));
+		Assert.True(Scene2TitleArt.IsFlashVisible(170));
+		Assert.False(Scene2TitleArt.IsFlashVisible(171));
+		Assert.Equal(0u, Scene2TitleArt.GetFlashColor(149));
+		Assert.Equal(0xFFFFFFFFu, Scene2TitleArt.GetFlashColor(150));
+		Assert.Equal(0xFF7F7F7Fu, Scene2TitleArt.GetFlashColor(160));
+		Assert.Equal(0xFF000000u, Scene2TitleArt.GetFlashColor(170));
+		Assert.Equal(0u, Scene2TitleArt.GetFlashColor(171));
+		Assert.Equal(0xFF7F7F7Fu, Scene2TitleArt.GetFlashColor(460));
+	}
+
+	[Fact]
+	public void DrawFlashSubmitsTheExpandingQuadInsideTheWindow()
+	{
+		using DataFileRegistry files = Scene2TitleTestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using Scene2TitleArt art = new(files, renderer);
+		TitleArtDrawList draw = new();
+		art.DrawFlash(draw, 160, new Vector4(0f, 0f, 1f, 1f));
+		Assert.Single(draw.OverlayQuads);
+		TitleArtOverlayQuad quad = draw.OverlayQuads[0];
+		Assert.Same(art.Textures[12], quad.Texture);
+		Assert.Equal(185.6f, quad.P0.Position.X, 4);
+		Assert.Equal(65.6f, quad.P0.Position.Y, 4);
+		Assert.Equal(454.4f, quad.P2.Position.X, 4);
+		Assert.Equal(334.4f, quad.P2.Position.Y, 4);
+		Assert.Equal(0xFF7F7F7Fu, quad.Color);
+		Assert.Equal(Scene2TitleArt.FlashDepth, quad.Depth);
+		draw = new TitleArtDrawList();
+		art.DrawFlash(draw, 149, new Vector4(0f, 0f, 1f, 1f));
+		Assert.Empty(draw.OverlayQuads);
+	}
+
+	[Fact]
 	public void RenderSubmitsTheTwoBlendModesAndSixteenQuads()
 	{
 		using DataFileRegistry files = Scene2TitleTestData.Registry();
