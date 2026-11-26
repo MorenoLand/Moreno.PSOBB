@@ -24,7 +24,7 @@ effect textures.
 | `Scene2TransitionOverlay.Pump` | `0x007199E8` | The transition manager's draw order |
 | `Scene2TransitionOverlay.CanPump` | `0x00719A48` | The ready-bit gate |
 | `LoginDialog` | `0x007617E8` | Header and four action rows, hint, selection and confirm mapping |
-| `Scene2TitleArt` | `0x006F475C` | Title strips, effect records and emblem overlay |
+| `Scene2TitleArt` | `0x006F475C` | Title strips, effect records, emblem overlay and flash |
 
 `Scene2Interface.ScreenDefinitions` records the switch at `0x0081AAC8`:
 
@@ -137,7 +137,9 @@ The list widget vtable is `0x00B40A38`: destructor `0x00734700`, update `0x00734
 
 The bitmap font is created by `0x007AC6E8` through `0x00844428(14,14)`: a 32-bit 14x14 DIB and five
 GDI faces from the 216-byte descriptors at `0x00A21CE0`. The atlas has three 256x256 pages and four
-alpha levels. `TextRenderer.Draw` ports `0x0071D58C`, and `TextRendererSurface` exposes it to the list.
+alpha levels. The face name is the `FONT_JPN` value under `HKCU\Software\SonicTeam\PSOBB`, which is
+`Tahoma` on this machine. `TextRenderer.Draw` ports `0x0071D58C`, and `TextRendererSurface` exposes it
+to the list. `GdiBitmapFont` on the Windows platform rasterises the five faces and uploads the pages.
 
 The texture-font atlas is selected by `0x0079324C`; for English it is `textureenglish.xvm`, five
 pages of 256/256/256/128/64 pixels. `TextureFontMetrics` copies the width/offset table at
@@ -149,7 +151,7 @@ pages of 256/256/256/128/64 pixels. `TextureFontMetrics` copies the width/offset
 
 1. `0x00415AB0` with frame base 13, depth divisor `-150`: the eight `s256_1st_title` strips with
    alpha blending disabled.
-2. Frames 150 through 170 of the controller: the full-screen flash (unported).
+2. Frames 150 through 170 of the controller: the full-screen flash.
 3. `0x00415BCC` with frame base 3, depth divisor `-130`: the eight `f256_titlealpha` strips with
    alpha blending enabled.
 4. The emblem/ring overlay.
@@ -184,6 +186,12 @@ frames 11 and 12, then the three 104-radius quads from the `0x0096E168` points `
 `(137,-79)` and `(0,156)`. It uses the frame-derived angle `(frame << 16) / 900`, the
 `0x007A919C(0,88,115,frame,300,150,165,180)` colour, depth values `0.008333334`, `0.008403362` and
 `0.008474576`, and the runtime UV state below.
+
+`DrawFlash` reproduces frames 150 through 170: `v15 = 255 * (1 - (frame % 300 - 150) / 20)`,
+expanded into an opaque grey `0xFFxxxxxx`, texture 12, alpha state, depth `1 - 0.007142857` and the
+`0x0082B440` quad from `(320 - 268.8t, 200 - 268.8t)` to `(320 + 268.8t, 200 + 268.8t)`, where
+`t = (frame % 300 - 150) / 20`. The four `0xA96904/08/0C/10` UV values are supplied by the caller
+because no writer exists in the lift or host data.
 
 The runtime host gives `0xA96914 = 1`, `0xA96918/0x1C = 320/220`, `0xA96920 = 0`, `0xA96924/28 = 0`
 and `0xA9692C/30 = 0.35/0`. Those values are exposed through `TitleEmblemState`; the image defaults use
@@ -253,9 +261,10 @@ director's release pass; without a factory it emits the no-interface diagnostic.
   responsibilities; the scene keeps the fade, tree and cancel/confirm order it owns.
 - The release segment also tears down the renderer, file handles and the effect buffer. The host
   owns those calls.
-- The full-screen flash at frames 150 through 170 is unported. The GUI skin and the account panel
-  frame/header-bar textures are owned by the interface ports; the login port draws the header text,
-  rows and hint.
+- The flash UV values `0xA96904/08/0C/10` have no writer in the lift; `DrawFlash` requires them from
+  the caller rather than inventing constants.
+- The GUI skin and the account panel frame/header-bar textures behind `0x00710F80`/`0x007120EC`
+  are owned by the interface ports; the login port draws the header text, rows and hint.
 
 ## Verification
 
@@ -265,7 +274,7 @@ update-before-draw order, cancel, confirm, release, the screen table and the pum
 `LoginDialogTests` covers the header, four rows, hint substitution, selection wrap, confirm mapping,
 panel rectangle and release. `Scene2TitleArtTests` covers the twenty-one title textures, records
 483–485, effect texture mapping, both strip passes, the sixteen-quad strip submission, the emblem
-angle/colour and the two large plus three ring overlay quads.
+angle/colour, the two large plus three ring overlay quads and the flash window/colour/quad.
 
 Composing the mode-zero GSL `title.prs` (the default `Title` set) with frames 13 through 20 and 3
 through 10, then the overlay, produces the Blue Burst logo with the Japanese subtitle and the
