@@ -10,7 +10,7 @@ public static class TextureFontMetrics
 	public const int FirstCharacter = 0x20;
 
 	/// <summary>The last character in the table.</summary>
-	public const int LastCharacter = 0x7E;
+	public const int LastCharacter = 0x7F;
 
 	[OriginalGlobal(0x009FCE80)]
 	private static readonly TextureFontGlyph[] Glyphs =
@@ -38,7 +38,7 @@ public static class TextureFontMetrics
 		new(10.0f, 3.0f), new(10.0f, 3.0f), new(9.0f, 0.0f), new(10.0f, 0.0f),
 		new(9.0f, 0.0f), new(10.0f, 0.0f), new(12.0f, 0.0f), new(14.0f, 0.0f),
 		new(12.0f, 0.0f), new(12.0f, 3.0f), new(10.0f, 0.0f), new(7.0f, 0.0f),
-		new(5.0f, 0.0f), new(7.0f, 0.0f), new(12.0f, 0.0f)
+		new(5.0f, 0.0f), new(7.0f, 0.0f), new(12.0f, 0.0f), new(0.0f, 0.0f)
 	];
 
 	/// <summary>Gets the table entries in character order.</summary>
