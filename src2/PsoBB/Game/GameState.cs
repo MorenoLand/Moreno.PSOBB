@@ -4,8 +4,9 @@ namespace PsoBB.Game;
 /// Process-wide display, hook and scene state the client writes during start-up.
 /// </summary>
 /// <remarks>
-/// The shipped image has no piece for these addresses; they sit in the zero-filled uninitialised
-/// data gap, so every baked initial value is zero. <see cref="Reset"/> restores those values.
+/// Most members sit in the zero-filled uninitialised data gap and start at zero. The two shared
+/// scene-screen states at <c>0x00A165F0</c> and <c>0x00A165F8</c> are mapped by the shipped image
+/// with the value <see cref="SceneScreenInitialValue"/>. <see cref="Reset"/> restores those values.
 /// </remarks>
 public static class GameState
 {
@@ -13,6 +14,12 @@ public static class GameState
     /// The value the shipped image supplies for every member in this class.
     /// </summary>
     public const uint InitialValue = 0;
+
+    /// <summary>
+    /// The value the shipped image supplies for the two shared scene-screen states at
+    /// <c>0x00A165F0</c> and <c>0x00A165F8</c>.
+    /// </summary>
+    public const uint SceneScreenInitialValue = 0xC;
 
     /// <summary>
     /// The flag that selects scene 1 or scene 18 when the scene table is initialised.
@@ -123,6 +130,24 @@ public static class GameState
     public static uint SceneArgument3 { get; set; } = InitialValue;
 
     /// <summary>
+    /// Gets or sets the shared screen state the current scene selects from.
+    /// </summary>
+    [OriginalGlobal(0x00A165F0)]
+    public static uint SceneScreenState { get; set; } = SceneScreenInitialValue;
+
+    /// <summary>
+    /// Gets or sets the screen state that was running before the current screen was selected.
+    /// </summary>
+    [OriginalGlobal(0x00A165F8)]
+    public static uint PreviousSceneScreenState { get; set; } = SceneScreenInitialValue;
+
+    /// <summary>
+    /// Gets or sets the shared screen fade state.
+    /// </summary>
+    [OriginalGlobal(0x00ACA4E4)]
+    public static uint SceneFadeState { get; set; } = InitialValue;
+
+    /// <summary>
     /// Restores every member to its baked shipped-image value.
     /// </summary>
     public static void Reset()
@@ -145,5 +170,8 @@ public static class GameState
         SceneArgument1 = InitialValue;
         SceneArgument2 = InitialValue;
         SceneArgument3 = InitialValue;
+        SceneScreenState = SceneScreenInitialValue;
+        PreviousSceneScreenState = SceneScreenInitialValue;
+        SceneFadeState = InitialValue;
     }
 }
