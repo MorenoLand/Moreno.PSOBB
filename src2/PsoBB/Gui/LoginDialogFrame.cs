@@ -15,7 +15,7 @@ namespace PsoBB.Gui;
 public sealed class LoginDialogFrame : IDisposable
 {
 	/// <summary>The title-menu panel position observed in the oracle capture.</summary>
-	public static readonly Vector2 TitlePanelPosition = new(210f, 288f);
+	public static readonly Vector2 TitlePanelPosition = new(210f, 300f);
 
 	/// <summary>The title-menu panel size from the account dialog's size constant.</summary>
 	public static readonly Vector2 TitlePanelSize = new(220f, 120f);

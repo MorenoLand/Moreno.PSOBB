@@ -51,19 +51,20 @@ public sealed class TitleStartupTests : IDisposable
 		TitleArtDrawList draw = new();
 		loading.Draw(draw);
 		Assert.Equal(NowLoadingScreen.RotationStep, loading.Rotation);
-		Assert.Equal(new Vector2(368f, 352f), draw.OverlayQuads[0].P0.Position);
-		Assert.Equal(new Vector2(497f, 480f), draw.OverlayQuads[0].P2.Position);
-		Assert.Equal(new Vector2(496f, 352f), draw.OverlayQuads[1].P0.Position);
-		Assert.Equal(new Vector2(624f, 480f), draw.OverlayQuads[1].P2.Position);
 		Assert.Equal(new Vector2(496f, 416f), NowLoadingScreen.EmblemPosition);
-		Assert.Equal(new Vector2(464f, 384f), draw.OverlayQuads[2].P0.Position);
-		Assert.Equal(new Vector2(592f, 512f), draw.OverlayQuads[2].P2.Position);
-		Assert.Equal(NowLoadingScreen.TextureCoordinates, new Vector4(draw.OverlayQuads[0].P0.TextureCoordinates.X, draw.OverlayQuads[0].P0.TextureCoordinates.Y, draw.OverlayQuads[0].P2.TextureCoordinates.X, draw.OverlayQuads[0].P2.TextureCoordinates.Y));
-		Assert.Equal(0xFFFFFFFFu, draw.OverlayQuads[0].Color);
+		Assert.Equal(new Vector2(496f, 416f), draw.OverlayQuads[0].P0.Position);
+		Assert.Equal(new Vector2(560f, 480f), draw.OverlayQuads[0].P2.Position);
+		Assert.Equal(new Vector2(368f, 352f), draw.OverlayQuads[1].P0.Position);
+		Assert.Equal(new Vector2(497f, 480f), draw.OverlayQuads[1].P2.Position);
+		Assert.Equal(new Vector2(496f, 352f), draw.OverlayQuads[2].P0.Position);
+		Assert.Equal(new Vector2(624f, 480f), draw.OverlayQuads[2].P2.Position);
+		Assert.Equal(NowLoadingScreen.TextureCoordinates, new Vector4(draw.OverlayQuads[1].P0.TextureCoordinates.X, draw.OverlayQuads[1].P0.TextureCoordinates.Y, draw.OverlayQuads[1].P2.TextureCoordinates.X, draw.OverlayQuads[1].P2.TextureCoordinates.Y));
+		Assert.Equal(NowLoadingScreen.GetColor(NowLoadingScreen.RotationStep), draw.OverlayQuads[0].Color);
 		Assert.Equal(0xFFFFFFFFu, draw.OverlayQuads[1].Color);
-		Assert.Equal(NowLoadingScreen.GetColor(NowLoadingScreen.RotationStep), draw.OverlayQuads[2].Color);
-		Assert.Equal(TitleArtBlend.Opaque, draw.OverlayQuads[0].Blend);
-		Assert.Equal(TitleArtBlend.AdditiveAlpha, draw.OverlayQuads[2].Blend);
+		Assert.Equal(0xFFFFFFFFu, draw.OverlayQuads[2].Color);
+		Assert.Equal(TitleArtBlend.Additive, draw.OverlayQuads[0].Blend);
+		Assert.Equal(TitleArtBlend.Opaque, draw.OverlayQuads[1].Blend);
+		Assert.Equal(TitleArtBlend.Opaque, draw.OverlayQuads[2].Blend);
 	}
 
 	[Fact]

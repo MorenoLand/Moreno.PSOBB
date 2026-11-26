@@ -186,6 +186,7 @@ public sealed class LoginDialog : IDisposable
 			_textSurface = value;
 			_header.TextSurface = value;
 			_menu.TextSurface = value;
+			_menu.TextOffset = new Vector2(10f, 0f);
 			_header.TextOffset = value is null ? default : new Vector2(MathF.Max(0f, (PanelSize.X - value.Measure(_header.Text)) * 0.5f), (HeaderHeight - BitmapFont.GlyphHeight) * 0.5f);
 		}
 	}

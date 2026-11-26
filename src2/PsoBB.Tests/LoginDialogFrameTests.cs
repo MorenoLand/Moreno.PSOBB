@@ -65,15 +65,15 @@ public sealed class LoginDialogFrameTests
 
 		Assert.Equal(15, list.Quads.Count);
 		UiQuad left = list.Quads[12];
-		Assert.Equal(new Vector2(208f, 308f), left.Position);
+		Assert.Equal(new Vector2(208f, 320f), left.Position);
 		Assert.Equal(new Vector2(16f, 16f), left.Size);
 		Assert.Equal(new Vector4(151f / 256f, 57f / 256f, 167f / 256f, 73f / 256f), left.TextureCoordinates);
 		Assert.Same(page, left.Texture);
 		UiQuad right = list.Quads[13];
-		Assert.Equal(new Vector2(416f, 308f), right.Position);
+		Assert.Equal(new Vector2(416f, 320f), right.Position);
 		Assert.Equal(new Vector4(183f / 256f, 57f / 256f, 199f / 256f, 73f / 256f), right.TextureCoordinates);
 		UiQuad middle = list.Quads[14];
-		Assert.Equal(new Vector2(224f, 308f), middle.Position);
+		Assert.Equal(new Vector2(224f, 320f), middle.Position);
 		Assert.Equal(new Vector2(192f, 16f), middle.Size);
 		Assert.Equal(new Vector4(167f / 256f, 57f / 256f, 183f / 256f, 73f / 256f), middle.TextureCoordinates);
 	}
@@ -87,7 +87,7 @@ public sealed class LoginDialogFrameTests
 		frame.Draw(list, 1, hovered: true);
 
 		UiQuad left = list.Quads[12];
-		Assert.Equal(new Vector2(208f, 328f), left.Position);
+		Assert.Equal(new Vector2(208f, 340f), left.Position);
 		Assert.Equal(new Vector4(151f / 256f, 76f / 256f, 167f / 256f, 92f / 256f), left.TextureCoordinates);
 	}
 
@@ -99,7 +99,7 @@ public sealed class LoginDialogFrameTests
 
 		frame.Draw(list, 3);
 		Assert.Equal(15, list.Quads.Count);
-		Assert.Equal(new Vector2(208f, 368f), list.Quads[12].Position);
+		Assert.Equal(new Vector2(208f, 380f), list.Quads[12].Position);
 
 		list.Clear();
 		frame.Draw(list, -1);
