@@ -9,6 +9,7 @@ namespace PsoBB.Tests;
 internal sealed class RecordingRenderer : IRenderer
 {
 	private readonly List<string> _commands = [];
+	private int _disposeCount;
 
 	/// <summary>
 	/// Creates a recording renderer with the given settings.
@@ -21,6 +22,12 @@ internal sealed class RecordingRenderer : IRenderer
 
 	/// <summary>Gets the commands recorded so far.</summary>
 	public IReadOnlyList<string> Commands => _commands;
+
+	/// <summary>Gets the number of times the renderer was disposed.</summary>
+	public int DisposeCount => _disposeCount;
+
+	/// <summary>Gets a value indicating whether the renderer was disposed.</summary>
+	public bool IsDisposed => _disposeCount != 0;
 
 	/// <inheritdoc/>
 	public RenderSettings Settings { get; }
@@ -54,9 +61,7 @@ internal sealed class RecordingRenderer : IRenderer
 	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride) => new RecordingTexture(width, height);
 
 	/// <inheritdoc/>
-	public void Dispose()
-	{
-	}
+	public void Dispose() => _disposeCount++;
 
 	/// <summary>
 	/// A texture handle for the recording renderer.
