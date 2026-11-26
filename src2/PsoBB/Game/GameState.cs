@@ -123,6 +123,24 @@ public static class GameState
     public static uint SceneArgument3 { get; set; } = InitialValue;
 
     /// <summary>
+    /// Gets or sets the flag that tells the offline scene whether its game has started.
+    /// </summary>
+    [OriginalGlobal(0x00A95624)]
+    public static uint GameStarted { get; set; } = InitialValue;
+
+    /// <summary>
+    /// Gets or sets the flag the map loader raises when a floor is ready.
+    /// </summary>
+    [OriginalGlobal(0x00AAB378)]
+    public static uint MapLoaded { get; set; } = InitialValue;
+
+    /// <summary>
+    /// Gets or sets the flag a scene system raises when it wants the offline scene update path.
+    /// </summary>
+    [OriginalGlobal(0x00AAB380)]
+    public static uint SceneEvent { get; set; } = InitialValue;
+
+    /// <summary>
     /// Restores every member to its baked shipped-image value.
     /// </summary>
     public static void Reset()
@@ -145,5 +163,8 @@ public static class GameState
         SceneArgument1 = InitialValue;
         SceneArgument2 = InitialValue;
         SceneArgument3 = InitialValue;
+        GameStarted = InitialValue;
+        MapLoaded = InitialValue;
+        SceneEvent = InitialValue;
     }
 }

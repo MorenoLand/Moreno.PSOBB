@@ -128,6 +128,14 @@ The two download panels from `0x00407FB0` and `0x0040808C` are submitted while t
 or connecting. The original gates both on the progress-window state bit; the port has no download
 window object and keeps the panels visible through the connection phase.
 
+## Offline scene
+
+`PsoBB.Scenes.OfflineScene` is the scene-10 shell. It loads the `PSO_CHARACTER` save and
+`lightentry.bin`, keeps the 47 initialiser and release addresses, and reproduces the flag and
+restart transitions. The save decoder, field map, game object, player and field renderer are not
+ported; the scene has no draw entry, so it submits no interface geometry. See
+`scene-10-offline.md`.
+
 ## The scene table is baked from the shipped image
 
 `SceneLibrary` contains the 19 rows of three function pointers at `0x009FF7C0`, copied from the
