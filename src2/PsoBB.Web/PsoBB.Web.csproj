@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+	<PropertyGroup>
+		<TargetFramework>net11.0</TargetFramework>
+		<RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+		<OutputType>Library</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<!-- The JSExport source generator uses pointer-sized memory access. -->
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\PsoBB.Client\PsoBB.Client.csproj" />
+		<Reference Include="PsoBB.Platform.Web">
+			<HintPath>..\PsoBB.Platform.Web\bin\$(Configuration)\net11.0\PsoBB.Platform.Web.dll</HintPath>
+			<Private>true</Private>
+		</Reference>
+		<Reference Include="PsoBB.Rendering.WebGL">
+			<HintPath>..\PsoBB.Rendering.WebGL\bin\$(Configuration)\net11.0\PsoBB.Rendering.WebGL.dll</HintPath>
+			<Private>true</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="..\PsoBB.Platform.Web\wwwroot\psobb-platform.js" Link="wwwroot\psobb-platform.js" />
+		<Content Include="..\PsoBB.Rendering.WebGL\wwwroot\psobb-webgl.js" Link="wwwroot\psobb-webgl.js" />
+	</ItemGroup>
+
+	<Target Name="BuildBrowserLibraries" BeforeTargets="ResolveAssemblyReferences" Condition="'$(DesignTimeBuild)' != 'true'">
+		<MSBuild Projects="..\PsoBB.Platform.Web\PsoBB.Platform.Web.csproj" Targets="Build" Properties="Configuration=$(Configuration)" BuildInParallel="false" />
+		<MSBuild Projects="..\PsoBB.Rendering.WebGL\PsoBB.Rendering.WebGL.csproj" Targets="Build" Properties="Configuration=$(Configuration)" BuildInParallel="false" />
+	</Target>
+
+</Project>
