@@ -1,6 +1,7 @@
 using PsoBB.Configuration;
 using PsoBB.Core;
 using PsoBB.Graphics;
+using PsoBB.Input;
 using PsoBB.Platform;
 
 namespace PsoBB.Client;
@@ -24,6 +25,7 @@ public sealed class ClientHost : IDisposable
 	private bool _stopRequested;
 	private bool _disposed;
 	private long _frameCount;
+	private long _lastTimestamp;
 
 	/// <summary>
 	/// Creates the host and resets <see cref="GlobalState"/> to its start-up values.
@@ -60,11 +62,13 @@ public sealed class ClientHost : IDisposable
 		Clock = clock;
 		GameSettings = settings;
 		GameInput = input;
+		Input = new InputManager(input);
 		Dispatcher = dispatcher;
 		AudioDevice = audioDevice;
 		Renderer = renderer;
 		GameOptions = PsoBB.Configuration.GameOptions.Load(settings);
 		GlobalState.Reset();
+		_lastTimestamp = clock.Timestamp;
 	}
 
 	/// <summary>
@@ -96,6 +100,11 @@ public sealed class ClientHost : IDisposable
 	/// Gets the keyboard and mouse devices.
 	/// </summary>
 	public IGameInput GameInput { get; }
+
+	/// <summary>
+	/// Gets the mapped actions, edges and repeat state built from <see cref="GameInput"/>.
+	/// </summary>
+	public InputManager Input { get; }
 
 	/// <summary>
 	/// Gets the deferred-work and timer pump.
@@ -171,6 +180,10 @@ public sealed class ClientHost : IDisposable
 	private bool RunFrame()
 	{
 		GameInput.Poll();
+		long timestamp = Clock.Timestamp;
+		double seconds = Clock.Frequency > 0 ? (timestamp - _lastTimestamp) / (double)Clock.Frequency : 0;
+		_lastTimestamp = timestamp;
+		Input.Update(TimeSpan.FromSeconds(seconds));
 		Dispatcher.Pump();
 		if (_stopRequested)
 			return false;
