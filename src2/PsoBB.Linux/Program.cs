@@ -41,7 +41,7 @@ internal static class Program
 			renderer = new OpenGLRenderer(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			_ = new ClientStartup(renderer).Start();
-			TitlePreview.Run(host, window.Pump);
+
 			host.RequestStop();
 			return 0;
 		}
