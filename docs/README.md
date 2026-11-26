@@ -27,5 +27,6 @@
 | [22-delphi.md](22-delphi.md) | Delphi/VCL detection, VMT and dynamic methods, SEH, DFM resources, thunks and verification. |
 | [23-wasm-imports.md](23-wasm-imports.md) | Per-port wasm import patterns: dynamic imports, MMIO, audio, child windows, diagnostics. |
 | [24-porting-fidelity.md](24-porting-fidelity.md) | Taking a checked C lift to another language at 1:1 fidelity. |
+| [26-patch-protocol.md](26-patch-protocol.md) | The patch server frames, checksum exchange, file apply and host seams. |
 
 Start with the overview and the checklist. Everything else is reference material.
