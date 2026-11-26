@@ -30,14 +30,18 @@ outside 1 through 3 reinitialise the same scene, as the original does.
 | Scene | Ported screen | Notes |
 |---|---|---|
 | 1 | `Scenes.Scene1` | Shared `TextureCache`; optional cinematic descriptor |
+| 2 | `Scenes.Scene2` | Needs a supplied `Scene2Interface` factory; `Start`/`Update`/`Draw`/`Release` |
 | 5 | `Scenes.CharacterMakingScene` | No audio pipeline is supplied |
 | 10 | `Scenes.OfflineScene` | Loads `lightentry.bin` and the character save |
 | 11 | `Scenes.OnlineScene` | Loading-only, or connected through `SceneNetworkOptions` |
 | 13 | `Scenes.SaveGameScene` | Menu and title track; no save serializer |
 
-Scene 2 has only the shared-screen transition `Scene2.SelectSharedScreenState`; it has no ported
-initialiser, update or release, so the director stops at scene 2 with
-`Scene 2 has no ported screen.` Scene 14 is an empty baked row and stops the same way.
+Scene 2's title skin and login list are separate ports. The caller supplies
+`SceneDirectorOptions.Scene2Factory` (or the directory's `scene2Factory`); the directory builds a
+fresh `Scene2Interface`, constructs `Scene2`, calls `Start`, then drives `Update`/`Draw` and calls
+`Release` on exit. Without a factory the director stops with
+`Scene 2 has no supplied interface.` Scene 14 is an empty baked row and stops with the generic
+diagnostic.
 
 ## Online connection
 
@@ -67,12 +71,14 @@ through 3, a transition outside that range, initialiser and release overrides, t
 scene zero, missing and out-of-table numbers, and disposal. `SceneDirectoryTests` uses synthetic GSL
 data, a synthetic connection and a synthetic host table for the three login endpoint selections,
 the login phases through character selection, the redirect boundary, a rejected login, cancel, exit,
-loading without a host table, and release. `ClientHostTests` covers host ownership of an attached
-director.
+loading without a host table, and release; it also runs scene 2's `Start`/`Update`/`Draw`/`Release`
+through the director in order, checks the missing-factory diagnostic, and asserts the scene 1→2
+request uses transition 1. `ClientHostTests` covers host ownership of an attached director.
 
 ## Limits
 
-- Scene 2 and every scene without a ported screen stop at the diagnostic boundary.
+- Scene 2 stops when no interface factory is supplied; every other scene without a ported screen
+  stops at the diagnostic boundary.
 - The download transport and its nonzero loading results are not ported; only result zero is used.
 - The redirected game connection, ship/block/lobby lists and the in-game scene are not ported.
 - Scene 5 runs without music, scene 13 without the save-file state machine, and scene 10 without the

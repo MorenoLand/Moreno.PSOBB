@@ -157,8 +157,8 @@ never observed from two tests at once.
 - The configuration stage at `0x007A6080` is not ported: `0x0082D650` needs the data-image strings
   at `0x98A3A8`-`0x98A3BC` and `sprintf`, and `0x00482EAC`/`0x004837CC` need the registry keys.
 - The scene descriptors point at original function addresses; `SceneDirector` maps the ported
-  screens for scenes 1, 5, 10, 11 and 13, and stops with a diagnostic at scene 2 and every other row
-  that has no ported screen. See `scene-director.md`.
+  screens for scenes 1, 2 (when a `Scene2Interface` factory is supplied), 5, 10, 11 and 13, and
+  stops with a diagnostic at every other row that has no ported screen. See `scene-director.md`.
 - `0x007A6454` has no call site in the lift; the port invokes it during start-up because the loop at
   `0x007A5E84` reads `0xAAB384` before any visible initialiser.
 - The `WinMain` command-line override of `0x00ACBEC0` is not ported; the baked zero selects scene 1
