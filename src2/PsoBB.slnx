@@ -1,6 +1,7 @@
 <Solution>
 	<Project Path="PsoBB/PsoBB.csproj" />
 	<Project Path="PsoBB.Client/PsoBB.Client.csproj" />
+	<Project Path="PsoBB.Linux/PsoBB.Linux.csproj" />
 	<Project Path="PsoBB.Platform.Linux/PsoBB.Platform.Linux.csproj" />
 	<Project Path="PsoBB.Platform.Linux.Tests/PsoBB.Platform.Linux.Tests.csproj" />
 	<Project Path="PsoBB.Platform.Web/PsoBB.Platform.Web.csproj" />
