@@ -11,7 +11,7 @@ The client opens `HKEY_CURRENT_USER\Software\SonicTeam\PSOV2` (`0x0082D444`) and
 | `CLIENT_CODE` | text | empty | Read by `0x00482490`; capped at `0x104` characters for the original buffer. |
 | `CTRLBUF` | 3 x int32 | `0,0,0` | Loaded by `0x00482EAC` and decoded by `0x00482B38`. Index 0 is the resolution preset, index 1 is 16/32-bit colour and index 2 is preserved. A missing or non-12-byte value uses the defaults from `0x00482AA8`. |
 | `GRAPHICCTRL` | 9 x int32 | `0,0,0,0,0,2,0,0,0` | Loaded with `CTRLBUF`. A missing or non-36-byte value uses the defaults. Fields the typed surface does not use are preserved when saving. |
-| `EXT0` | DWORD | `2` | Texture detail from zero through four, written by `0x00482A80`. The original's unsigned comparison maps a negative value to four. |
+| `EXT0` | DWORD | `2` | Brightness level from zero through four, written by `0x00482A80`. Level zero is `+2 level`, level two is `Normal` and level four is `-2 level`; the original's unsigned comparison maps a negative value to four. |
 | `WORD_WRAP` | DWORD | `1` | Chat word wrap; zero disables it and any other value enables it. |
 | `WINDOW_MODE` | DWORD | `0` | Any non-zero value selects windowed presentation. |
 | `SOUNDCTRL` | 3 x int32 | `1,1,1` | Read by `0x0048377C`; index 1 enables music and index 2 enables sound effects. A missing or non-12-byte value uses `0x00483760`. |

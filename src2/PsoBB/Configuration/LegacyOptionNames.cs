@@ -17,7 +17,7 @@ public static class LegacyOptionNames
 	/// <summary>A thirty-six-byte display control block holding the renderer options.</summary>
 	public const string GraphicControl = "GRAPHICCTRL";
 
-	/// <summary>The texture detail index from zero through four.</summary>
+	/// <summary>The brightness level from zero through four.</summary>
 	public const string ExtraOption = "EXT0";
 
 	/// <summary>Whether chat text wraps at the window edge.</summary>
