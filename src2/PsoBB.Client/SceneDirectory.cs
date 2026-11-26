@@ -12,10 +12,11 @@ namespace PsoBB.Client;
 /// Maps the baked scene numbers to the ported scene classes and owns their shared data and texture resources.
 /// </summary>
 /// <remarks>
-/// Scenes 1, 5, 10, 11 and 13 have ported screens. Scene 2 has only the shared-screen transition, and
-/// scenes without a ported screen return <see langword="null"/> so the director stops instead of
-/// substituting a screen. Scene 11 connects only when <see cref="SceneNetworkOptions"/> is supplied;
-/// otherwise it stays in its ported loading phase.
+/// Scenes 1, 5, 10, 11 and 13 have self-contained ported screens. Scene 2 needs a
+/// <see cref="Scene2Interface"/> from the title art and login ports, so it is created only when
+/// <c>scene2Factory</c> is supplied. Scenes without a ported screen return <see langword="null"/>
+/// so the director stops instead of substituting a screen. Scene 11 connects only when
+/// <see cref="SceneNetworkOptions"/> is supplied; otherwise it stays in its ported loading phase.
 /// </remarks>
 public sealed class SceneDirectory : ISceneScreenFactory
 {
@@ -29,6 +30,7 @@ public sealed class SceneDirectory : ISceneScreenFactory
 	private readonly TextureCache _textures;
 	private readonly SceneNetworkOptions? _network;
 	private readonly bool _cinematicLogo;
+	private readonly Func<Scene2Interface>? _scene2Factory;
 	private OnlineScreen? _online;
 	private bool _disposed;
 
@@ -39,8 +41,9 @@ public sealed class SceneDirectory : ISceneScreenFactory
 	/// <param name="renderer">The renderer that owns scene textures.</param>
 	/// <param name="network">The online endpoint and login inputs, or <see langword="null"/> for no connection.</param>
 	/// <param name="cinematicLogo">Whether scene 1 selects the cinematic logo descriptor.</param>
+	/// <param name="scene2Factory">The factory that builds a scene-2 interface tree, or <see langword="null"/> when it is not supplied.</param>
 	/// <exception cref="ArgumentNullException">A required parameter is null.</exception>
-	public SceneDirectory(IDataFiles files, IRenderer renderer, SceneNetworkOptions? network = null, bool cinematicLogo = false)
+	public SceneDirectory(IDataFiles files, IRenderer renderer, SceneNetworkOptions? network = null, bool cinematicLogo = false, Func<Scene2Interface>? scene2Factory = null)
 	{
 		ArgumentNullException.ThrowIfNull(files);
 		ArgumentNullException.ThrowIfNull(renderer);
@@ -48,6 +51,7 @@ public sealed class SceneDirectory : ISceneScreenFactory
 		_renderer = renderer;
 		_network = network;
 		_cinematicLogo = cinematicLogo;
+		_scene2Factory = scene2Factory;
 		_textures = new TextureCache(renderer);
 	}
 
@@ -62,6 +66,7 @@ public sealed class SceneDirectory : ISceneScreenFactory
 		return scene switch
 		{
 			1 => Adapter(new Scene1(_files, _renderer, _textures, _cinematicLogo)),
+			2 => CreateScene2(),
 			5 => Adapter(new CharacterMakingScene(_files, _renderer)),
 			10 => Adapter(new OfflineScene(_files)),
 			11 => CreateOnline(),
@@ -69,6 +74,10 @@ public sealed class SceneDirectory : ISceneScreenFactory
 			_ => null,
 		};
 	}
+
+	/// <inheritdoc/>
+	public string? DescribeMissing(uint scene) =>
+		scene == Scene2.SceneNumber ? "Scene 2 has no supplied interface." : null;
 
 	/// <summary>
 	/// Releases the shared texture cache and any online session that is still open.
@@ -85,6 +94,23 @@ public sealed class SceneDirectory : ISceneScreenFactory
 		finally
 		{
 			_textures.Dispose();
+		}
+	}
+
+	private ISceneScreen? CreateScene2()
+	{
+		if (_scene2Factory is null)
+			return null;
+		Scene2 scene = new(_scene2Factory());
+		try
+		{
+			scene.Start();
+			return new SceneScreen(scene.Update, scene.Draw, scene.Release);
+		}
+		catch
+		{
+			scene.Release();
+			throw;
 		}
 	}
 
