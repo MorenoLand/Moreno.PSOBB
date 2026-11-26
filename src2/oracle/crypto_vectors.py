@@ -7,8 +7,6 @@ from pathlib import Path
 from unicorn import UC_ARCH_X86, UC_MODE_32, Uc
 from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_ESP
 
-import blowfish_tables
-
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = ROOT / "src" / "image.bin"
 FIXTURES = ROOT / "src2" / "PsoBB.Tests" / "Golden"
@@ -20,8 +18,6 @@ CONTEXT_LENGTH = (18 + 4 * 256) * 4
 INIT = 0x00763FD0
 ENCRYPT = 0x00763D08
 DECRYPT = 0x00763E70
-SUBCKEY_TABLE = 0x00976020
-S_BOX_TABLE = 0x00974F20
 CPU_FEATURES = 0x00AE7F00
 KEYS = [
     ("single byte", bytes([0x5A])),
@@ -40,18 +36,6 @@ def image_pieces():
     return data, [struct.unpack_from("<III", data, 4 + 12 * index) for index in range(count)]
 
 
-def encode_subkeys():
-    """Return the 16-bit halves the original stores for the published subkeys."""
-    halves = []
-    for value in blowfish_tables.P:
-        low = value & 0xFFFF
-        high = value >> 16
-        swapped = ((low >> 8) | ((low & 0xFF) << 8)) & 0xFFFF
-        halves.append(swapped)
-        halves.append(high ^ low)
-    return struct.pack("<36H", *halves)
-
-
 class Machine:
     """Runs the original cipher routines with the data image mapped."""
 
@@ -65,10 +49,6 @@ class Machine:
         self.machine.mem_map(CONTEXT, 0x2000)
         self.machine.mem_map(KEY, 0x1000)
         self.machine.mem_map(BUFFER, 0x1000)
-        # The routine reads its initial tables from these globals. The shipped image's bytes
-        # differ from the published pi-derived tables, so load the published tables here.
-        self.machine.mem_write(S_BOX_TABLE, struct.pack("<1024I", *blowfish_tables.S))
-        self.machine.mem_write(SUBCKEY_TABLE, encode_subkeys())
         # The image's CRT feature word is zero before start-up; mark it initialized so the
         # schedule's memcpy takes its plain copy path instead of the CPUID probe.
         self.machine.mem_write(CPU_FEATURES, struct.pack("<I", 1))
