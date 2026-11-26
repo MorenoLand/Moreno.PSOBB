@@ -37,6 +37,7 @@ const char *rt_ogg_path(u32 handle)
 
 #if defined(_WIN32)
 static CRITICAL_SECTION gil;
+static volatile DWORD gil_owner;
 static DWORD ts_index = TLS_OUT_OF_INDEXES;
 #else
 static pthread_mutex_t gil = PTHREAD_MUTEX_INITIALIZER;
@@ -70,8 +71,8 @@ void gil_init(void)
     ts_index = TlsAlloc();
     EnterCriticalSection(&gil);
 }
-static void gil_enter(void) { EnterCriticalSection(&gil); }
-static void gil_leave(void) { LeaveCriticalSection(&gil); }
+static void gil_enter(void) { EnterCriticalSection(&gil); gil_owner = GetCurrentThreadId(); }
+static void gil_leave(void) { gil_owner = 0; LeaveCriticalSection(&gil); }
 #else
 void gil_init(void)
 {
@@ -409,15 +410,19 @@ static DWORD WINAPI sample_main(LPVOID arg)
         CONTEXT c;
         Sleep(1);
         if (GetTickCount() - last >= 5000) { last = GetTickCount(); sample_print(++round); }          /* the counts so far, every 5 seconds: the program may be closed before it stops by itself */
-        if (SuspendThread(sample_thread) == (DWORD)-1) continue;
+        DWORD tid = gil_owner;
+        HANDLE h = (tid && tid != GetCurrentThreadId()) ? OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, tid) : NULL;
+        HANDLE target = h ? h : sample_thread;
+        if (SuspendThread(target) == (DWORD)-1) { if (h) CloseHandle(h); continue; }
         c.ContextFlags = CONTEXT_CONTROL;
-        if (GetThreadContext(sample_thread, &c)) {
-            u32 block = (u32)c.Eip & ~15u, h = (block >> 4) * 2654435761u >> 16;
-            while (sample_eip[h & (SAMPLE_SLOTS - 1)] && sample_eip[h & (SAMPLE_SLOTS - 1)] != block) ++h;
-            sample_eip[h & (SAMPLE_SLOTS - 1)] = block;
-            ++sample_count[h & (SAMPLE_SLOTS - 1)];
+        if (GetThreadContext(target, &c)) {
+            u32 block = (u32)c.Eip & ~15u, hh = (block >> 4) * 2654435761u >> 16;
+            while (sample_eip[hh & (SAMPLE_SLOTS - 1)] && sample_eip[hh & (SAMPLE_SLOTS - 1)] != block) ++hh;
+            sample_eip[hh & (SAMPLE_SLOTS - 1)] = block;
+            ++sample_count[hh & (SAMPLE_SLOTS - 1)];
         }
-        ResumeThread(sample_thread);
+        ResumeThread(target);
+        if (h) CloseHandle(h);
     }
     return 0;
 }
@@ -439,6 +444,16 @@ static void sample_dump(void)
 static void sample_start(void) {}
 static void sample_dump(void) {}
 #endif
+
+static int api_unlock_ok(ApiEnt *e)
+{
+    if (e->module && !strcmp(e->module, "com")) {
+        if (!strcmp(e->name, "IDirect3DDevice8#17")) return 1;
+        if (!strcmp(e->name, "IDirect3D8#15")) return 1;
+        return 0;
+    }
+    return 1;
+}
 
 void api_dispatch(u32 sentinel)
 {
@@ -582,6 +597,13 @@ void api_dispatch(u32 sentinel)
     if (e->module && !strcmp(e->module, "user32") && !strcmp(e->name, "CreateWindowExA") &&
         (a[3] & WS_CAPTION) && !(a[3] & WS_CHILD))
         a[3] |= WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME;
+    if (e->module && !strcmp(e->module, "kernel32") && !strcmp(e->name, "Sleep") && a[0] == 0) a[0] = 1;
+    if (e->module && !strcmp(e->module, "com") && !strcmp(e->name, "IDirect3D8#15")) {
+        u32 pp = a[4];
+        if (pp > 0x10000 && rt_readable(pp, 52)) {
+            fprintf(stderr, "[d3d] backbuffer %ux%u fmt %u windowed %u ms %u\n", R32(pp), R32(pp + 4), R32(pp + 8), R32(pp + 28), R32(pp + 16));
+        }
+    }
 #if defined(_WIN32)
     if (special) {
         r = api_special(special, e, a);
@@ -611,7 +633,8 @@ void api_dispatch(u32 sentinel)
         cpu_save(&keep);
         ts->saved_esp = r_esp;
         ts->in_api++;
-        gil_leave();
+        int unlock = api_unlock_ok(e);
+        if (unlock) gil_leave();
         u32 ecx = e->thiscall_ ? com_real_this(this_val) : keep.ecx;
         void *fp0 = __builtin_frame_address(0);
         if (e->thiscall_ && extra_args) {
@@ -626,7 +649,7 @@ void api_dispatch(u32 sentinel)
         }
         if (__builtin_frame_address(0) != fp0)
             fprintf(stderr, "[stack] frame moved across %s!%s n=%d\n", e->module, e->name, n);
-        gil_enter();
+        if (unlock) gil_enter();
         ts->in_api--;
         cpu_load(&keep);
     }
