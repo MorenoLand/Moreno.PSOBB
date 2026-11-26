@@ -29,21 +29,35 @@ public static class Scene2TitlePreview
 		using DataFileRegistry files = new(host.FileSystem, DataArchiveSource.Gsl("data/data.gsl"));
 		using Scene2TitleArt art = new(files, host.Renderer);
 		using LoginDialog? dialog = CreateDialog(files, textSurface, locale);
+		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
 		long previous = host.Clock.Timestamp;
 		int frame = 0;
+		int selection = dialog?.Menu.SelectedIndex ?? -1;
+		LoginDialogAction? previousAction = null;
+		bool wasClosed = false;
 		while (pump())
 		{
 			long now = host.Clock.Timestamp;
 			TimeSpan elapsed = TimeSpan.FromSeconds((double)(now - previous) / frequency);
 			previous = now;
 			input.Update(elapsed);
+			audio?.Pump();
 			LoginDialogAction? action = null;
 			if (dialog is not null)
 			{
 				dialog.Update(input);
 				action = dialog.RequestedAction;
+				if (dialog.Menu.SelectedIndex != selection)
+					audio?.Play(TitleAudio.SelectionSound);
+				if (action != previousAction)
+					audio?.Play(TitleAudio.ConfirmSound);
+				else if (dialog.IsClosed && !wasClosed)
+					audio?.Play(TitleAudio.CancelSound);
+				selection = dialog.Menu.SelectedIndex;
+				previousAction = action;
+				wasClosed = dialog.IsClosed;
 			}
 			if (action == LoginDialogAction.ExitGame)
 				return;
