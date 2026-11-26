@@ -12,5 +12,6 @@
 	<Project Path="PsoBB.Rendering.OpenGL.Tests/PsoBB.Rendering.OpenGL.Tests.csproj" />
 	<Project Path="PsoBB.Rendering.WebGL/PsoBB.Rendering.WebGL.csproj" />
 	<Project Path="PsoBB.Tests/PsoBB.Tests.csproj" />
+	<Project Path="PsoBB.Web/PsoBB.Web.csproj" />
 	<Project Path="PsoBB.Windows/PsoBB.Windows.csproj" />
 </Solution>
