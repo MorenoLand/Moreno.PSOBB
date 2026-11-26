@@ -88,7 +88,7 @@ public sealed class TextLayout
 			if (value == ' ')
 			{
 				x += advance;
-				if (wrap && !metrics.NextWordFits(span, index + 1, (int)x, (int)settings.MaxWidth))
+				if (wrap && settings.BreakAtWords && !metrics.NextWordFits(span, index + 1, (int)x, (int)settings.MaxWidth))
 				{
 					EndLine(index + 1);
 					index++;
