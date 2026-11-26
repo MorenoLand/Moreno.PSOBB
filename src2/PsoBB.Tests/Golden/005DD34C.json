@@ -1,0 +1,22 @@
+[
+	{
+		"initial": 0,
+		"result": 0
+	},
+	{
+		"initial": 1,
+		"result": 1
+	},
+	{
+		"initial": 2,
+		"result": 0
+	},
+	{
+		"initial": 3,
+		"result": 1
+	},
+	{
+		"initial": 4294967295,
+		"result": 4294967293
+	}
+]

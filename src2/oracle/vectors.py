@@ -167,6 +167,24 @@ def validate_index_vectors(read):
     write("0068C45C.json", vectors)
 
 
+def clear_second_bit_vectors(read):
+    """0x005DD34C: clears bit 1 of the 32-bit field at offset 0x64 of the pointed object."""
+    target = 0x30004000
+    vectors = []
+    for initial in (0, 1, 2, 3, 0xFFFFFFFF):
+        _, _, captured = run(
+            read,
+            0x005DD34C,
+            18,
+            stack=[target],
+            memory=[(target, bytes(0x64) + struct.pack("<I", initial))],
+            capture=[(target + 0x64, 4)],
+        )
+        after = struct.unpack("<I", captured[target + 0x64])[0]
+        vectors.append({"initial": initial, "result": after})
+    write("005DD34C.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -176,6 +194,7 @@ def main():
     clear_pair_vectors(read)
     set_low_bit_vectors(read)
     validate_index_vectors(read)
+    clear_second_bit_vectors(read)
 
 
 if __name__ == "__main__":
