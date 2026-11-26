@@ -1,0 +1,72 @@
+[
+	{
+		"value": 1,
+		"total": 3,
+		"result": 33
+	},
+	{
+		"value": 2,
+		"total": 3,
+		"result": 66
+	},
+	{
+		"value": 0,
+		"total": 3,
+		"result": 0
+	},
+	{
+		"value": 1,
+		"total": 200,
+		"result": 0
+	},
+	{
+		"value": 3,
+		"total": 200,
+		"result": 1
+	},
+	{
+		"value": 1,
+		"total": 8,
+		"result": 12
+	},
+	{
+		"value": 5,
+		"total": 7,
+		"result": 71
+	},
+	{
+		"value": 100,
+		"total": 1000,
+		"result": 10
+	},
+	{
+		"value": 1,
+		"total": 1000,
+		"result": 0
+	},
+	{
+		"value": 1,
+		"total": 2,
+		"result": 50
+	},
+	{
+		"value": 1,
+		"total": 4,
+		"result": 25
+	},
+	{
+		"value": 1,
+		"total": 6,
+		"result": 16
+	},
+	{
+		"value": 7,
+		"total": 9,
+		"result": 77
+	},
+	{
+		"value": 99,
+		"total": 100,
+		"result": 99
+	}
+]
