@@ -13,6 +13,7 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	private readonly List<(int Stage, ITexture? Texture)> _textures = [];
 	private readonly List<byte[]> _drawVertices = [];
 	private readonly List<TextureUpload> _textureUploads = [];
+	private int _createdTextureCount;
 	private int _disposeCount;
 	private int _disposedTextureCount;
 
@@ -45,6 +46,9 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 
 	/// <summary>Gets the number of times the renderer was disposed.</summary>
 	public int DisposeCount => _disposeCount;
+
+	/// <summary>Gets the number of textures the renderer created.</summary>
+	public int CreatedTextureCount => _createdTextureCount;
 
 	/// <summary>Gets a value indicating whether the renderer was disposed.</summary>
 	public bool IsDisposed => _disposeCount != 0;
@@ -114,6 +118,7 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride)
 	{
 		RecordingTexture texture = new(this, width, height, stride, pixels.ToArray());
+		_createdTextureCount++;
 		_textureUploads.Add(new TextureUpload(texture));
 		return texture;
 	}
