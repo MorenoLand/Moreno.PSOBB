@@ -167,6 +167,56 @@ def validate_index_vectors(read):
     write("0068C45C.json", vectors)
 
 
+def prs_vectors(read):
+    """0x00788154: decompresses synthetic streams and records the complete output buffer."""
+    source_address = 0x30010000
+    destination_address = 0x30020000
+    cases = [
+        ("empty", bytes.fromhex("020000"), b""),
+        ("literals", bytes.fromhex("5f") + b"Hello" + bytes.fromhex("0000"), b"Hello"),
+        ("eight literals", bytes.fromhex("ff") + b"PsoBBPRS" + bytes.fromhex("020000"), b"PsoBBPRS"),
+        ("long reference", bytes.fromhex("af") + b"ABCD" + bytes.fromhex("e2ff0000"), b"ABCDABCD"),
+        ("compact run", bytes.fromhex("59") + b"A" + bytes.fromhex("ff0000"), b"AAAAAA"),
+        ("extended length", bytes.fromhex("15") + b"Z" + bytes.fromhex("f8ff09") + bytes.fromhex("0000"), b"Z" * 11),
+        ("long copy", bytes.fromhex("af") + b"ABCD" + bytes.fromhex("e0ff0b0000"), b"ABCD" * 4),
+        ("wide copy", bytes.fromhex("ff") + b"ABCDEFGH" + bytes.fromhex("0a") + bytes.fromhex("c0ff0b0000"),
+         b"ABCDEFGHABCDEFGHABCD"),
+        (
+            "compact distance 256",
+            b"".join(bytes([0xFF]) + bytes(range(index, index + 8)) for index in range(0, 256, 8)) + bytes.fromhex("20000000"),
+            bytes(range(256)) + b"\x00\x01",
+        ),
+    ]
+    vectors = []
+    for name, source, expected in cases:
+        destination_size = max(len(expected) + 16, 32)
+        written, _, captured = run(
+            read,
+            0x00788154,
+            358,
+            stack=[source_address, destination_address],
+            memory=[(source_address, source), (destination_address, b"\xcc" * destination_size)],
+            capture=[(destination_address, destination_size)],
+        )
+        destination = captured[destination_address]
+        if written != len(expected):
+            raise ValueError(f"{name}: original wrote {written} bytes, expected {len(expected)}")
+        if destination[:written] != expected:
+            raise ValueError(f"{name}: original produced {destination[:written].hex()}, expected {expected.hex()}")
+        if destination[written:] != b"\xcc" * (destination_size - written):
+            raise ValueError(f"{name}: original wrote past the reported output length")
+        vectors.append(
+            {
+                "name": name,
+                "source": source.hex(),
+                "destination_size": destination_size,
+                "written": written,
+                "output": destination[:written].hex(),
+            }
+        )
+    write("00788154.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -176,6 +226,7 @@ def main():
     clear_pair_vectors(read)
     set_low_bit_vectors(read)
     validate_index_vectors(read)
+    prs_vectors(read)
 
 
 if __name__ == "__main__":
