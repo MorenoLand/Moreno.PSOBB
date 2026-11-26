@@ -146,6 +146,40 @@ The decoded payloads are particle sprites: `0xAB02C` is a blue glow orb and `0xA
 smoke/star sheet. Neither contains the Login or row text. The labels are drawn by the account dialog's
 text list, and the title effect records supply the title artwork's particle sprites.
 
+## C# title-art surface
+
+`PsoBB.Scenes.Scene2TitleArt` exposes the proven part of `0x006F475C`:
+
+- `DrawOpaqueStrips` (`[Original(0x00415AB0)]`) adds the eight `s256_1st_title` strips with frame base
+  13, colour `0xFFFFFFFF`, depth `1 + 1 / -150` and alpha blending disabled.
+- `DrawAlphaStrips` (`[Original(0x00415BCC)]`) adds the eight `f256_titlealpha` strips with frame base
+  3, colour `0xFFFFFFFF`, depth `1 + 1 / -130` and alpha blending enabled.
+- The strip table is the eight-entry, 20-byte-per-entry table at `0x009A3840`: positions
+  `(512,384)`, `(512,256)`, `(512,128)`, `(512,0)`, `(0,256)`, `(0,0)`, `(256,256)`, `(256,0)` with
+  128x128 or 256x256 sizes and frame offsets `7, 6, 5, 4, 1, 0, 3, 2`.
+- The twenty-one textures are loaded from `title_eng.prs` or `title.prs`. The records and payloads from
+  `particleentry.dat`/`effect_nt.xvm` are loaded and exposed but are not referenced by either strip
+  pass.
+- `TitleArtDrawList` submits the strip quads with the original `0x144` vertex format, z values, texture
+  binds, alpha-blend enable state and texture-stage states 4, 13 and 14 used by `0x0082BB30`.
+
+`Scene2TitleArtTests` covers the twenty-one-texture load, the three record names and fields, the two
+effect payloads, both eight-strip passes and the sixteen-quad render submission.
+
+The rest of `0x006F475C` remains unported: the full-screen flash at frame 150–170, the rotating emblem
+and ring quads, and the 24-quad ring loop. The ring code reads `dword_A96924`, `0x28`, `0x2C` and
+`0x30`, which have no writer in the lift and are zero in the image, and it uses the global-vertex
+`0x0082BB74`/`0x0082B440` paths. Reproducing those without the runtime values would be a guess, so they
+are recorded as missing rather than reconstructed.
+
+Composing the twenty-one textures from the local `data.gsl` `title_eng.prs`/`title.prs` with this table
+produces the Episode I&II title (the captured copyright line reads 2000, 2003), not the Blue Burst
+title in `t07` (copyright 2000, 2004). `title2_eng.xvm` is the `f256_ad` press-start/menu atlas and
+`f256_ad_pic_2.prs` is the grid background; neither contains the Blue Burst logo. The Blue Burst title
+set is selected through the unresolved `aTitleep4` name in `0x006FB914` and is not present under the
+two title archives. The strip path is therefore ported exactly as the machine code selects it, but the
+Blue Burst logo source is a missing reference and the captured screen is not claimed as reproduced.
+
 ## Scene 1 screen 9 is not the login screen
 
 The scene-1 renderer container at `0x004D3408` allocates thirteen screen objects from the table at
@@ -186,17 +220,21 @@ by `0x00762224`. `0x00792FE8(list, index)` indexes the table; `0x00793304` selec
 - The title screen composition, camera, animated logo/ring, GUI skin, panel, glyph rendering and
   account-edit dialog are unported.
 - No layout or menu entries are reconstructed from the reference images.
-- Only `0x00824860` is a complete port. The selector object, `0x007617E8`, `0x00761C48`, the list
-  widget and the text renderer are documented but not ported.
+- Complete ports are `0x00824860`, `0x00415AB0` and `0x00415BCC`. The selector object, `0x007617E8`,
+  `0x00761C48`, the list widget, the text renderer and the rest of `0x006F475C` are documented but not
+  ported.
 - The text IDs and row binding are no longer missing. What remains unported is the GUI/font rendering
-  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`) and the title effect loader
+  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`), the title flash/ring path, and the effect loader
   (`0x0050A0EC`/`0x0050DAE0`), which depend on the file, texture and interface systems absent from the
   branch.
 
 ## Verification
 
-`Scene2Tests` covers the saved previous state, selected state 9, fade 1 and the scene table row. It
-does not test labels, assets, layout or transitions that the machine code does not establish. The
-oracle captures were used only to confirm that the account dialog and the observed menu are the same
-screen; the labels, IDs, record names and texture slots above come from the shipped binaries and the
-lift.
+`Scene2Tests` covers the saved previous state, selected state 9, fade 1 and the scene table row.
+`Scene2TitleArtTests` covers the twenty-one title textures, records 483–485, effect texture mapping,
+both strip passes and the sixteen-quad render submission. The full suite passes with 2105 tests and 6
+skips. It does not test labels, assets, layout or transitions that the machine code does not establish.
+The oracle captures were used only to confirm that the account dialog and the observed menu are the
+same screen; the labels, IDs, record names and texture slots above come from the shipped binaries and
+the lift. The Episode I&II/Blue Burst title difference above is a verification result, not a layout
+source.
