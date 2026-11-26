@@ -17,6 +17,8 @@ public enum OnlineSceneState
 	CharacterSelected,
 	/// <summary>The server named the next connection target and the merged flow stopped.</summary>
 	Redirected,
+	/// <summary>The redirected game server accepted the login and sent a game or lobby list.</summary>
+	GameServer,
 	/// <summary>The connection, login or character exchange failed.</summary>
 	Failed,
 	/// <summary>The scene requested the exit scene.</summary>

@@ -11,6 +11,7 @@ namespace PsoBB.Net;
 public sealed class LoginFlow
 {
 	private readonly GameSession _session;
+	private readonly Queue<Packet> _unhandledPackets = new();
 	private ClientLoginPacket? _loginRequest;
 	private int? _requestedCharacterIndex;
 
@@ -63,6 +64,25 @@ public sealed class LoginFlow
 	/// <summary>Gets the redirect target from command 0x19, or <see langword="null"/> before it arrives.</summary>
 	public ReconnectPacket? Redirect { get; private set; }
 
+	/// <summary>Gets or sets whether commands this flow does not handle are queued for the caller.</summary>
+	public bool ForwardUnhandledPackets { get; set; }
+
+	/// <summary>
+	/// Removes the oldest packet this flow did not handle.
+	/// </summary>
+	/// <param name="packet">The packet, or <see langword="null"/> when none is queued.</param>
+	/// <returns><see langword="true"/> when a packet was returned.</returns>
+	public bool TryReadUnhandledPacket(out Packet? packet)
+	{
+		if (_unhandledPackets.Count == 0)
+		{
+			packet = null;
+			return false;
+		}
+		packet = _unhandledPackets.Dequeue();
+		return true;
+	}
+
 	/// <summary>
 	/// Opens the transport and arms the login request to be sent after the server welcome.
 	/// </summary>
@@ -80,6 +100,29 @@ public sealed class LoginFlow
 		_loginRequest = loginRequest;
 		if (!_session.Connect(host, port))
 			return Fail(_session.FailureReason ?? $"The connection to {host}:{port} failed.");
+		State = LoginFlowState.AwaitingWelcome;
+		return true;
+	}
+
+	/// <summary>
+	/// Closes the login connection and opens the target named by command 0x19, keeping the original login packet for the next welcome.
+	/// </summary>
+	/// <returns><see langword="true"/> when the redirected transport opened.</returns>
+	/// <exception cref="InvalidOperationException">The flow is not at a redirect or has no stored login packet.</exception>
+	[Original(0x007C87E8, "LoginFlow_ReconnectToRedirect_007c87e8")]
+	public bool ReconnectToRedirect()
+	{
+		if (State != LoginFlowState.Redirected)
+			throw new InvalidOperationException($"The login flow is {State}, not redirected.");
+		ReconnectPacket target = Redirect ?? throw new InvalidOperationException("The login flow has no redirect target.");
+		ClientLoginPacket loginRequest = _loginRequest ?? throw new InvalidOperationException("The login flow has no stored login packet.");
+		_session.Disconnect();
+		ResetFlow();
+		_loginRequest = loginRequest;
+		Redirect = target;
+		string host = target.Host;
+		if (!_session.Connect(host, target.Port))
+			return Fail(_session.FailureReason ?? $"The connection to {host}:{target.Port} failed.");
 		State = LoginFlowState.AwaitingWelcome;
 		return true;
 	}
@@ -128,6 +171,7 @@ public sealed class LoginFlow
 	{
 		if (_session.State != GameSessionState.Disconnected)
 			_session.Disconnect();
+		_unhandledPackets.Clear();
 		if (State != LoginFlowState.Failed)
 		{
 			State = LoginFlowState.Disconnected;
@@ -172,6 +216,8 @@ public sealed class LoginFlow
 			return HandlePlayerChoice(packet);
 		if (packet.IsCommand(PacketCommand.Reconnect))
 			return HandleReconnect(packet);
+		if (ForwardUnhandledPackets)
+			_unhandledPackets.Enqueue(packet);
 		return true;
 	}
 
@@ -291,7 +337,7 @@ public sealed class LoginFlow
 	[Original(0x0046819C)]
 	private bool HandleReconnect(Packet packet)
 	{
-		if (State is not (LoginFlowState.AwaitingSystemFile or LoginFlowState.CharacterSelect or LoginFlowState.CharacterSelected))
+		if (State is not (LoginFlowState.Authenticating or LoginFlowState.AwaitingSystemFile or LoginFlowState.CharacterSelect or LoginFlowState.CharacterSelected))
 			return FailUnexpected("a redirect");
 		ReconnectPacket redirect;
 		try
@@ -346,5 +392,6 @@ public sealed class LoginFlow
 		Redirect = null;
 		_loginRequest = null;
 		_requestedCharacterIndex = null;
+		_unhandledPackets.Clear();
 	}
 }
