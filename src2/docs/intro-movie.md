@@ -9,9 +9,14 @@ path and are not decoded by the client's code.
 
 | Address | Work |
 |---|---|
-| `0x007A45D0` | Creates the title screen, loads the title, select-game and logo resources, creates `0x004D3408` and `0x007195C8` |
-| `0x007A4418` | Draws the start screen, handles the two-step confirmation and requests scene 2 |
+| `0x007A45D0` | Creates the shared screen container, selects its screen 9, loads the logo resource group, creates `0x004D3408` and `0x007195C8` |
+| `0x007A4418` | Draws the logo stage, handles the two input checks and requests scene 2 |
 | `0x007A44D0` | Releases the title resources |
+
+Scene 1 is the publisher-logo stage, not the title menu. Its screen 9 is `0x004D5A14`, and
+`0x00411FB8` selects the eight-sprite `logo` descriptor by default. See
+[Scene 1: the publisher-logo screen](scene-1-title.md) for the screen, resource, rectangle, timing
+and boundary evidence.
 
 `0x004D3408` is the thirteen-screen container used by both the title and menu scenes; the existing
 `PsoBB.Scenes.CharacterPreview` port already records its table at `0x009ACB70`. `0x004D31F4`
