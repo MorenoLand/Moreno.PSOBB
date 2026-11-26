@@ -8,7 +8,7 @@ namespace PsoBB.Net;
 /// Tracks the lobby and game player slots from the commands the game server sends after the login redirect.
 /// </summary>
 /// <remarks>
-/// The world accepts the 0x64 game join, 0x65 add-player-to-game, 0x66 remove-player-from-game, 0x67 join-lobby, 0x68 add-player-to-lobby and 0x69 remove-player-from-lobby commands, and the 0x60/0x62/0x6C/0x6D subcommand payloads that carry player movement and joiner sync. It stores only the fields the original handlers read from those records; appearance, inventory, animation clips, menu objects, outgoing joiner-sync packets and the scene renderer stay with their own subsystems, subcommands without a handler in this table are ignored, and game-join records with an empty name field are not registered as entities. Movement packets update the entity record, and a stop packet also updates the attached local <see cref="PlayerCharacter"/> position and heading without running the local input or physics step; the action-permission bytes are the shipped image defaults rather than per-map replacement data.
+/// The world accepts the 0x64 game join, 0x65 add-player-to-game, 0x66 remove-player-from-game, 0x67 join-lobby, 0x68 add-player-to-lobby and 0x69 remove-player-from-lobby commands, the 0x60/0x62/0x6C/0x6D subcommand payloads that carry player movement and joiner sync, and the 0x81/0x83 mail and lobby-menu replies. It stores only the fields the original handlers read from those records; appearance, inventory, animation clips, menu objects, outgoing joiner-sync packets and the scene renderer stay with their own subsystems, subcommands without a handler in this table are ignored, and game-join records with an empty name field are not registered as entities. Movement packets update the entity record, and a stop packet also updates the attached local <see cref="PlayerCharacter"/> position and heading without running the local input or physics step; the action-permission bytes are the shipped image defaults rather than per-map replacement data. The 0x81 and 0x83 replies fill <see cref="SimpleMails"/> and <see cref="LobbyMenu"/> without changing <see cref="State"/>.
 /// </remarks>
 public sealed class LobbyWorld
 {
@@ -33,7 +33,11 @@ public sealed class LobbyWorld
 	/// <summary>The number of bytes in the map action-permission table recovered from the shipped data image.</summary>
 	public const int MapActionPermissionCount = 0x30;
 
+	/// <summary>The number of mail entries the original list at 0x00AB0300 holds.</summary>
+	public const int SimpleMailCapacity = 50;
+
 	private readonly GameSession? _session;
+	private readonly List<SimpleMailPacket> _simpleMails = [];
 
 	private delegate void SubcommandHandler(LobbyWorld world, ReadOnlySpan<byte> record);
 
@@ -73,6 +77,12 @@ public sealed class LobbyWorld
 
 	/// <summary>Gets the four game-join variation records, or empty bytes before a game join.</summary>
 	public ReadOnlyMemory<byte> Variations { get; private set; }
+
+	/// <summary>Gets the last command 0x83 lobby-menu reply, or <see langword="null"/> before one arrives.</summary>
+	public LobbyMenuPacket? LobbyMenu { get; private set; }
+
+	/// <summary>Gets the command 0x81 mail entries in arrival order, keeping at most <see cref="SimpleMailCapacity"/>; a mail whose text exceeds <see cref="SimpleMailPacket.ListTextLengthLimit"/> is still exposed here even though the original list callback skips it.</summary>
+	public IReadOnlyList<SimpleMailPacket> SimpleMails => _simpleMails;
 
 	/// <summary>Gets the disable-UDP byte from the last join or leave command.</summary>
 	public byte? DisableUdp { get; private set; }
@@ -163,6 +173,16 @@ public sealed class LobbyWorld
 	public bool HandlePacket(Packet packet)
 	{
 		ArgumentNullException.ThrowIfNull(packet);
+		if (packet.IsCommand(PacketCommand.SimpleMail))
+		{
+			ApplySimpleMail(packet.Payload.Span);
+			return true;
+		}
+		if (packet.IsCommand(PacketCommand.LobbyMenu))
+		{
+			LobbyMenu = LobbyMenuPacket.Read(packet.Payload.Span, packet.Header.Flags);
+			return true;
+		}
 		if (packet.IsCommand(PacketCommand.GameJoin))
 		{
 			ApplyGameJoin(packet.Payload.Span);
@@ -242,6 +262,8 @@ public sealed class LobbyWorld
 		LocalPlayerIndex = null;
 		LeaderId = null;
 		Variations = ReadOnlyMemory<byte>.Empty;
+		LobbyMenu = null;
+		_simpleMails.Clear();
 		DisableUdp = null;
 		Difficulty = null;
 		BattleMode = null;
@@ -509,6 +531,14 @@ public sealed class LobbyWorld
 			return false;
 		_session.Send(Packet.Create(PacketCommand.Broadcast, 0, record));
 		return true;
+	}
+
+	private void ApplySimpleMail(ReadOnlySpan<byte> body)
+	{
+		SimpleMailPacket mail = SimpleMailPacket.Read(body);
+		if (_simpleMails.Count == SimpleMailCapacity)
+			_simpleMails.RemoveAt(0);
+		_simpleMails.Add(mail);
 	}
 
 	private bool IsActionAllowed(ushort permission)

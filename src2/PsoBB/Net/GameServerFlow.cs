@@ -4,7 +4,7 @@ namespace PsoBB.Net;
 /// Opens the connection named by the login redirect and feeds its game and lobby replies into <see cref="LobbyWorld"/>.
 /// </summary>
 /// <remarks>
-/// Command 0x19 stores the IPv4 address and port, closes the login connection and reopens the same session at the new target. The next command 0x03 welcome is validated by <see cref="GameSession"/> and the login flow sends the stored 0x93 packet, exactly as the login connection did. The game and lobby snapshots that follow are handled by <see cref="LobbyWorld"/>; a command outside that set stops the flow with an explicit diagnostic instead of being ignored.
+/// Command 0x19 stores the IPv4 address and port, closes the login connection and reopens the same session at the new target. The next command 0x03 welcome is validated by <see cref="GameSession"/> and the login flow sends the stored 0x93 packet, exactly as the login connection did. The game and lobby snapshots that follow are handled by <see cref="LobbyWorld"/>, including the 0x81 mail and 0x83 lobby-menu replies; a command outside that set stops the flow with an explicit diagnostic instead of being ignored.
 /// </remarks>
 public sealed class GameServerFlow
 {
@@ -140,8 +140,6 @@ public sealed class GameServerFlow
 		_diagnostic = packet.Header.Opcode switch
 		{
 			0x1A => "Command 0x1A is a payload copy with no record codec in the lift.",
-			0x81 => "Command 0x81 is a payload copy with no record codec in the lift.",
-			0x83 => "Command 0x83 is a payload copy with no record codec in the lift.",
 			_ => $"Command 0x{packet.Header.Opcode:X2} is not a supported game-server packet.",
 		};
 		CloseSession();

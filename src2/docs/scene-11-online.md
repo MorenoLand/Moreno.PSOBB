@@ -59,9 +59,11 @@ selected login endpoint when `SceneNetworkOptions` carries a host table; see `sc
 - The shared lobby and game update `0x007BCBF0`/`0x007BD2F0`, its page flags, the 3D rings at
   `0x007BC4E8`/`0x007BC508`, the frame timer `0x007BD288`, the network manager at `0x00797908`
   and the scene-2 hand-off are not ported. The redirected game-server phase stops at the first
-  command outside the 0x64/0x67 families: commands 0x1A, 0x81 and 0x83 only copy fixed-size list
-  payloads at `0x007C8854`, `0x007C8DC4` and `0x007C89EC`, and no record codec for those lists is
-  present in the lift.
+  command outside the 0x64/0x67, 0x81/0x83 and subcommand set: command 0x1A only copies its
+  fixed-size payload at `0x007C8854` and has no record codec in the lift. The 0x81 handler at
+  `0x007C8DC4` forwards a simple-mail entry to the callback at `0x0081384C`, and the 0x83 handler at
+  `0x007C89EC` stores a header-counted lobby-menu list at `this+0x13CB8`; `SimpleMailPacket` and
+  `LobbyMenuPacket` decode those records into `LobbyWorld.SimpleMails` and `LobbyWorld.LobbyMenu`.
 - The progress-window state bit that gates the two panels in `0x00407FB0` and `0x0040808C` is not
   reproduced; the port draws them while the scene is loading or connecting.
 - The 23-entry initialiser table, the allocator, the download transport and the message-table
@@ -73,5 +75,6 @@ selected login endpoint when `SceneNetworkOptions` carries a host table; see `sc
 surfaces. It covers scene parameter and root, all loading results, cancel input, the two panel
 quads and their renderer submission, the neutral fallback, a missing surface, merged-flow states,
 the 0xE3/0xE4 character exchange, the 0x19 redirect, the redirected connection and second login,
-the 0x64 and 0x67 lists, an unsupported list command, cancel and release after the redirect, a
-rejected login and idempotent release.
+the 0x64 and 0x67 lists, cancel and release after the redirect, a rejected login and idempotent
+release. `GameServerFlowTests` and the packet codec tests cover the 0x81 mail and 0x83 lobby-menu
+lists and the unsupported 0x1A command.
