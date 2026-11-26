@@ -9,7 +9,7 @@ AFS is Sega's generic section archive. The client uses it for item texture and m
 | Offset | Type | Meaning |
 | --- | --- | --- |
 | 0x00 | u32 | Section count |
-| 0x04 | u32 | Reserved; the loader reads it as part of the header and ignores it |
+| 0x04 | u32 | Reserved; the section table begins at 0x08 and the loader never reads this word |
 | 0x08 | section[count] | Section table |
 
 Each section record is two little-endian u32 values: a byte offset from the archive start and a byte size. Sections have no names. Data begins after the table and may be padded to 2048-byte sectors.
@@ -33,3 +33,5 @@ Every entry is `0x30` bytes. The directory ends at the first entry whose first n
 Name lookup is `InitializeAssetLoadContext_005BB224`. It lowercases only the requested name and compares the result with the stored name ordinally, so directory names are expected to be lowercase. Extraction is `TGStream::gsSctLoadFile` at `0x005BB53C`: it reads the stored sectors and, when the decompressed size is nonzero, runs the result through `PrsDecompressor` at `0x00788154`.
 
 The portable reader validates the stored range, wraps decompressor failures, and requires the stream to produce exactly the declared decompressed size. Those checks are deliberate differences from the original's sector reads; see `known-differences.md`.
+
+The `[Original]` address on an extraction or lookup member refers to the larger loader function that performed the same directory and data selection around its host file calls. The members reproduce that archive-facing behaviour over a complete in-memory buffer, not the original asynchronous read loop.
