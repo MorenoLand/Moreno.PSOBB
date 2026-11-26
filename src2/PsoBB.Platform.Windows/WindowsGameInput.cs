@@ -4,10 +4,10 @@ using System.Runtime.InteropServices;
 namespace PsoBB.Platform.Windows;
 
 /// <summary>
-/// Polls the Windows keyboard and pointer and converts them to the client's scan-code and button state.
+/// Polls the Windows keyboard, pointer and gamepad and converts them to the client's state.
 /// </summary>
 /// <remarks>
-/// The instance subclasses the supplied window to collect wheel movement, so it must be created, polled and disposed on the thread that owns the window; keyboard and pointer position are read with the asynchronous Win32 state calls.
+/// The instance subclasses the supplied window to collect wheel movement, so it must be created, polled and disposed on the thread that owns the window. DirectInput supplies the devices when it is available; the asynchronous Win32 state calls remain the fallback, and focus loss releases every device and clears its state.
 /// </remarks>
 public sealed class WindowsGameInput : IGameInput, IDisposable
 {
@@ -26,7 +26,9 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 	private readonly WindowMessageHandler _windowProcedure;
 	private readonly nint _previousWindowProcedure;
 	private readonly object _gate = new();
+	private readonly DirectInputDeviceSet? _directInput;
 	private MouseState _mouse = MouseState.Empty;
+	private GamepadState _gamepad = GamepadState.Empty;
 	private int _wheelDelta;
 	private int _previousX;
 	private int _previousY;
@@ -59,6 +61,10 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 			if (error != 0)
 				throw new Win32Exception(error, "The window procedure could not be subclassed.");
 		}
+		_directInput = DirectInputDeviceSet.TryCreate(windowHandle, out _);
+		_focused = IsForeground();
+		if (_focused)
+			_directInput?.Acquire();
 	}
 
 	/// <inheritdoc/>
@@ -68,26 +74,36 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 	public MouseState Mouse => _mouse;
 
 	/// <inheritdoc/>
+	public GamepadState Gamepad => _gamepad;
+
+	/// <inheritdoc/>
+	public bool IsFocused => _focused;
+
+	/// <inheritdoc/>
 	public void Poll()
 	{
 		ThrowIfDisposed();
 		bool foreground = IsForeground();
+		if (foreground != _focused)
+		{
+			_focused = foreground;
+			if (foreground)
+				_directInput?.Acquire();
+			else
+				_directInput?.Release();
+		}
 		if (foreground)
 		{
-			for (int virtualKey = 1; virtualKey < KeyboardState.KeyCount; virtualKey++)
+			if (_directInput is null || !_directInput.TryReadKeyboard(_keyboard))
 			{
-				int scanCode = _scanCodes[virtualKey];
-				if (scanCode < 0)
-					continue;
-				_keyboard.SetKey(scanCode, (NativeMethods.GetAsyncKeyState(virtualKey) & 0x8000) != 0);
+				ClearKeyboard();
+				ReadAsyncKeyboard();
 			}
 		}
-		else if (_focused)
+		else
 		{
-			for (int scanCode = 0; scanCode < KeyboardState.KeyCount; scanCode++)
-				_keyboard.SetKey(scanCode, false);
+			ClearKeyboard();
 		}
-		_focused = foreground;
 		int x = _mouse.X;
 		int y = _mouse.Y;
 		int deltaX = 0;
@@ -106,7 +122,7 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 			_previousY = y;
 			_hasPosition = true;
 		}
-		MouseButtons buttons = foreground ? ReadButtons() : MouseButtons.None;
+		MouseButtons buttons = foreground ? ReadMouseButtons() : MouseButtons.None;
 		int wheel;
 		lock (_gate)
 		{
@@ -114,6 +130,7 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 			_wheelDelta = 0;
 		}
 		_mouse = new MouseState(x, y, deltaX, deltaY, wheel, buttons);
+		_gamepad = foreground && _directInput is not null && _directInput.TryReadGamepad(out GamepadState gamepad) ? gamepad : GamepadState.Empty;
 	}
 
 	/// <inheritdoc/>
@@ -158,6 +175,7 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 		if (_disposed)
 			return;
 		_disposed = true;
+		_directInput?.Dispose();
 		if (NativeMethods.IsWindow(_window))
 			SetWindowProcedure(_window, _previousWindowProcedure);
 	}
@@ -192,7 +210,31 @@ public sealed class WindowsGameInput : IGameInput, IDisposable
 		return foreground != 0 && NativeMethods.GetAncestor(_window, GaRoot) == foreground;
 	}
 
-	private static MouseButtons ReadButtons()
+	private void ClearKeyboard()
+	{
+		for (int scanCode = 0; scanCode < KeyboardState.KeyCount; scanCode++)
+			_keyboard.SetKey(scanCode, false);
+	}
+
+	private void ReadAsyncKeyboard()
+	{
+		for (int virtualKey = 1; virtualKey < KeyboardState.KeyCount; virtualKey++)
+		{
+			int scanCode = _scanCodes[virtualKey];
+			if (scanCode < 0)
+				continue;
+			_keyboard.SetKey(scanCode, (NativeMethods.GetAsyncKeyState(virtualKey) & 0x8000) != 0);
+		}
+	}
+
+	private MouseButtons ReadMouseButtons()
+	{
+		if (_directInput is not null && _directInput.TryReadMouseButtons(out MouseButtons buttons))
+			return buttons;
+		return ReadAsyncButtons();
+	}
+
+	private static MouseButtons ReadAsyncButtons()
 	{
 		MouseButtons buttons = MouseButtons.None;
 		if ((NativeMethods.GetAsyncKeyState(VkLeftButton) & 0x8000) != 0)
