@@ -157,28 +157,41 @@ text list, and the title effect records supply the title artwork's particle spri
 - The strip table is the eight-entry, 20-byte-per-entry table at `0x009A3840`: positions
   `(512,384)`, `(512,256)`, `(512,128)`, `(512,0)`, `(0,256)`, `(0,0)`, `(256,256)`, `(256,0)` with
   128x128 or 256x256 sizes and frame offsets `7, 6, 5, 4, 1, 0, 3, 2`.
-- The twenty-one textures are loaded from `title_eng.prs` or `title.prs`. The records and payloads from
-  `particleentry.dat`/`effect_nt.xvm` are loaded and exposed but are not referenced by either strip
-  pass.
+- The texture set is selected explicitly with `Scene2TitleSet`: `Title` maps to `Title.prs`, `TitleEp4`
+  to `TitleEP4.prs` and `TitleCs` to `Title_cs.prs`. These are the three literals at `0x0096E400`,
+  `0x0096E408` and `0x0096E410`, and `0x0081A93C` appends `.prs` to each. The constructor defaults to
+  `Title`; callers pass `TitleEp4` for the Episode 4 configuration.
+- `Scene2TitleArt.SelectTitleSet(mode, episode4Configuration)` mirrors `0x006FB914`: a nonzero mode
+  keeps `Title`, otherwise the Episode 4 flag selects `TitleEp4`. `IsEpisode4Configuration` mirrors
+  `0x00708514`: mode 3, the network flag or an `Episode4` account name selects the Episode 4
+  configuration. The loader checks the literal name and the `data/`-prefixed name, so a game-root
+  registry finds `D:\Games\PSOBB\data\TitleEP4.prs` as a loose file before any GSL entry.
+- The records and payloads from `particleentry.dat`/`effect_nt.xvm` are loaded and exposed but are not
+  referenced by either strip pass.
 - `TitleArtDrawList` submits the strip quads with the original `0x144` vertex format, z values, texture
-  binds, alpha-blend enable state and texture-stage states 4, 13 and 14 used by `0x0082BB30`.
+  binds, alpha-blend enable state and texture-stage states 4, 13 and 14 used by `0x0082BB30`. The strip
+  alpha pass uses source-alpha over inverse-source-alpha; the emblem/ring overlay uses additive
+  `SourceBlend=One`, `DestinationBlend=Zero`, matching the captured overlay.
+- `DrawEmblem` reproduces the overlay after the strip passes: the 430-radius and 178-radius quads from
+  frames 11 and 12, then the three 104-radius quads from the `0x0096E168` points `(-137,-79)`,
+  `(137,-79)` and `(0,156)`. It uses the frame-derived angle `(frame << 16) / 900`, the
+  `0x007A919C(0,88,115,frame,300,150,165,180)` colour, depth values `0.008333334`, `0.008403362` and
+  `0.008474576`, and the runtime UV state below.
 
 `Scene2TitleArtTests` covers the twenty-one-texture load, the three record names and fields, the two
-effect payloads, both eight-strip passes and the sixteen-quad render submission.
+effect payloads, both eight-strip passes, the sixteen-quad render submission, the emblem angle/colour,
+the two large quads and three ring quads, and the title-set selector.
 
-The rest of `0x006F475C` remains unported: the full-screen flash at frame 150–170, the rotating emblem
-and ring quads, and the 24-quad ring loop. The ring code reads `dword_A96924`, `0x28`, `0x2C` and
-`0x30`, which have no writer in the lift and are zero in the image, and it uses the global-vertex
-`0x0082BB74`/`0x0082B440` paths. Reproducing those without the runtime values would be a guess, so they
-are recorded as missing rather than reconstructed.
+The runtime host gives `0xA96914 = 1`, `0xA96918/0x1C = 320/220`, `0xA96920 = 0`, `0xA96924/28 = 0`
+and `0xA9692C/30 = 0.35/0`. Those values are exposed through `TitleEmblemState`; the image defaults use
+them. The only unported piece of `0x006F475C` is the full-screen flash at frames 150 through 170,
+which uses the global-vertex `0x0082B440` path.
 
-Composing the twenty-one textures from the local `data.gsl` `title_eng.prs`/`title.prs` with this table
-produces the Episode I&II title (the captured copyright line reads 2000, 2003), not the Blue Burst
-title in `t07` (copyright 2000, 2004). `title2_eng.xvm` is the `f256_ad` press-start/menu atlas and
-`f256_ad_pic_2.prs` is the grid background; neither contains the Blue Burst logo. The Blue Burst title
-set is selected through the unresolved `aTitleep4` name in `0x006FB914` and is not present under the
-two title archives. The strip path is therefore ported exactly as the machine code selects it, but the
-Blue Burst logo source is a missing reference and the captured screen is not claimed as reproduced.
+Composing the mode-zero GSL `title.prs` (the default `Title` set) with frames 13 through 20 and 3
+through 10, then the overlay, produces the Blue Burst logo with the Japanese subtitle and the
+`(C) SONICTEAM / SEGA, 2000, 2004` line, matching `t07`. The loose `TitleEP4.prs` (269638 stored
+bytes, 845184 decoded bytes) is the Episode IV variant with `(C) SEGA, 2000, 2005`; it is selected only
+by the Episode 4 configuration. `t09` uses the same default background behind the separate Login list.
 
 ## Scene 1 screen 9 is not the login screen
 
@@ -220,11 +233,11 @@ by `0x00762224`. `0x00792FE8(list, index)` indexes the table; `0x00793304` selec
 - The title screen composition, camera, animated logo/ring, GUI skin, panel, glyph rendering and
   account-edit dialog are unported.
 - No layout or menu entries are reconstructed from the reference images.
-- Complete ports are `0x00824860`, `0x00415AB0` and `0x00415BCC`. The selector object, `0x007617E8`,
-  `0x00761C48`, the list widget, the text renderer and the rest of `0x006F475C` are documented but not
-  ported.
+- Complete ports are `0x00824860`, `0x00415AB0` and `0x00415BCC`; the 0x006F475C emblem/ring overlay
+  is implemented in `DrawEmblem` with the runtime constants above. The selector object, `0x007617E8`,
+  `0x00761C48`, the list widget and the text renderer are documented but not ported.
 - The text IDs and row binding are no longer missing. What remains unported is the GUI/font rendering
-  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`), the title flash/ring path, and the effect loader
+  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`), the frame 150-170 title flash, and the effect loader
   (`0x0050A0EC`/`0x0050DAE0`), which depend on the file, texture and interface systems absent from the
   branch.
 
@@ -232,9 +245,9 @@ by `0x00762224`. `0x00792FE8(list, index)` indexes the table; `0x00793304` selec
 
 `Scene2Tests` covers the saved previous state, selected state 9, fade 1 and the scene table row.
 `Scene2TitleArtTests` covers the twenty-one title textures, records 483–485, effect texture mapping,
-both strip passes and the sixteen-quad render submission. The full suite passes with 2105 tests and 6
-skips. It does not test labels, assets, layout or transitions that the machine code does not establish.
-The oracle captures were used only to confirm that the account dialog and the observed menu are the
-same screen; the labels, IDs, record names and texture slots above come from the shipped binaries and
-the lift. The Episode I&II/Blue Burst title difference above is a verification result, not a layout
-source.
+both strip passes, the sixteen-quad render submission, the emblem angle/colour and the two large plus
+three ring overlay quads. The full suite passes with 2112 tests and 6 skips. It does not test labels,
+assets, layout or transitions that the machine code does not establish. The oracle captures were used
+only to confirm that the account dialog and the observed menu are the same screen; the labels, IDs,
+record names and texture slots above come from the shipped binaries and the lift. The Blue Burst/Episode
+IV difference above is a verification result, not a layout source.

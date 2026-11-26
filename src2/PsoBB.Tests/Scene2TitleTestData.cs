@@ -16,14 +16,15 @@ internal static class Scene2TitleTestData
 	/// </summary>
 	/// <param name="includeTitle">Whether the twenty-one-texture title archive is present.</param>
 	/// <param name="includeEffects">Whether the particle-entry table and effect archive are present.</param>
+	/// <param name="looseEpisode4">Whether the loose <c>TitleEP4.prs</c> archive is present.</param>
 	/// <returns>The opened registry.</returns>
-	internal static DataFileRegistry Registry(bool includeTitle = true, bool includeEffects = true)
+	internal static DataFileRegistry Registry(bool includeTitle = true, bool includeEffects = true, bool looseEpisode4 = false)
 	{
 		MemoryFileSystem fileSystem = new();
 		fileSystem.CreateDirectory(GamePath.Parse("data"));
 		List<(string Name, byte[] Stored, int UncompressedSize)> entries = [];
 		if (includeTitle)
-			entries.Add(("title_eng.prs", TitleXvm(), 0));
+			entries.Add(("title.prs", TitleXvm(), 0));
 		if (includeEffects)
 		{
 			entries.Add(("particleentry.dat", ParticleEntryTable(), 0));
@@ -35,6 +36,12 @@ internal static class Scene2TitleTestData
 			Assert.NotNull(file);
 			file.Write(gsl);
 		}
+		if (looseEpisode4)
+		{
+			using IGameFile? file = fileSystem.Open(GamePath.Parse("data/TitleEP4.prs"), GameFileAccess.Write, GameFileMode.Create);
+			Assert.NotNull(file);
+			file.Write(TitleEp4Xvm());
+		}
 		return new DataFileRegistry(fileSystem, DataArchiveSource.Gsl("data/data.gsl"));
 	}
 
@@ -44,6 +51,18 @@ internal static class Scene2TitleTestData
 	/// <returns>The complete title archive.</returns>
 	internal static byte[] TitleXvm() => TitleTestData.Xvm(
 		(256, 256), (256, 256), (256, 256),
+		(256, 256), (256, 256), (256, 256), (256, 256),
+		(128, 128), (128, 128), (128, 128), (128, 128),
+		(512, 512), (512, 512),
+		(256, 256), (256, 256), (256, 256), (256, 256),
+		(128, 128), (128, 128), (128, 128), (128, 128));
+
+	/// <summary>
+	/// Builds a distinguishable twenty-one-texture Episode 4 title archive.
+	/// </summary>
+	/// <returns>The complete title archive.</returns>
+	internal static byte[] TitleEp4Xvm() => TitleTestData.Xvm(
+		(128, 128), (256, 256), (256, 256),
 		(256, 256), (256, 256), (256, 256), (256, 256),
 		(128, 128), (128, 128), (128, 128), (128, 128),
 		(512, 512), (512, 512),
