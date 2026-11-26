@@ -30,7 +30,7 @@ public sealed class PacSoundBank
 	/// Reads every sample named by a bank table entry.
 	/// </summary>
 	/// <param name="data">The complete bank file.</param>
-	/// <param name="sampleIds">The sound-effect identifier for each metadata entry.</param>
+	/// <param name="sampleIds">The loaded slot for each metadata entry.</param>
 	/// <param name="metadata">The fixed table entries in bank order.</param>
 	/// <returns>The parsed bank; an empty table yields an empty bank.</returns>
 	/// <exception cref="ArgumentNullException">An argument is null.</exception>

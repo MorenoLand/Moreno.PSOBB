@@ -38,20 +38,23 @@ public sealed class LoginDialog : IDisposable
 	/// <summary>The offline title-menu panel position written by the branch at <c>0x00761CD5</c>.</summary>
 	public static readonly Vector2 PanelPosition = new(210f, 300f);
 
-	/// <summary>The account panel size from the data image at <c>0x00974E08</c>.</summary>
-	public static readonly Vector2 PanelSize = new(220f, 120f);
+	/// <summary>The title-menu panel position observed in the oracle capture.</summary>
+	public static readonly Vector2 TitlePanelPosition = LoginDialogFrame.TitlePanelPosition;
+
+	/// <summary>The title-menu panel size.</summary>
+	public static readonly Vector2 PanelSize = LoginDialogFrame.TitlePanelSize;
 
 	/// <summary>The header height taken from the panel's first row.</summary>
-	public const float HeaderHeight = 20f;
+	public const float HeaderHeight = LoginDialogFrame.HeaderHeight;
 
-	/// <summary>The position of the header label inside the account panel.</summary>
-	public static readonly Vector2 HeaderPosition = PanelPosition;
+	/// <summary>The position of the header label inside the title-menu panel.</summary>
+	public static readonly Vector2 HeaderPosition = TitlePanelPosition;
 
 	/// <summary>The position of the header frame used by the scene-2 selector.</summary>
 	public static readonly Vector2 SelectorHeaderPosition = new(192f, 308f);
 
-	/// <summary>The position of the four-row list inside the account panel.</summary>
-	public static readonly Vector2 RowAreaPosition = new(PanelPosition.X, PanelPosition.Y + HeaderHeight);
+	/// <summary>The position of the four-row list inside the title-menu panel.</summary>
+	public static readonly Vector2 RowAreaPosition = new(TitlePanelPosition.X, TitlePanelPosition.Y + HeaderHeight);
 
 	/// <summary>The size of the four-row list and its disabled hint row.</summary>
 	public static readonly Vector2 RowAreaSize = new(PanelSize.X, PanelSize.Y - HeaderHeight);
@@ -111,19 +114,21 @@ public sealed class LoginDialog : IDisposable
 	/// <param name="text">The locale text surface.</param>
 	/// <param name="hintText">The hint row text; the data-image literal is used by default.</param>
 	/// <param name="textSurface">The optional text surface used to measure and draw the rows.</param>
+	/// <param name="panelPosition">The panel origin; the mode-zero position is used by default.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
-	public LoginDialog(GameText text, string hintText = DefaultHint, IUiTextSurface? textSurface = null)
+	public LoginDialog(GameText text, string hintText = DefaultHint, IUiTextSurface? textSurface = null, Vector2? panelPosition = null)
 	{
 		ArgumentNullException.ThrowIfNull(text);
+		Vector2 position = panelPosition ?? TitlePanelPosition;
 		_header = new UiLabel
 		{
-			Position = HeaderPosition,
+			Position = position,
 			Size = new Vector2(PanelSize.X, HeaderHeight),
 		};
 		_header.SetText(text.GetLoginScreenText(LoginScreenText.Login));
 		_menu = new UiListWindow
 		{
-			Position = RowAreaPosition,
+			Position = new Vector2(position.X, position.Y + HeaderHeight),
 			Size = RowAreaSize,
 			ItemHeight = RowHeight,
 			ScrollBarWidth = 0f,
@@ -134,7 +139,7 @@ public sealed class LoginDialog : IDisposable
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.ExitGame), true, ExitGameData, 0xFFFFFFFFu),
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.PatchDownload), true, PatchDownloadData, 0xFFFFFFFFu),
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.RegisterUserId), true, RegisterUserIdData, 0xFFFFFFFFu),
-			new UiListItem(hintText, false, HintData, HintColor),
+			new UiListItem(hintText, false, HintData, HintColor, centered: true),
 		]);
 		_menu.SelectedIndex = 0;
 		TextSurface = textSurface;
@@ -150,6 +155,9 @@ public sealed class LoginDialog : IDisposable
 	/// Gets or sets the scene-2 selector renderer that draws its selected-row strip at (193, 338).
 	/// </summary>
 	public Action<UiDrawList>? SelectorFrameDraw { get; set; }
+
+	/// <summary>Gets or sets the textured title-menu frame drawn behind the header and rows.</summary>
+	public LoginDialogFrame? Frame { get; set; }
 
 	/// <summary>
 	/// Substitutes the confirm key label into the data-image hint format.
@@ -178,6 +186,8 @@ public sealed class LoginDialog : IDisposable
 			_textSurface = value;
 			_header.TextSurface = value;
 			_menu.TextSurface = value;
+			_menu.TextOffset = new Vector2(10f, 0f);
+			_header.TextOffset = value is null ? default : new Vector2(MathF.Max(0f, (PanelSize.X - value.Measure(_header.Text)) * 0.5f), (HeaderHeight - BitmapFont.GlyphHeight) * 0.5f);
 		}
 	}
 
@@ -255,6 +265,7 @@ public sealed class LoginDialog : IDisposable
 		if (_closed)
 			return;
 		SelectorFrameDraw?.Invoke(drawList);
+		Frame?.Draw(drawList, _menu.SelectedIndex);
 		_header.Draw(drawList);
 		_menu.Draw(drawList);
 	}
@@ -267,6 +278,7 @@ public sealed class LoginDialog : IDisposable
 		if (_disposed)
 			return;
 		_disposed = true;
+		Frame?.Dispose();
 		_header.Dispose();
 		_menu.Dispose();
 	}

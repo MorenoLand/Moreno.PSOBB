@@ -83,9 +83,9 @@ request uses transition 1. `ClientHostTests` covers host ownership of an attache
 - Scene 2 stops when no interface factory is supplied; every other scene without a ported screen
   stops at the diagnostic boundary.
 - The download transport and its nonzero loading results are not ported; only result zero is used.
-- The ship/block list record layouts are not ported; the redirected game connection handles the
-  0x64/0x67 game and lobby lists and stops at commands 0x1A, 0x81 or 0x83 with a diagnostic. The
-  in-game scene is not ported.
+- The 0x1A list payload has no record codec; the redirected game connection handles the 0x64/0x67
+  game and lobby lists and the 0x81/0x83 mail and lobby-menu lists, and stops at command 0x1A with
+  a diagnostic. The in-game scene is not ported.
 - Scene 5 runs without music, scene 13 without the save-file state machine, and scene 10 without the
   field systems its release path normally tears down.
 - Scene arguments are consumed only through the existing `GameState` fields; no new flow uses them.

@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using PsoBB.Graphics;
 using PsoBB.Mathematics;
 using PsoBB.Rendering;
 
@@ -18,6 +19,18 @@ internal static class NinjaChunkModel
 	private const float UvScale = 1.0f / 255.0f;
 	private const int MaxVertexSlots = 1 << 20;
 	private const int VertexStride = 36;
+	private const uint MaterialColorWhite = 0xFFFFFFFF;
+	private static readonly uint[] BlendFactors =
+	[
+		RenderStateId.BlendZero,
+		RenderStateId.BlendOne,
+		RenderStateId.BlendDestinationColor,
+		RenderStateId.BlendInverseDestinationColor,
+		RenderStateId.BlendSourceAlpha,
+		RenderStateId.BlendInverseSourceAlpha,
+		RenderStateId.BlendDestinationAlpha,
+		RenderStateId.BlendInverseDestinationAlpha,
+	];
 
 	/// <summary>
 	/// Returns true when the node mesh pointer addresses an unconverted NJCM chunk model.
@@ -75,7 +88,7 @@ internal static class NinjaChunkModel
 				position += 2;
 				continue;
 			}
-			if (type == 8)
+			if (type < 0x10)
 			{
 				position += 4;
 				continue;
@@ -121,12 +134,13 @@ internal static class NinjaChunkModel
 			ComputeWorld(root, stack, worlds);
 		MeshBuilder builder = new();
 		HashSet<int> visited = [];
+		PolygonState state = new();
 		foreach (int descriptorOffset in descriptorOffsets)
 		{
 			int plist = (int)BinaryPrimitives.ReadUInt32LittleEndian(body[(descriptorOffset + 4)..]);
 			if (plist == 0)
 				continue;
-			ParsePolygonList(body, plist, slots, owners, worlds, builder, visited, 0);
+			ParsePolygonList(body, plist, slots, owners, worlds, builder, visited, 0, state);
 		}
 		if (builder.VertexBuffers.Count == 0)
 			return;
@@ -314,20 +328,16 @@ internal static class NinjaChunkModel
 	/// <param name="builder">The baked mesh builder.</param>
 	/// <param name="visited">The cached-list recursion guard.</param>
 	/// <param name="depth">The current cache recursion depth.</param>
-	private static void ParsePolygonList(ReadOnlySpan<byte> body, int plist, Slot[] slots, NinjaNode?[] owners, Dictionary<NinjaNode, Matrix4x4> worlds, MeshBuilder builder, HashSet<int> visited, int depth)
+	/// <param name="state">The material state carried between plist chunks.</param>
+	private static void ParsePolygonList(ReadOnlySpan<byte> body, int plist, Slot[] slots, NinjaNode?[] owners, Dictionary<NinjaNode, Matrix4x4> worlds, MeshBuilder builder, HashSet<int> visited, int depth, PolygonState state)
 	{
 		if (depth > 8 || !visited.Add(plist))
 			throw new ModelFormatException("The NJCM polygon list contains a cycle.", plist);
-		int textureIndex = -1;
-		uint blendSource = 1;
-		uint blendDestination = 0;
-		uint addressU = 1;
-		uint addressV = 1;
 		Dictionary<int, int> cached = [];
 		int position = plist;
 		while (true)
 		{
-			if (position < 0 || body.Length - position < 4)
+			if (position < 0 || body.Length - position < 2)
 				throw new ModelFormatException("The NJCM polygon chunk header is truncated.", position);
 			ushort head = BinaryPrimitives.ReadUInt16LittleEndian(body[position..]);
 			byte type = (byte)head;
@@ -335,16 +345,25 @@ internal static class NinjaChunkModel
 				break;
 			if (type < 8)
 			{
-				if (type == 4)
+				if (type == 1)
+				{
+					state.BlendSource = BlendFactors[(head >> 11) & 7];
+					state.BlendDestination = BlendFactors[(head >> 8) & 7];
+				}
+				else if (type == 4)
 					cached[head >> 8] = position + 2;
 				else if (type == 5 && cached.TryGetValue(head >> 8, out int cachedOffset))
-					ParsePolygonList(body, cachedOffset, slots, owners, worlds, builder, visited, depth + 1);
+					ParsePolygonList(body, cachedOffset, slots, owners, worlds, builder, visited, depth + 1, state);
 				position += 2;
 				continue;
 			}
-			if (type == 8)
+			if (body.Length - position < 4)
+				throw new ModelFormatException("The NJCM polygon chunk header is truncated.", position);
+			if (type < 0x10)
 			{
-				textureIndex = BinaryPrimitives.ReadUInt16LittleEndian(body[(position + 2)..]) & 0x1FFF;
+				state.TextureIndex = BinaryPrimitives.ReadUInt16LittleEndian(body[(position + 2)..]) & 0x1FFF;
+				state.AddressU = (head & 0x2000) != 0 ? 3u : (head & 0x8000) != 0 ? 2u : 1u;
+				state.AddressV = (head & 0x1000) != 0 ? 3u : (head & 0x4000) != 0 ? 2u : 1u;
 				position += 4;
 				continue;
 			}
@@ -353,18 +372,78 @@ internal static class NinjaChunkModel
 			int end = payload + size * 2;
 			if (size > (body.Length - payload) / 2 || end > body.Length)
 				throw new ModelFormatException("The NJCM polygon chunk lies outside the body.", position);
-			if (type == 1)
+			if (type < 0x20)
 			{
-				blendSource = (uint)((head >> 11) & 7) + 1;
-				blendDestination = (uint)((head >> 8) & 7) + 1;
+				state.BlendSource = BlendFactors[(head >> 11) & 7];
+				state.BlendDestination = BlendFactors[(head >> 8) & 7];
+				ApplyMaterialCommand(body, type, payload, end, position, state);
 			}
 			else if (type == 0x41)
 			{
-				ReadStripChunk(body, head, payload, end, slots, owners, worlds, builder, textureIndex, blendSource, blendDestination, addressU, addressV);
+				ReadStripChunk(body, head, payload, end, slots, owners, worlds, builder, state, (head & 0x100) == 0);
+			}
+			else if (type < 0x40)
+			{
+				throw new ModelFormatException($"The NJCM polygon chunk type 0x{type:X2} is not a polygon-list command.", position);
 			}
 			position = end;
 		}
 		visited.Remove(plist);
+	}
+
+	/// <summary>
+	/// Applies one material-colour command to the accumulated state.
+	/// </summary>
+	/// <param name="body">The NJCM body.</param>
+	/// <param name="type">The material chunk type.</param>
+	/// <param name="payload">The first payload byte.</param>
+	/// <param name="end">The payload end.</param>
+	/// <param name="position">The chunk offset for error messages.</param>
+	/// <param name="state">The material state to update.</param>
+	private static void ApplyMaterialCommand(ReadOnlySpan<byte> body, byte type, int payload, int end, int position, PolygonState state)
+	{
+		switch (type)
+		{
+			case 0x11:
+				RequirePayload(end, payload, 2, position);
+				state.MaterialColor = BinaryPrimitives.ReadUInt32LittleEndian(body[payload..]);
+				break;
+			case 0x13:
+			case 0x15:
+				RequirePayload(end, payload, 4, position);
+				state.MaterialColor = BinaryPrimitives.ReadUInt32LittleEndian(body[payload..]);
+				break;
+			case 0x17:
+				RequirePayload(end, payload, 6, position);
+				state.MaterialColor = BinaryPrimitives.ReadUInt32LittleEndian(body[payload..]);
+				break;
+			case 0x14:
+				RequirePayload(end, payload, 2, position);
+				state.MaterialColor = MaterialColorWhite;
+				break;
+			case 0x16:
+				RequirePayload(end, payload, 4, position);
+				state.MaterialColor = MaterialColorWhite;
+				break;
+			case 0x12:
+			case >= 0x18 and <= 0x1F:
+				break;
+			default:
+				throw new ModelFormatException("The NJCM polygon material chunk 0x10 has no command handler.", position);
+		}
+	}
+
+	/// <summary>
+	/// Rejects a material command whose declared payload is shorter than its handler reads.
+	/// </summary>
+	/// <param name="end">The payload end.</param>
+	/// <param name="payload">The first payload byte.</param>
+	/// <param name="words">The required 16-bit word count.</param>
+	/// <param name="position">The chunk offset for error messages.</param>
+	private static void RequirePayload(int end, int payload, int words, int position)
+	{
+		if (end - payload < words * 2)
+			throw new ModelFormatException("The NJCM polygon material chunk payload is truncated.", position);
 	}
 
 	/// <summary>
@@ -378,12 +457,9 @@ internal static class NinjaChunkModel
 	/// <param name="owners">The slot owners.</param>
 	/// <param name="worlds">The node world matrices.</param>
 	/// <param name="builder">The baked mesh builder.</param>
-	/// <param name="textureIndex">The selected texture-list index.</param>
-	/// <param name="blendSource">The source blend factor.</param>
-	/// <param name="blendDestination">The destination blend factor.</param>
-	/// <param name="addressU">The horizontal address mode.</param>
-	/// <param name="addressV">The vertical address mode.</param>
-	private static void ReadStripChunk(ReadOnlySpan<byte> body, ushort head, int payload, int end, Slot[] slots, NinjaNode?[] owners, Dictionary<NinjaNode, Matrix4x4> worlds, MeshBuilder builder, int textureIndex, uint blendSource, uint blendDestination, uint addressU, uint addressV)
+	/// <param name="state">The material state in force at the strip chunk.</param>
+	/// <param name="lighting">Whether fixed-function lighting is enabled for this strip chunk.</param>
+	private static void ReadStripChunk(ReadOnlySpan<byte> body, ushort head, int payload, int end, Slot[] slots, NinjaNode?[] owners, Dictionary<NinjaNode, Matrix4x4> worlds, MeshBuilder builder, PolygonState state, bool lighting)
 	{
 		if (end - payload < 2)
 			throw new ModelFormatException("The NJCM strip chunk is truncated.", payload);
@@ -403,7 +479,7 @@ internal static class NinjaChunkModel
 				throw new ModelFormatException("The NJCM strip vertex list is truncated.", position);
 			position += 2;
 			if (count >= 3)
-				BuildStrip(body, head, position, count, stride, slots, owners, worlds, builder, textureIndex, blendSource, blendDestination, addressU, addressV);
+				BuildStrip(body, head, position, count, stride, slots, owners, worlds, builder, state, lighting);
 			position += bytes;
 		}
 		if (position > end)
@@ -413,7 +489,7 @@ internal static class NinjaChunkModel
 	/// <summary>
 	/// Expands one strip's index/U/V records into a baked vertex buffer and sequential strip indices.
 	/// </summary>
-	private static void BuildStrip(ReadOnlySpan<byte> body, ushort head, int records, int count, int stride, Slot[] slots, NinjaNode?[] owners, Dictionary<NinjaNode, Matrix4x4> worlds, MeshBuilder builder, int textureIndex, uint blendSource, uint blendDestination, uint addressU, uint addressV)
+	private static void BuildStrip(ReadOnlySpan<byte> body, ushort head, int records, int count, int stride, Slot[] slots, NinjaNode?[] owners, Dictionary<NinjaNode, Matrix4x4> worlds, MeshBuilder builder, PolygonState state, bool lighting)
 	{
 		byte[] data = new byte[count * VertexStride];
 		for (int vertex = 0; vertex < count; vertex++)
@@ -427,7 +503,7 @@ internal static class NinjaChunkModel
 				throw new ModelFormatException("The NJCM strip index has no vertex owner.", record);
 			float u = BinaryPrimitives.ReadUInt16LittleEndian(body[(record + 2)..]) * UvScale;
 			float v = BinaryPrimitives.ReadUInt16LittleEndian(body[(record + 4)..]) * UvScale;
-			WriteVertex(data.AsSpan(vertex * VertexStride), slots[index], world, u, v);
+			WriteVertex(data.AsSpan(vertex * VertexStride), slots[index], world, u, v, state.MaterialColor);
 		}
 		NinjaVertexBuffer buffer = NinjaVertexBuffer.Read(data, 0, 7, VertexStride, count, records);
 		ushort[] indices = new ushort[count];
@@ -435,9 +511,11 @@ internal static class NinjaChunkModel
 			indices[index] = (ushort)index;
 		NinjaRenderStateArgument[] arguments =
 		[
-			new(2, blendSource, blendDestination, 0),
-			new(3, (uint)textureIndex, 0, 0),
-			new(4, addressU, addressV, 0),
+			new(2, state.BlendSource, state.BlendDestination, 0),
+			new(3, (uint)state.TextureIndex, 0, 0),
+			new(4, state.AddressU, state.AddressV, 0),
+			new(5, 0, state.MaterialColor, 0),
+			new(6, lighting ? 1u : 0u, 0, 0),
 		];
 		bool alpha = (head & 0x0800) != 0;
 		NinjaIndexBuffer indexBuffer = NinjaIndexBuffer.Create(indices, arguments, builder.VertexBuffers.Count, alpha);
@@ -449,9 +527,9 @@ internal static class NinjaChunkModel
 	}
 
 	/// <summary>
-	/// Writes one layout-7 vertex: baked position and normal, color and UV.
+	/// Writes one layout-7 vertex: baked position and normal, material colour and UV.
 	/// </summary>
-	private static void WriteVertex(Span<byte> destination, Slot slot, Matrix4x4 world, float u, float v)
+	private static void WriteVertex(Span<byte> destination, Slot slot, Matrix4x4 world, float u, float v, uint materialColor)
 	{
 		Vector3 position = TransformPosition(world, slot.Position);
 		Vector3 normal = TransformNormal(world, slot.Normal);
@@ -461,10 +539,10 @@ internal static class NinjaChunkModel
 		BinaryPrimitives.WriteSingleLittleEndian(destination[12..], normal.X);
 		BinaryPrimitives.WriteSingleLittleEndian(destination[16..], normal.Y);
 		BinaryPrimitives.WriteSingleLittleEndian(destination[20..], normal.Z);
-		destination[24] = slot.Red;
-		destination[25] = slot.Green;
-		destination[26] = slot.Blue;
-		destination[27] = slot.Alpha;
+		destination[24] = (byte)(materialColor >> 16);
+		destination[25] = (byte)(materialColor >> 8);
+		destination[26] = (byte)materialColor;
+		destination[27] = (byte)(materialColor >> 24);
 		BinaryPrimitives.WriteSingleLittleEndian(destination[28..], u);
 		BinaryPrimitives.WriteSingleLittleEndian(destination[32..], v);
 	}
@@ -508,6 +586,16 @@ internal static class NinjaChunkModel
 		red = (byte)(value >> 16);
 		green = (byte)(value >> 8);
 		blue = (byte)value;
+	}
+
+	private sealed class PolygonState
+	{
+		internal int TextureIndex = -1;
+		internal uint BlendSource = RenderStateId.BlendOne;
+		internal uint BlendDestination = RenderStateId.BlendZero;
+		internal uint AddressU = 1;
+		internal uint AddressV = 1;
+		internal uint MaterialColor;
 	}
 
 	private readonly record struct ChunkRange(NinjaNode Node, int IndexOffset, int Count, int Format, int DataOffset);

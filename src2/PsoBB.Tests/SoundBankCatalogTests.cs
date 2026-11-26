@@ -25,6 +25,13 @@ public sealed class SoundBankCatalogTests
 		Assert.Equal(1811, catalog.Banks.Sum(bank => bank.SampleIds.Count));
 		Assert.All(catalog.Banks, bank => Assert.Equal(bank.SampleIds.Count, bank.Metadata.Count));
 		Assert.All(Enumerable.Range(0, catalog.Banks.Count), index => Assert.Equal(catalog.FileNames[index], catalog.Banks[index].FileName));
+		SoundBankDefinition common = catalog.GetBank(7);
+		Assert.Equal(1391, common.SampleIds[182]);
+		Assert.Equal(1392, common.SampleIds[183]);
+		Assert.Contains(1395, common.SampleIds);
+		Assert.DoesNotContain(0, common.SampleIds);
+		Assert.DoesNotContain(1056, common.SampleIds);
+		Assert.Equal(1056, catalog.GetBank(6).SampleIds[7]);
 		Assert.Throws<ArgumentOutOfRangeException>(() => catalog.GetBankIndexForMap(50));
 		Assert.Throws<ArgumentOutOfRangeException>(() => catalog.GetBankIndexForMap(-1));
 		Assert.Throws<ArgumentOutOfRangeException>(() => catalog.GetBank(26));

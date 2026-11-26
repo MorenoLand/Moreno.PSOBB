@@ -1,7 +1,10 @@
+using System.Buffers.Binary;
+using PsoBB.Compression;
 using PsoBB.Data;
 using PsoBB.Game;
 using PsoBB.Graphics;
 using PsoBB.Gui;
+using PsoBB.Imaging;
 using PsoBB.Input;
 using PsoBB.Scenes;
 using PsoBB.Text;
@@ -31,12 +34,16 @@ public static class Scene2TitlePreview
 		ArgumentNullException.ThrowIfNull(pump);
 		using DataFileRegistry files = new(host.FileSystem, DataArchiveSource.Gsl("data/data.gsl"));
 		using Scene2TitleArt art = new(files, host.Renderer);
-		using LoginDialog? dialog = CreateDialog(files, textSurface, locale);
+		using LoginDialog? dialog = CreateDialog(files, host.Renderer, textSurface, locale);
+		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
 		long previous = host.Clock.Timestamp;
 		double accumulator = 0;
 		int frame = 0;
+		int selection = dialog?.Menu.SelectedIndex ?? -1;
+		LoginDialogAction? previousAction = null;
+		bool wasClosed = false;
 		bool menuVisible = showMenu;
 		uint fade = TitleFade.Initial;
 		while (pump())
@@ -44,6 +51,7 @@ public static class Scene2TitlePreview
 			long now = host.Clock.Timestamp;
 			accumulator += (double)(now - previous) / frequency;
 			previous = now;
+			audio?.Pump();
 			if (accumulator < FrameSeconds)
 				continue;
 			accumulator -= FrameSeconds;
@@ -54,6 +62,15 @@ public static class Scene2TitlePreview
 			{
 				dialog.Update(input);
 				action = dialog.RequestedAction;
+				if (dialog.Menu.SelectedIndex != selection)
+					audio?.Play(TitleAudio.SelectionSound);
+				if (action != previousAction)
+					audio?.Play(TitleAudio.ConfirmSound);
+				else if (dialog.IsClosed && !wasClosed)
+					audio?.Play(TitleAudio.CancelSound);
+				selection = dialog.Menu.SelectedIndex;
+				previousAction = action;
+				wasClosed = dialog.IsClosed;
 			}
 			else if (input.WasActionPressed(InputAction.Confirm))
 			{
@@ -67,12 +84,66 @@ public static class Scene2TitlePreview
 		}
 	}
 
-	private static LoginDialog? CreateDialog(IDataFiles files, IUiTextSurface? textSurface, GameTextLocale locale)
+	private static LoginDialog? CreateDialog(IDataFiles files, IRenderer renderer, IUiTextSurface? textSurface, GameTextLocale locale)
 	{
 		if (textSurface is null || !files.TryRead(GameText.GetUnitxtFileName(locale), out ReadOnlyMemory<byte> data))
 			return null;
 		UnitxtTable table = UnitxtTable.OpenCompressed(data.Span);
-		return new LoginDialog(new GameText(table), LoginDialog.DefaultHint, textSurface);
+		LoginDialog dialog = new(new GameText(table), LoginDialog.DefaultHint, textSurface);
+		if (TryLoadSkin(files, renderer, out ITexture? panel, out ITexture? rows))
+		{
+			dialog.Frame = new LoginDialogFrame
+			{
+				PanelTexture = panel,
+				RowTexture = rows,
+			};
+		}
+		return dialog;
+	}
+
+	private static bool TryLoadSkin(IDataFiles files, IRenderer renderer, out ITexture? panel, out ITexture? rows)
+	{
+		panel = null;
+		rows = null;
+		if (!files.TryRead("f256_hyoujismall.prs", out ReadOnlyMemory<byte> stored))
+			return false;
+		ReadOnlyMemory<byte> data = stored;
+		if (stored.Length < 4 || BinaryPrimitives.ReadUInt32LittleEndian(stored.Span) != 0x484D5658)
+		{
+			int capacity = Math.Max(0x10000, stored.Length * 4);
+			while (capacity <= 0x4000000)
+			{
+				byte[] destination = new byte[capacity];
+				try
+				{
+					int written = PrsDecompressor.Decompress(stored.Span, destination);
+					data = destination.AsMemory(0, written);
+					break;
+				}
+				catch (ArgumentException)
+				{
+					capacity *= 2;
+				}
+			}
+		}
+		IReadOnlyList<XvmTexture> textures = XvmArchive.Read(data.Span);
+		if (textures.Count < 3)
+			return false;
+		ITexture[] created = new ITexture[2];
+		try
+		{
+			for (int index = 0; index < created.Length; index++)
+				created[index] = renderer.CreateTexture(textures[index + 1].Width, textures[index + 1].Height, textures[index + 1].Image.Pixels.Span, textures[index + 1].Image.Stride);
+			panel = created[0];
+			rows = created[1];
+			return true;
+		}
+		catch
+		{
+			foreach (ITexture texture in created)
+				texture?.Dispose();
+			throw;
+		}
 	}
 
 	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, bool menuVisible, bool hidden, int frame, Action<int>? capture)

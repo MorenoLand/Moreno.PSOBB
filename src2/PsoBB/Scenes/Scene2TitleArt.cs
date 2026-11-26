@@ -645,9 +645,7 @@ public sealed class TitleArtDrawList
 
 	private static void SetBlend(IRenderer renderer, TitleArtBlend blend)
 	{
-		renderer.SetRenderState(RenderStateId.AlphaTestEnable, 1);
-		renderer.SetRenderState(RenderStateId.AlphaReference, 16);
-		renderer.SetRenderState(RenderStateId.AlphaFunction, RenderStateId.ComparisonGreater);
+		renderer.SetRenderState(RenderStateId.AlphaTestEnable, 0);
 		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, blend == TitleArtBlend.Opaque ? 0u : 1u);
 		if (blend == TitleArtBlend.Alpha)
 		{
