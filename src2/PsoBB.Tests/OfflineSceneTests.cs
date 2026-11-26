@@ -66,6 +66,17 @@ public sealed class OfflineSceneTests : IDisposable
 	}
 
 	[Fact]
+	public void TheSceneLibraryRowPointsAtTheOriginalSceneTenFunctions()
+	{
+		SceneLibrary.SceneDescriptor row = SceneLibrary.Table[(int)OfflineScene.SceneNumber];
+		Assert.Equal(10, row.Index);
+		Assert.Equal(0x007BC27Cu, row.Callback0);
+		Assert.Equal(0x007BB6D8u, row.Callback1);
+		Assert.Equal(0x007BBFB0u, row.Callback2);
+		Assert.Equal(0x00A0F2E0u, OfflineScene.InitTableAddress);
+	}
+
+	[Fact]
 	public void TheInitTableKeepsTheOriginalPairsAndOrder()
 	{
 		Assert.Equal(OfflineScene.InitEntryCount, OfflineScene.InitTable.Count);
