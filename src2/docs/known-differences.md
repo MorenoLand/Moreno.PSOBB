@@ -91,6 +91,7 @@ The portable scene readers validate every table, pointer slot and stream before 
 `PsoBB.Rendering.MapSceneRenderer` ports the map chunk and node walk, the chunk and node transform composition, the static and alpha index-buffer split, the triangle-strip primitive and the texture-list index. These dependencies remain outside it:
 
 - The per-frame selector at `0x00806184` chooses an index into the `0x00A11478` render-state setup table. The table, the pass setup callbacks and the scene hooks at `0x00AAFC34`, `0x00AAFC38` and `0x00AAFC3C` are not ported. The merged `SceneRenderer` uses its opaque, alpha-tested and blended order instead.
+- `FieldScene` submits the map stage through `MapSceneRenderer.Render` and exposes it separately from the object, local-player and player-slot stage. Scene 10 has no draw entry that fixes the order between the map and those systems; `Draw` composes the map stage first as a host default.
 - The merged renderer submits every opaque surface before every translucent surface and sorts translucent surfaces back to front by camera distance. The original map draw interleaves a mesh's normal and alpha index buffers in tree order and does not sort them.
 - A `0x80000` chunk pushes the transform stack without a chunk translate or rotation. The original also compares the active map id against the table at `0x0097F1C8` before deciding whether static trees require the `0x10000` bit; the port has no map id and draws every static tree of such a chunk.
 - Trees with the `0x200` bit carry an extra texture record. The port resolves the indirect node and draws its mesh but skips the extra texture bind and the `0x835574` path used by the three retail animated trees with that bit.
@@ -196,10 +197,13 @@ scene has no draw entry, so it submits no interface geometry. See `character-sav
 `scene-10-offline.md`.
 
 `PsoBB.Scenes.FieldScene` composes the shell with an optional `LobbyWorld`, `PlayerCharacter`, a
-loaded `MapScene` and host-supplied NJCM models. It draws placed object models, the local player and
-the other player slots in that order. The field camera is passed in, map render geometry is not
-submitted, entity walk and run targets do not move a view, and a despawn record removes the view
-immediately; the camera controller, map draw manager, entity animation and HUD stay unported.
+loaded `MapScene`, an optional map `TextureCache` and host-supplied NJCM models. Its default draw
+submits the map stage through `MapSceneRenderer` and then the placed object models, the local player
+and the other player slots; `DrawMap` and `DrawModels` expose the stages separately because scene 10
+has no draw entry that fixes their relative order. The field camera is passed in, map texture-list
+entries bind only through the supplied cache, entity walk and run targets do not move a view, and a
+despawn record removes the view immediately; the camera controller, object model selection, entity
+animation and HUD stay unported.
 
 ## The scene table is baked from the shipped image
 
