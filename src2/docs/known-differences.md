@@ -12,6 +12,19 @@
 - `LoginFlow` has no protocol timer. The transport is non-blocking and the host pumps the flow; a stalled server leaves the current stage waiting, and an orderly close or transport failure moves the flow to `Failed`.
 - A browser page cannot open a raw TCP stream. `BrowserGameConnection` refuses transport operations and a host relay must implement `IGameConnection` over WebSockets.
 
+## Lobby world
+
+`PsoBB.Net.LobbyWorld` ports the player-state core of the command 0x64/0x65/0x66/0x67/0x68/0x69 handlers, the 0x60/0x62/0x6C/0x6D record walk of `0x00800860`, and subcommands 0x3E/0x40/0x42/0x4E/0x70/0x71/0x72. It keeps the original field offsets, the twelve-slot client-id range, the record-size walk and the map action-permission mask.
+
+- The join handlers store the join flags and player lobby records; the original menu objects, scene teardown, appearance, inventory and animation work stay outside this surface.
+- A game-join record whose name field is empty is not registered, because the world has no other field that distinguishes an unused game-join slot from client id zero.
+- Subcommands without a handler in `LobbyWorld.Subcommands` are ignored; the table currently holds only the movement, despawn and joiner-sync entries that are ported.
+- The action-permission bytes are the shipped-image defaults at `0x00A10160`. The original can replace them from map `.rel` data; that replacement path is not ported.
+- Movement records update the tracked position, heading, floor, room, near-enemy flag and locomotion state. The original also applies root-object and `+0x328` state gates and runs its animation and action-state helpers; those entity flags are not part of this surface.
+- `0x70` stores base identity, room, flags, position, phase and current HP. Inventory, visual configuration and the original destroy-and-recreate player construction are not ported.
+- `0x4E` marks the tracked player as leaving and does not fire the original despawn animation or particle effect.
+- `0x71` sets the in-game phase but does not construct a missing local player or send the local 0x70 announcement; `0x72` sets the same phase and does not close the original menu object.
+
 ## Options
 
 `GameOptions` reads the original registry names and layouts. The original has no persisted key-binding value, no numeric music or sound-effect volume and no other chat preference; the fixed control map and the `SOUNDCTRL` enables are all it stores. `PsoBB.Input.Bindings`, `PsoBB.Audio.MusicVolume` and `PsoBB.Audio.SoundVolume` are portable additions documented in `configuration.md`.
