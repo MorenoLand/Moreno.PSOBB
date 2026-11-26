@@ -149,8 +149,8 @@ int main(int argc, char **argv)
             freopen("CONOUT$", "w", stderr);
         }
     }
-    /* the original image is embedded in this exe (scripts/build.sh); the argument is only the client's data folder
-     * (levels, sounds, config, fmod.dll), default the current folder */
+    /* the original image is embedded in this exe (scripts/build.sh); the argument is the client's install folder
+     * (the folder that contains data\), default the exe folder */
     rt_trace = getenv("RECOMP_TRACE") != NULL;
     const char *watch = getenv("RECOMP_WATCH");      /* RECOMP_WATCH=lo-hi (hex): report writes into that range (watch.exe, built with -DRT_WATCH) */
     if (watch) { char *end; rt_watch_lo = (u32)strtoul(watch, &end, 16); if (*end == '-') rt_watch_hi = (u32)strtoul(end + 1, NULL, 16); }
@@ -205,17 +205,21 @@ int main(int argc, char **argv)
 
     char dir[MAX_PATH];
     const char *env_dir = getenv("RECOMP_DIR");
+    if (!env_dir && argc > 1 && argv[1] && argv[1][0]) env_dir = argv[1];
     if (env_dir) {
         if (!GetFullPathNameA(env_dir, sizeof dir, dir, NULL)) return 2;
     } else {
         if (!GetModuleFileNameA(NULL, dir, sizeof dir)) return 2;
         char *slash = strrchr(dir, '\\');
         if (slash) *slash = 0;
-        char own[MAX_PATH];
-        snprintf(own, sizeof own, "%s\\data", dir);
-        DWORD a = GetFileAttributesA(own);
-        if (a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY)) snprintf(dir, sizeof dir, "%s", own);
-        else if (!GetFullPathNameA(".", sizeof dir, dir, NULL)) return 2;
+    }
+    {   /* the client's relative paths start at the folder that contains data\ */
+        char gsl[MAX_PATH];
+        snprintf(gsl, sizeof gsl, "%s\\data.gsl", dir);
+        if (GetFileAttributesA(gsl) != INVALID_FILE_ATTRIBUTES) {
+            char *slash = strrchr(dir, '\\');
+            if (slash) *slash = 0;
+        }
     }
     DWORD attr = GetFileAttributesA(dir);
     if (attr == INVALID_FILE_ATTRIBUTES) {

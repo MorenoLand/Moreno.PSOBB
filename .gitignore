@@ -2,6 +2,7 @@ bin/*
 !bin/README.md
 build/*
 !build/README.md
+server/
 ida/
 asm/
 pseudo/

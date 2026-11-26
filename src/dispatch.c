@@ -18260,6 +18260,7 @@ const FnEnt fn_table[] = {
     {0x006a326d, f_006a326d},
     {0x006a3284, f_006a3284},
     {0x006a32b0, f_006a32b0},
+    {0x006a32f0, f_006a32f0},
     {0x006a32fc, f_006a32fc},
     {0x006a3320, f_006a3320},
     {0x006a3344, f_006a3344},
@@ -18674,6 +18675,7 @@ const FnEnt fn_table[] = {
     {0x006aa040, f_006aa040},
     {0x006aa068, f_006aa068},
     {0x006aa074, f_006aa074},
+    {0x006aa0b8, f_006aa0b8},
     {0x006aa0cc, f_006aa0cc},
     {0x006aa0f8, f_006aa0f8},
     {0x006aa15c, f_006aa15c},
@@ -31568,7 +31570,7 @@ const FnEnt fn_table[] = {
     {0xe8e0a114, f_e8e0a114},
     {0xeb8709b0, f_eb8709b0},
 };
-const unsigned fn_count = 31567;
+const unsigned fn_count = 31569;
 const LandEnt land_table[] = {
     {0, 0},
 };

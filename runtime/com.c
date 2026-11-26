@@ -9,13 +9,28 @@
 #include <string.h>
 
 typedef struct { u32 proxy; u32 real; } ComMap;
-static ComMap com_maps[1024];
-static int com_map_n;
+#define COM_MAP_CAP 262144
+static ComMap com_maps[COM_MAP_CAP];
+
+static u32 com_map_slot(u32 proxy) { return (proxy * 2654435761u) & (COM_MAP_CAP - 1); }
+
+static void com_map_add(u32 proxy, u32 real)
+{
+    u32 h = com_map_slot(proxy);
+    for (u32 i = 0; i < COM_MAP_CAP; ++i) {
+        u32 j = (h + i) & (COM_MAP_CAP - 1);
+        if (!com_maps[j].proxy || com_maps[j].proxy == proxy) { com_maps[j].proxy = proxy; com_maps[j].real = real; return; }
+    }
+}
 
 u32 com_real_this(u32 proxy)
 {
-    for (int i = 0; i < com_map_n; ++i)
-        if (com_maps[i].proxy == proxy) return com_maps[i].real;
+    u32 h = com_map_slot(proxy);
+    for (u32 i = 0; i < COM_MAP_CAP; ++i) {
+        u32 j = (h + i) & (COM_MAP_CAP - 1);
+        if (!com_maps[j].proxy) break;
+        if (com_maps[j].proxy == proxy) return com_maps[j].real;
+    }
     return proxy;
 }
 
@@ -56,10 +71,6 @@ u32 com_wrap(void *real, const char *iface)
         vt[slot] = s;
     }
     W32(obj, (u32)(uintptr_t)vt);
-    if (com_map_n < (int)(sizeof com_maps / sizeof com_maps[0])) {
-        com_maps[com_map_n].proxy = obj;
-        com_maps[com_map_n].real = (u32)(uintptr_t)real;
-        ++com_map_n;
-    }
+    com_map_add(obj, (u32)(uintptr_t)real);
     return obj;
 }

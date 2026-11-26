@@ -20,7 +20,7 @@
 #endif
 
 #define API_BASE 0xFE000000u
-#define MAX_API 8192
+#define MAX_API 65536
 #define SENT_RET 0xDEAD0000u
 
 ApiEnt api_tab[MAX_API];
@@ -579,6 +579,9 @@ void api_dispatch(u32 sentinel)
     if (e->module && !strcmp(e->module, "com") && getenv("RECOMP_AUDIOTRACE") &&
         (!strcmp(e->name, "IDirectSoundBuffer#19") || !strcmp(e->name, "IDirectSoundBuffer#11") || !strcmp(e->name, "IDirectSoundBuffer#12")))
         fprintf(stderr, "[audiotrace] %s ret=%08x esp=%08x tid=%lu\n", e->name, R32(r_esp), r_esp, (unsigned long)GetCurrentThreadId());
+    if (e->module && !strcmp(e->module, "user32") && !strcmp(e->name, "CreateWindowExA") &&
+        (a[3] & WS_CAPTION) && !(a[3] & WS_CHILD))
+        a[3] |= WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME;
 #if defined(_WIN32)
     if (special) {
         r = api_special(special, e, a);
@@ -647,6 +650,8 @@ void api_dispatch(u32 sentinel)
             fprintf(stderr, ") -> %llx", (unsigned long long)r);
             if ((!strcmp(e->name, "inet_addr") || !strcmp(e->name, "gethostbyname")) && a[0] > 0x10000 && rt_readable(a[0], 64))
                 fprintf(stderr, "  \"%.63s\"", (const char *)(uintptr_t)a[0]);
+            if ((!strcmp(e->name, "CreateFileA") || !strcmp(e->name, "LoadLibraryA") || !strcmp(e->name, "DeleteFileA")) && a[0] > 0x10000 && rt_readable(a[0], 260))
+                fprintf(stderr, "  \"%s\"", (const char *)(uintptr_t)a[0]);
             if (!strcmp(e->name, "send") && a[1] > 0x10000 && a[2] > 0 && rt_readable(a[1], a[2] < 24 ? a[2] : 24)) {
                 const unsigned char *sb = (const unsigned char *)(uintptr_t)a[1];
                 fprintf(stderr, "  \"");
