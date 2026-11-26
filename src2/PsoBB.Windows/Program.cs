@@ -66,7 +66,7 @@ internal static class Program
 		using WindowsGameInput input = new(window.Handle);
 		WindowsDispatcher dispatcher = new(clock);
 		WindowsAudioDevice audio = new();
-		Direct3D11Renderer renderer = new(window.Handle, RenderSettings.Default);
+		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
 		while (window.Pump())
@@ -87,14 +87,14 @@ internal static class Program
 			bytes = decompressed.AsMemory(0, length);
 		}
 		XvmTexture image = XvmArchive.Read(bytes.Span)[0];
-		using Direct3D11Renderer renderer = new(window.Handle, RenderSettings.Default);
+		using Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ITexture texture = renderer.CreateTexture(image.Width, image.Height, image.Image.Pixels.Span, image.Image.Stride);
 		UiDrawList draw = new();
-		draw.Add(CreatePreviewQuad(texture, image.Width, image.Height));
+		draw.Add(CreatePreviewQuad(texture, image.Width, image.Height, renderer.Settings.Width, renderer.Settings.Height));
 		while (window.Pump())
 		{
 			renderer.BeginFrame();
-			renderer.SetViewport(0, 0, WindowWidth, WindowHeight);
+			renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
 			renderer.SetRenderState(RenderStateId.ZEnable, 0);
 			renderer.SetRenderState(RenderStateId.ZWriteEnable, 0);
 			renderer.SetRenderState(RenderStateId.CullMode, 1);
@@ -106,12 +106,12 @@ internal static class Program
 		}
 	}
 
-	private static UiQuad CreatePreviewQuad(ITexture texture, int width, int height)
+	private static UiQuad CreatePreviewQuad(ITexture texture, int width, int height, int screenWidth, int screenHeight)
 	{
-		float scale = MathF.Min((float)WindowWidth / width, (float)WindowHeight / height);
+		float scale = MathF.Min((float)screenWidth / width, (float)screenHeight / height);
 		float drawWidth = width * scale;
 		float drawHeight = height * scale;
-		return new UiQuad(new Vector2((WindowWidth - drawWidth) / 2f, (WindowHeight - drawHeight) / 2f), new Vector2(drawWidth, drawHeight), new Vector4(0f, 0f, 1f, 1f), texture, 0xFFFFFFFF);
+		return new UiQuad(new Vector2((screenWidth - drawWidth) / 2f, (screenHeight - drawHeight) / 2f), new Vector2(drawWidth, drawHeight), new Vector4(0f, 0f, 1f, 1f), texture, 0xFFFFFFFF);
 	}
 
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]

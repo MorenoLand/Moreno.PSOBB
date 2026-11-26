@@ -56,6 +56,17 @@ internal sealed class GameWindow : IDisposable
 			UnregisterClass(_className, _instance);
 			throw new InvalidOperationException($"CreateWindowEx failed with error {Marshal.GetLastWin32Error()}.");
 		}
+		Rect client = new();
+		if (GetClientRect(_handle, ref client))
+		{
+			ClientWidth = client.Right - client.Left;
+			ClientHeight = client.Bottom - client.Top;
+		}
+		else
+		{
+			ClientWidth = width;
+			ClientHeight = height;
+		}
 		ShowWindow(_handle, 5);
 		UpdateWindow(_handle);
 		SendMessage(_handle, WindowMessageSetIcon, IconBig, icon);
@@ -64,6 +75,12 @@ internal sealed class GameWindow : IDisposable
 
 	/// <summary>Gets the native window handle.</summary>
 	public nint Handle => _handle;
+
+	/// <summary>Gets the client-area width in pixels.</summary>
+	public int ClientWidth { get; }
+
+	/// <summary>Gets the client-area height in pixels.</summary>
+	public int ClientHeight { get; }
 
 	/// <summary>
 	/// Processes pending window messages and reports whether the window is still open.
@@ -142,6 +159,15 @@ internal sealed class GameWindow : IDisposable
 		public int Y;
 	}
 
+	[StructLayout(LayoutKind.Sequential)]
+	private struct Rect
+	{
+		public int Left;
+		public int Top;
+		public int Right;
+		public int Bottom;
+	}
+
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern nint GetModuleHandle(string? moduleName);
 
@@ -150,6 +176,10 @@ internal sealed class GameWindow : IDisposable
 
 	[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern nint CreateWindowEx(uint extendedStyle, string className, string windowName, uint style, int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
+
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	private static extern bool GetClientRect(nint window, ref Rect rect);
 
 	[DllImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
