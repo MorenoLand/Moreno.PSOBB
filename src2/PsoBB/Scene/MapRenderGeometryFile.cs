@@ -13,10 +13,11 @@ public sealed class MapRenderGeometryFile
 {
 	private readonly MapRenderChunk[] _chunks;
 
-	private MapRenderGeometryFile(float radius, int textureDataOffset, MapRenderChunk[] chunks)
+	private MapRenderGeometryFile(float radius, int textureDataOffset, MapTextureList? textures, MapRenderChunk[] chunks)
 	{
 		Radius = radius;
 		TextureDataOffset = textureDataOffset;
+		Textures = textures;
 		_chunks = chunks;
 	}
 
@@ -25,6 +26,9 @@ public sealed class MapRenderGeometryFile
 
 	/// <summary>Gets the offset of the texture list the original binds to this geometry, or zero when absent.</summary>
 	public int TextureDataOffset { get; }
+
+	/// <summary>Gets the scene texture list when the geometry was read from a relocated REL image, or null otherwise.</summary>
+	public MapTextureList? Textures { get; }
 
 	/// <summary>Gets the section chunks in table order.</summary>
 	public IReadOnlyList<MapRenderChunk> Chunks => _chunks;
@@ -39,7 +43,7 @@ public sealed class MapRenderGeometryFile
 	public static MapRenderGeometryFile Parse(RelContainer container)
 	{
 		ArgumentNullException.ThrowIfNull(container);
-		return Parse(container.Data.Span, container.RootOffset);
+		return Parse(container.Data.Span, container.RootOffset, true);
 	}
 
 	/// <summary>
@@ -49,7 +53,9 @@ public sealed class MapRenderGeometryFile
 	/// <param name="rootOffset">Offset of the four-byte <c>fmt2</c> marker.</param>
 	/// <returns>The parsed geometry.</returns>
 	/// <exception cref="SceneFormatException">The marker, chunk table or any mesh tree lies outside the image.</exception>
-	public static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset = 0)
+	public static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset = 0) => Parse(data, rootOffset, false);
+
+	private static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset, bool loadTextures)
 	{
 		if (rootOffset < 0 || rootOffset > data.Length - 0x18)
 			throw new SceneFormatException("The render geometry header is truncated.", rootOffset);
@@ -61,9 +67,10 @@ public sealed class MapRenderGeometryFile
 		float radius = BinaryPrimitives.ReadSingleLittleEndian(data[(rootOffset + 0x0C)..]);
 		int chunksOffset = chunkCount == 0 ? 0 : ReadOffset(data, rootOffset + 0x10, "chunk table");
 		int textureDataOffset = ReadOffset(data, rootOffset + 0x14, "texture data");
+		MapTextureList? textures = loadTextures && textureDataOffset != 0 ? MapTextureList.Parse(data, textureDataOffset) : null;
 		byte[] image = data.ToArray();
 		if (chunkCount == 0)
-			return new MapRenderGeometryFile(radius, textureDataOffset, []);
+			return new MapRenderGeometryFile(radius, textureDataOffset, textures, []);
 		MapRenderGeometryFile.ValidateTable(image, chunksOffset, (uint)chunkCount, MapRenderChunk.EntrySize, "render chunk table");
 		MapRenderChunk[] chunks = new MapRenderChunk[chunkCount];
 		for (int index = 0; index < chunkCount; index++)
@@ -71,7 +78,7 @@ public sealed class MapRenderGeometryFile
 			int chunkOffset = chunksOffset + index * MapRenderChunk.EntrySize;
 			chunks[index] = MapRenderChunk.Parse(image, chunkOffset, index);
 		}
-		return new MapRenderGeometryFile(radius, textureDataOffset, chunks);
+		return new MapRenderGeometryFile(radius, textureDataOffset, textures, chunks);
 	}
 
 	/// <summary>

@@ -55,10 +55,25 @@ The root points at a terminated section array. Each section is 0x18 bytes: mesh 
 
 `BmlArchive` reads the 0x800-byte header block, a u32 entry count at +4, a `P` compression flag at +8 and a texture-present flag at +9. Each 0x40-byte descriptor holds a 32-byte name, stored and uncompressed geometry sizes and stored and uncompressed texture sizes. Geometry streams begin at the aligned header end; texture streams follow their geometry stream and both use 0x20-byte alignment when textures are present, otherwise 0x800. `BmlChunkReader` walks Ninja IFF chunks (big-endian FourCC, little-endian size) and skips POF0 fixup chunks. NJCM model conversion is not part of this loader batch.
 
+## Drawing
+
+`MapSceneRenderer` turns a loaded `MapScene` into a `RenderScene` and submits it through the merged `SceneRenderer`. A chunk is drawn only when its `0x10000` bit is set, matching the first test in `0x008061E0`. A chunk with `0x80000` uses the stored node coordinates without a chunk transform; every other chunk pushes its origin and applies its X, Y and Z rotations with the original alternate Euler order. A chunk with `0x100000` draws only static trees whose `0x10000` bit is set; other chunks draw every static tree. Animated trees use the same node walker when their `0x10000` bit is set.
+
+The node walker is the original `0x00831D40` walk: evaluation flags `7` keep the parent transform, bits `1`, `2` and `4` skip the node translation, rotation and scale, bit `8` hides the mesh and bit `0x20` selects the alternate Euler order. Normal and alpha index buffers become the opaque and translucent scene passes as triangle strips with the stored vertex format and stride. The texture-list index comes from the render-state argument with selector `3`; `MapTextureList` exposes the entry names and the global indices that the texture loader writes into each entry's object pointer.
+
+The original per-frame pass selector at `0x00806184` returns indexes into the `0x00A11478` render-state callback table. Those callbacks, the three scene hooks at `0x00AAFC34`, `0x00AAFC38` and `0x00AAFC3C`, and the animated-tree playback at `0x00805FD4` are not ported. The merged `SceneRenderer` supplies the opaque, alpha-tested and blended pass order instead, and animated trees draw their stored node pose. A `0x80000` chunk has no map-id table input in the scene, so the port always draws its static trees without the `0x10000` filter; trees with the `0x200` bit resolve the indirect node but skip the extra texture bind. Raw `n.rel` files carry texture names with zero object pointers; resolving those names to loaded textures is the texture loader's boundary, so `GlobalIndices` is zero until that loader fills the entries.
+
 ## Original addresses
 
 | Address | Original function | Port |
 | --- | --- | --- |
+| `0x008060FC` | `MapRenderer_Render_008060fc` | `MapSceneRenderer.BuildScene` |
+| `0x00806184` | `MapRenderer_SelectPass_00806184` | not ported; `SceneRenderer` pass order |
+| `0x008061E0` | `MapRenderer_DrawChunks_008061e0` | `MapSceneRenderer.BuildScene` |
+| `0x00806B80` | `MapRenderer_DrawStaticTrees_00806b80` | `MapSceneRenderer.WalkTree` |
+| `0x00829CC8` | `MapTextureList_00829cc8` | `MapTextureList.Parse` |
+| `0x00831D40` | `draw_model_nodes` | `MapSceneRenderer.WalkTree` |
+| `0x00835090` | `draw_map_mesh_node` | `MapSceneRenderer.AddMeshSurfaces` |
 | `0x005B9BF4` | `load_rel_asset2` | `RelContainer.Parse` |
 | `0x005B869C` | `LoadBmlExec_005b869c` | `BmlArchive.Parse` |
 | `0x00806FCC` | `MapLoader_LoadAndSwapGeometry_00806fcc` | `SceneLoader.Load` |

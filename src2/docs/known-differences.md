@@ -84,7 +84,19 @@ The portable scene readers validate every table, pointer slot and stream before 
 - REL pointer slots are read as zero-based image offsets. The original adds the guest buffer address to each slot; a managed byte array has no equivalent base, so `RelContainer` validates the slot and exposes the same offsets.
 - A missing section terminator, negative count, table outside the image, or face index outside the vertex array is reported as `SceneFormatException` instead of continuing into unrelated bytes.
 - The BML loader reads the first 0x800-byte header block and aligned streams from a complete buffer. The original reads the same ranges through its asynchronous asset buffer and screen-loading state machine.
-- Ninja chunks are exposed as type and body bytes. NJCM/NJTL model conversion, texture upload and render-state setter semantics are not part of this loader batch.
+- Ninja chunks are exposed as type and body bytes. NJCM/NJTL model conversion is a separate model layer.
+
+## Map drawing
+
+`PsoBB.Rendering.MapSceneRenderer` ports the map chunk and node walk, the chunk and node transform composition, the static and alpha index-buffer split, the triangle-strip primitive and the texture-list index. These dependencies remain outside it:
+
+- The per-frame selector at `0x00806184` chooses an index into the `0x00A11478` render-state setup table. The table, the pass setup callbacks and the scene hooks at `0x00AAFC34`, `0x00AAFC38` and `0x00AAFC3C` are not ported. The merged `SceneRenderer` uses its opaque, alpha-tested and blended order instead.
+- The merged renderer submits every opaque surface before every translucent surface and sorts translucent surfaces back to front by camera distance. The original map draw interleaves a mesh's normal and alpha index buffers in tree order and does not sort them.
+- A `0x80000` chunk pushes the transform stack without a chunk translate or rotation. The original also compares the active map id against the table at `0x0097F1C8` before deciding whether static trees require the `0x10000` bit; the port has no map id and draws every static tree of such a chunk.
+- Trees with the `0x200` bit carry an extra texture record. The port resolves the indirect node and draws its mesh but skips the extra texture bind and the `0x835574` path used by the three retail animated trees with that bit.
+- Animated map trees are drawn with their stored node pose. The playback at `0x00805FD4`, texture animation and visibility system that sets the `0x10000` and `0x40000` tree bits are not ported.
+- Raw `n.rel` texture entries store names and leave the object pointer at `+8` zero. The original texture loader fills that pointer before `0x00829CC8`; the name-to-loaded-texture lookup is not ported, so the port reports a zero global index until a caller supplies populated entries.
+- The chunk `0x10000` bit is a per-frame culling state. The port evaluates it from the loaded chunk flags; a host that clears the bit at runtime must set it again before building the scene.
 
 ## Model readers
 
