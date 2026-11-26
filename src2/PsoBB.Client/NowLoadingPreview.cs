@@ -19,7 +19,7 @@ public static class NowLoadingPreview
 	/// <param name="frames">The number of frames to present, or null to run until the window closes.</param>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
 	/// <exception cref="FileNotFoundException">The loading archive is missing.</exception>
-	public static void Run(ClientHost host, Func<bool> pump, int? frames = null)
+	public static void Run(ClientHost host, Func<bool> pump, int? frames = null, Action<int>? capture = null)
 	{
 		ArgumentNullException.ThrowIfNull(host);
 		ArgumentNullException.ThrowIfNull(pump);
@@ -38,7 +38,7 @@ public static class NowLoadingPreview
 				TimeSpan elapsed = TimeSpan.FromSeconds((double)(now - previous) / frequency);
 				previous = now;
 				input.Update(elapsed);
-				Render(host.Renderer, loading);
+				Render(host.Renderer, loading, capture, presented);
 				presented++;
 			}
 		}
@@ -48,7 +48,7 @@ public static class NowLoadingPreview
 		}
 	}
 
-	private static void Render(IRenderer renderer, NowLoadingScreen loading)
+	private static void Render(IRenderer renderer, NowLoadingScreen loading, Action<int>? capture, int frame)
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
@@ -61,6 +61,7 @@ public static class NowLoadingPreview
 		TitleArtDrawList draw = new();
 		loading.Draw(draw);
 		draw.Render(renderer);
+		capture?.Invoke(frame);
 		renderer.EndFrame();
 	}
 }
