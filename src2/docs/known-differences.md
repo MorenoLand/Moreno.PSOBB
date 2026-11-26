@@ -113,6 +113,7 @@ The menu controls in `PsoBB.Gui` run above `UiElement` and take synthetic `UiEve
 - The check box is the original two-state selector record (`0x0073E5D4`) and advance rule (`0x0073E60C`). The original draws the selected value as text (`0x0073E6B4`); the port draws a filled inset quad and leaves the label to the caller.
 - The edit box receives `TextInput` messages instead of reading the Windows IME composition buffer in `0x00723BDC`. The commit still removes ASCII and full-width spaces before storing the line.
 - Labels use the text surface for drawing and measure their width for `AutoSize` instead of the original's scale animation (`0x0073A4EC`, `0x0073A524`).
+- The pause option panel (`0x007538EC`) keeps the original rows, text identifiers, value order, flag masks and `EXT0` write. Its row control composes the shared list, label and value row instead of reproducing the original `0x00714AC8` child-list hit testing, and the pad-button and keyboard configuration windows remain external requests. The vibration row is defined at `0x00753D84` but the list at `0x0075377C` never appends it.
 
 ## WebGL renderer
 
