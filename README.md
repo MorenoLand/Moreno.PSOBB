@@ -70,6 +70,8 @@ run.cmd
 ```
 
 `run.cmd` adds `bin` and `%PSOBB_DIR%` to `PATH` and starts the host from `bin`.
+It defaults `PSOBB_DIR` to `bin`, so a client whose `data` directory is copied
+under `bin` runs without further configuration.
 
 Regenerating the analysis and the lift requires IDA and the original client:
 
