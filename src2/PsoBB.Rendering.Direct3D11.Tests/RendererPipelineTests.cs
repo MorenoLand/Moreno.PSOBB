@@ -44,12 +44,12 @@ public sealed class RendererPipelineTests
 		using HiddenWindow window = new();
 		using Direct3D11Renderer renderer = CreateRenderer(window, new RenderSettings(8, 8, true, 0, false));
 		ConfigureUnlit(renderer);
-		renderer.SetRenderState(Direct3D8RenderState.Lighting, 1);
-		renderer.SetRenderState(Direct3D8RenderState.SpecularEnable, 0);
-		renderer.SetRenderState(Direct3D8RenderState.DiffuseMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.AmbientMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.SpecularMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.EmissiveMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.Lighting, 1);
+		renderer.SetRenderState(RenderStateId.SpecularEnable, 0);
+		renderer.SetRenderState(RenderStateId.DiffuseMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.AmbientMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.SpecularMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.EmissiveMaterialSource, RenderStateId.MaterialColorMaterial);
 		renderer.SetMaterial(new Material(new Vector4(1, 1, 1, 1), Vector4.Zero, Vector4.Zero, Vector4.Zero, 0));
 		byte[] vertices = Vertices(3, 24, (vertex, index) =>
 		{
@@ -101,33 +101,33 @@ public sealed class RendererPipelineTests
 		using HiddenWindow window = new();
 		using Direct3D11Renderer renderer = CreateRenderer(window, new RenderSettings(8, 8, true, 0, false));
 		ConfigureUnlit(renderer);
-		renderer.SetRenderState(Direct3D8RenderState.Lighting, 1);
-		renderer.SetRenderState(Direct3D8RenderState.DiffuseMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.AmbientMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.SpecularMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.EmissiveMaterialSource, Direct3D8RenderState.MaterialColorMaterial);
-		renderer.SetRenderState(Direct3D8RenderState.LocalViewer, 1);
+		renderer.SetRenderState(RenderStateId.Lighting, 1);
+		renderer.SetRenderState(RenderStateId.DiffuseMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.AmbientMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.SpecularMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.EmissiveMaterialSource, RenderStateId.MaterialColorMaterial);
+		renderer.SetRenderState(RenderStateId.LocalViewer, 1);
 		renderer.SetLight(0, new Light(LightType.Directional, Vector4.Zero, new Vector4(1, 1, 1, 1), Vector4.Zero, Vector3.Zero, new Vector3(0, 0, 1), 0, 0, 0, 0, 0, 0, 0));
 		renderer.SetLightEnabled(0, true);
 		byte[] bytes = NormalVertices(-1);
 		renderer.SetMaterial(new Material(Vector4.Zero, Vector4.Zero, new Vector4(1, 1, 1, 1), Vector4.Zero, 8));
-		renderer.SetRenderState(Direct3D8RenderState.SpecularEnable, 1);
+		renderer.SetRenderState(RenderStateId.SpecularEnable, 1);
 		Draw(renderer, bytes, 24, FvfXyzNormal);
 		Color specular = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.True(specular.Red > 100, specular.ToString());
-		renderer.SetRenderState(Direct3D8RenderState.SpecularEnable, 0);
+		renderer.SetRenderState(RenderStateId.SpecularEnable, 0);
 		Draw(renderer, bytes, 24, FvfXyzNormal);
 		Assert.True(IsBlack(Center(renderer.CaptureBackBuffer(), 8, 8)));
 
-		renderer.SetRenderState(Direct3D8RenderState.SpecularEnable, 0);
+		renderer.SetRenderState(RenderStateId.SpecularEnable, 0);
 		renderer.SetMaterial(new Material(new Vector4(1, 1, 1, 1), Vector4.Zero, Vector4.Zero, Vector4.Zero, 0));
 		renderer.SetLight(0, new Light(LightType.Directional, new Vector4(1, 1, 1, 1), Vector4.Zero, Vector4.Zero, Vector3.Zero, new Vector3(0, 0, 1), 0, 0, 0, 0, 0, 0, 0));
 		bytes = NormalVertices(-0.5f);
-		renderer.SetRenderState(Direct3D8RenderState.NormalizeNormals, 0);
+		renderer.SetRenderState(RenderStateId.NormalizeNormals, 0);
 		Draw(renderer, bytes, 24, FvfXyzNormal);
 		Color shortened = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.InRange((int)shortened.Red, 120, 136);
-		renderer.SetRenderState(Direct3D8RenderState.NormalizeNormals, 1);
+		renderer.SetRenderState(RenderStateId.NormalizeNormals, 1);
 		Draw(renderer, bytes, 24, FvfXyzNormal);
 		Color normalized = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.True(IsWhite(normalized), normalized.ToString());
@@ -262,6 +262,46 @@ public sealed class RendererPipelineTests
 	}
 
 	/// <summary>
+	/// A coloured quad with texture coordinates reads both input streams and draws nonzero pixels.
+	/// </summary>
+	[Fact]
+	public void RendererDrawsColouredTexturedQuad()
+	{
+		using HiddenWindow window = new();
+		using Direct3D11Renderer renderer = CreateRenderer(window, new RenderSettings(8, 8, true, 0, false));
+		ConfigureUnlit(renderer);
+		using ITexture halfWhiteHalfBlue = renderer.CreateTexture(2, 1, [255, 255, 255, 255, 255, 0, 0, 255], 8);
+		renderer.SetTexture(0, halfWhiteHalfBlue);
+		byte[] vertices = Vertices(6, 24, (vertex, index) =>
+		{
+			(float x, float y, float u) = index switch
+			{
+				0 => (-1, -1, 0.25f),
+				1 => (1, -1, 0.75f),
+				2 => (1, 1, 0.75f),
+				3 => (-1, -1, 0.25f),
+				4 => (1, 1, 0.75f),
+				_ => (-1, 1, 0.25f),
+			};
+			Write(vertex, 0, x);
+			Write(vertex, 4, y);
+			Write(vertex, 8, 0.5f);
+			BinaryPrimitives.WriteUInt32LittleEndian(vertex[12..], 0xFFFF0000);
+			Write(vertex, 16, u);
+			Write(vertex, 20, y < 0 ? 0.0f : 1.0f);
+		});
+		renderer.BeginFrame();
+		renderer.Clear(0xFF000000);
+		renderer.Draw(PrimitiveType.TriangleList, 2, vertices, 24, 0x142);
+		byte[] pixels = renderer.CaptureBackBuffer();
+		renderer.EndFrame();
+		Color left = PixelAt(pixels, 8, 2, 4);
+		Color right = PixelAt(pixels, 8, 6, 4);
+		Assert.True(left.Red > 200 && left.Green < 40 && left.Blue < 40, left.ToString());
+		Assert.True(IsBlack(right), right.ToString());
+	}
+
+	/// <summary>
 	/// A multisampled offscreen target can be resolved and read back.
 	/// </summary>
 	[Fact]
@@ -292,9 +332,9 @@ public sealed class RendererPipelineTests
 		ConfigureUnlit(renderer);
 		using ITexture halfWhite = renderer.CreateTexture(1, 1, [255, 255, 255, 128], 4);
 		renderer.SetTexture(0, halfWhite);
-		renderer.SetRenderState(Direct3D8RenderState.AlphaBlendEnable, 1);
-		renderer.SetRenderState(Direct3D8RenderState.SourceBlend, 5);
-		renderer.SetRenderState(Direct3D8RenderState.DestinationBlend, 6);
+		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
+		renderer.SetRenderState(RenderStateId.SourceBlend, 5);
+		renderer.SetRenderState(RenderStateId.DestinationBlend, 6);
 		byte[] vertices = FullScreenTextureVertices();
 		Draw(renderer, vertices, 20, FvfXyzTex1);
 		Color blended = Center(renderer.CaptureBackBuffer(), 8, 8);
@@ -318,7 +358,7 @@ public sealed class RendererPipelineTests
 		renderer.SetTransform(TransformKind.World2, Matrix4x4.CreateTranslation(2, 0, 0));
 		renderer.SetTransform(TransformKind.World3, Matrix4x4.CreateTranslation(2, 0, 0));
 		renderer.SetWorldMatrix(5, Matrix4x4.CreateTranslation(2, 0, 0));
-		renderer.SetRenderState(Direct3D8RenderState.VertexBlend, Direct3D8RenderState.VertexBlendThreeWeights);
+		renderer.SetRenderState(RenderStateId.VertexBlend, RenderStateId.VertexBlendThreeWeights);
 		byte[] weighted = Vertices(3, 24, (vertex, index) =>
 		{
 			float x = index == 0 ? -1 : index == 1 ? 3 : -1;
@@ -353,7 +393,7 @@ public sealed class RendererPipelineTests
 		Color fourth = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.True(IsBlack(fourth), fourth.ToString());
 
-		renderer.SetRenderState(Direct3D8RenderState.IndexedVertexBlendEnable, 1);
+		renderer.SetRenderState(RenderStateId.IndexedVertexBlendEnable, 1);
 		byte[] indexed = Vertices(3, 28, (vertex, index) =>
 		{
 			float x = index == 0 ? -1 : index == 1 ? 3 : -1;
@@ -397,9 +437,9 @@ public sealed class RendererPipelineTests
 		Draw(renderer, firstIndex, 28, FvfXyzBlend4Indices);
 		Assert.True(IsWhite(Center(renderer.CaptureBackBuffer(), 8, 8)));
 
-		renderer.SetRenderState(Direct3D8RenderState.IndexedVertexBlendEnable, 0);
-		renderer.SetRenderState(Direct3D8RenderState.VertexBlend, Direct3D8RenderState.VertexBlendTweening);
-		renderer.SetRenderState(Direct3D8RenderState.TweenFactor, BitConverter.SingleToUInt32Bits(1));
+		renderer.SetRenderState(RenderStateId.IndexedVertexBlendEnable, 0);
+		renderer.SetRenderState(RenderStateId.VertexBlend, RenderStateId.VertexBlendTweening);
+		renderer.SetRenderState(RenderStateId.TweenFactor, BitConverter.SingleToUInt32Bits(1));
 		Draw(renderer, weighted, 24, FvfXyzBlend3);
 		Assert.True(IsBlack(Center(renderer.CaptureBackBuffer(), 8, 8)));
 	}
@@ -413,11 +453,11 @@ public sealed class RendererPipelineTests
 		using HiddenWindow window = new();
 		using Direct3D11Renderer renderer = CreateRenderer(window, new RenderSettings(8, 8, true, 0, false));
 		ConfigureUnlit(renderer);
-		renderer.SetRenderState(Direct3D8RenderState.FogEnable, 1);
-		renderer.SetRenderState(Direct3D8RenderState.FogColor, 0xFFFF0000);
-		renderer.SetRenderState(Direct3D8RenderState.FogTableMode, 3);
-		renderer.SetRenderState(Direct3D8RenderState.FogStart, BitConverter.SingleToUInt32Bits(0));
-		renderer.SetRenderState(Direct3D8RenderState.FogEnd, BitConverter.SingleToUInt32Bits(2));
+		renderer.SetRenderState(RenderStateId.FogEnable, 1);
+		renderer.SetRenderState(RenderStateId.FogColor, 0xFFFF0000);
+		renderer.SetRenderState(RenderStateId.FogTableMode, 3);
+		renderer.SetRenderState(RenderStateId.FogStart, BitConverter.SingleToUInt32Bits(0));
+		renderer.SetRenderState(RenderStateId.FogEnd, BitConverter.SingleToUInt32Bits(2));
 		Draw(renderer, RhwVertices(1), 20, FvfXyzRhwDiffuse);
 		Color halfFog = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.InRange((int)halfFog.Red, 120, 136);
@@ -425,8 +465,8 @@ public sealed class RendererPipelineTests
 		Draw(renderer, RhwVertices(0.5f), 20, FvfXyzRhwDiffuse);
 		Color farFog = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.True(farFog.Red > 200, farFog.ToString());
-		renderer.SetRenderState(Direct3D8RenderState.FogTableMode, 0);
-		renderer.SetRenderState(Direct3D8RenderState.FogVertexMode, 3);
+		renderer.SetRenderState(RenderStateId.FogTableMode, 0);
+		renderer.SetRenderState(RenderStateId.FogVertexMode, 3);
 		Draw(renderer, RhwVertices(1), 20, FvfXyzRhwDiffuse);
 		Color vertexFog = Center(renderer.CaptureBackBuffer(), 8, 8);
 		Assert.InRange((int)vertexFog.Red, 120, 136);
@@ -509,9 +549,9 @@ public sealed class RendererPipelineTests
 
 	private static void ConfigureUnlit(Direct3D11Renderer renderer)
 	{
-		renderer.SetRenderState(Direct3D8RenderState.CullMode, Direct3D8RenderState.CullNone);
-		renderer.SetRenderState(Direct3D8RenderState.ZEnable, 0);
-		renderer.SetRenderState(Direct3D8RenderState.Lighting, 0);
+		renderer.SetRenderState(RenderStateId.CullMode, RenderStateId.CullNone);
+		renderer.SetRenderState(RenderStateId.ZEnable, 0);
+		renderer.SetRenderState(RenderStateId.Lighting, 0);
 		renderer.SetMaterial(new Material(new Vector4(1, 1, 1, 1), Vector4.Zero, Vector4.Zero, Vector4.Zero, 0));
 	}
 
@@ -578,9 +618,11 @@ public sealed class RendererPipelineTests
 
 	private static void Write(Span<byte> vertex, int offset, float value) => MemoryMarshal.Write(vertex[offset..], in value);
 
-	private static Color Center(byte[] pixels, int width, int height)
+	private static Color Center(byte[] pixels, int width, int height) => PixelAt(pixels, width, width / 2, height / 2);
+
+	private static Color PixelAt(byte[] pixels, int width, int x, int y)
 	{
-		int offset = ((height / 2) * width + width / 2) * 4;
+		int offset = (y * width + x) * 4;
 		return new Color(pixels[offset + 2], pixels[offset + 1], pixels[offset], pixels[offset + 3]);
 	}
 

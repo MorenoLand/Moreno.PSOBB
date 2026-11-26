@@ -6,7 +6,7 @@ namespace PsoBB.Tests;
 /// <summary>
 /// A renderer that records the commands it receives, for contract tests without a graphics device.
 /// </summary>
-internal sealed class RecordingRenderer : IRenderer
+internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRenderer
 {
 	private readonly List<string> _commands = [];
 	private int _disposeCount;

@@ -1,4 +1,5 @@
 using System.Numerics;
+using PsoBB.Graphics;
 using Vortice.Direct3D11;
 
 namespace PsoBB.Rendering.Direct3D11;
@@ -48,8 +49,8 @@ internal sealed class RenderStateValues
 	/// <returns>The blend description.</returns>
 	public BlendDescription CreateBlendDescription()
 	{
-		bool enabled = Get(Direct3D8RenderState.AlphaBlendEnable, 0) != 0;
-		bool separateAlpha = Get(Direct3D8RenderState.SeparateAlphaBlendEnable, 0) != 0;
+		bool enabled = Get(RenderStateId.AlphaBlendEnable, 0) != 0;
+		bool separateAlpha = Get(RenderStateId.SeparateAlphaBlendEnable, 0) != 0;
 		BlendDescription description = new()
 		{
 			AlphaToCoverageEnable = false,
@@ -58,13 +59,13 @@ internal sealed class RenderStateValues
 		description.RenderTarget[0] = new RenderTargetBlendDescription
 		{
 			BlendEnable = enabled,
-			SourceBlend = MapBlend(Get(Direct3D8RenderState.SourceBlend, Direct3D8RenderState.BlendOne)),
-			DestinationBlend = MapBlend(Get(Direct3D8RenderState.DestinationBlend, Direct3D8RenderState.BlendZero)),
-			BlendOperation = MapBlendOperation(Get(Direct3D8RenderState.BlendOperation, 1)),
-			SourceBlendAlpha = MapBlend(Get(Direct3D8RenderState.SourceBlendAlpha, Direct3D8RenderState.BlendOne)),
-			DestinationBlendAlpha = MapBlend(Get(Direct3D8RenderState.DestinationBlendAlpha, Direct3D8RenderState.BlendZero)),
-			BlendOperationAlpha = MapBlendOperation(Get(Direct3D8RenderState.BlendOperationAlpha, 1)),
-			RenderTargetWriteMask = (ColorWriteEnable)((byte)(Get(Direct3D8RenderState.ColorWriteEnable, 0xF) & 0xF)),
+			SourceBlend = MapBlend(Get(RenderStateId.SourceBlend, RenderStateId.BlendOne)),
+			DestinationBlend = MapBlend(Get(RenderStateId.DestinationBlend, RenderStateId.BlendZero)),
+			BlendOperation = MapBlendOperation(Get(RenderStateId.BlendOperation, 1)),
+			SourceBlendAlpha = MapBlend(Get(RenderStateId.SourceBlendAlpha, RenderStateId.BlendOne)),
+			DestinationBlendAlpha = MapBlend(Get(RenderStateId.DestinationBlendAlpha, RenderStateId.BlendZero)),
+			BlendOperationAlpha = MapBlendOperation(Get(RenderStateId.BlendOperationAlpha, 1)),
+			RenderTargetWriteMask = (ColorWriteEnable)((byte)(Get(RenderStateId.ColorWriteEnable, 0xF) & 0xF)),
 		};
 		if (enabled && !separateAlpha)
 		{
@@ -82,14 +83,14 @@ internal sealed class RenderStateValues
 	/// <returns>The rasterizer description.</returns>
 	public RasterizerDescription CreateRasterizerDescription(bool multisampled)
 	{
-		uint cull = Get(Direct3D8RenderState.CullMode, Direct3D8RenderState.CullCounterClockwise);
+		uint cull = Get(RenderStateId.CullMode, RenderStateId.CullCounterClockwise);
 		return new RasterizerDescription
 		{
-			FillMode = Get(Direct3D8RenderState.FillMode, 3) == 2 ? FillMode.Wireframe : FillMode.Solid,
+			FillMode = Get(RenderStateId.FillMode, 3) == 2 ? FillMode.Wireframe : FillMode.Solid,
 			CullMode = cull switch
 			{
-				Direct3D8RenderState.CullNone => CullMode.None,
-				Direct3D8RenderState.CullClockwise => CullMode.Front,
+				RenderStateId.CullNone => CullMode.None,
+				RenderStateId.CullClockwise => CullMode.Front,
 				_ => CullMode.Back,
 			},
 			FrontCounterClockwise = false,
@@ -97,7 +98,7 @@ internal sealed class RenderStateValues
 			DepthBiasClamp = 0,
 			SlopeScaledDepthBias = 0,
 			DepthClipEnable = true,
-			ScissorEnable = Get(Direct3D8RenderState.ScissorTestEnable, 0) != 0,
+			ScissorEnable = Get(RenderStateId.ScissorTestEnable, 0) != 0,
 			MultisampleEnable = multisampled,
 			AntialiasedLineEnable = false,
 		};
@@ -107,22 +108,22 @@ internal sealed class RenderStateValues
 	/// <returns>The depth and stencil description.</returns>
 	public DepthStencilDescription CreateDepthStencilDescription()
 	{
-		bool depthEnabled = Get(Direct3D8RenderState.ZEnable, 1) != 0;
-		bool depthWrite = Get(Direct3D8RenderState.ZWriteEnable, 1) != 0;
-		bool stencilEnabled = Get(Direct3D8RenderState.StencilEnable, 0) != 0;
+		bool depthEnabled = Get(RenderStateId.ZEnable, 1) != 0;
+		bool depthWrite = Get(RenderStateId.ZWriteEnable, 1) != 0;
+		bool stencilEnabled = Get(RenderStateId.StencilEnable, 0) != 0;
 		DepthStencilOperationDescription frontFace = new(
-			MapStencilOperation(Get(Direct3D8RenderState.StencilFail, 1)),
-			MapStencilOperation(Get(Direct3D8RenderState.StencilDepthFail, 1)),
-			MapStencilOperation(Get(Direct3D8RenderState.StencilPass, 1)),
-			MapComparison(Get(Direct3D8RenderState.StencilFunction, Direct3D8RenderState.ComparisonAlways)));
+			MapStencilOperation(Get(RenderStateId.StencilFail, 1)),
+			MapStencilOperation(Get(RenderStateId.StencilDepthFail, 1)),
+			MapStencilOperation(Get(RenderStateId.StencilPass, 1)),
+			MapComparison(Get(RenderStateId.StencilFunction, RenderStateId.ComparisonAlways)));
 		return new DepthStencilDescription
 		{
 			DepthEnable = depthEnabled,
 			DepthWriteMask = depthEnabled && depthWrite ? DepthWriteMask.All : DepthWriteMask.Zero,
-			DepthFunc = MapComparison(Get(Direct3D8RenderState.ZFunction, 4)),
+			DepthFunc = MapComparison(Get(RenderStateId.ZFunction, 4)),
 			StencilEnable = stencilEnabled,
-			StencilReadMask = (byte)Get(Direct3D8RenderState.StencilMask, 0xFFFFFFFF),
-			StencilWriteMask = (byte)Get(Direct3D8RenderState.StencilWriteMask, 0xFFFFFFFF),
+			StencilReadMask = (byte)Get(RenderStateId.StencilMask, 0xFFFFFFFF),
+			StencilWriteMask = (byte)Get(RenderStateId.StencilWriteMask, 0xFFFFFFFF),
 			FrontFace = frontFace,
 			BackFace = frontFace,
 		};
@@ -132,23 +133,23 @@ internal sealed class RenderStateValues
 	/// <returns>The fog mode.</returns>
 	public uint GetFogMode()
 	{
-		if (Get(Direct3D8RenderState.FogEnable, 0) == 0)
+		if (Get(RenderStateId.FogEnable, 0) == 0)
 			return 0;
-		uint mode = Get(Direct3D8RenderState.FogTableMode, 0);
-		return mode != 0 ? mode : Get(Direct3D8RenderState.FogVertexMode, 0);
+		uint mode = Get(RenderStateId.FogTableMode, 0);
+		return mode != 0 ? mode : Get(RenderStateId.FogVertexMode, 0);
 	}
 
 	/// <summary>Gets the alpha reference converted to a normalized value.</summary>
 	/// <returns>The alpha reference in the range zero to one.</returns>
-	public float GetAlphaReference() => Math.Clamp(Get(Direct3D8RenderState.AlphaReference, 0), 0, 255) / 255.0f;
+	public float GetAlphaReference() => Math.Clamp(Get(RenderStateId.AlphaReference, 0), 0, 255) / 255.0f;
 
 	/// <summary>Gets whether alpha testing is enabled.</summary>
 	/// <returns>True when the pixel shader must reject failing samples.</returns>
-	public bool IsAlphaTestEnabled() => Get(Direct3D8RenderState.AlphaTestEnable, 0) != 0;
+	public bool IsAlphaTestEnabled() => Get(RenderStateId.AlphaTestEnable, 0) != 0;
 
 	/// <summary>Gets the alpha comparison function identifier.</summary>
 	/// <returns>The Direct3D 8 comparison identifier.</returns>
-	public uint GetAlphaFunction() => Get(Direct3D8RenderState.AlphaFunction, Direct3D8RenderState.ComparisonAlways);
+	public uint GetAlphaFunction() => Get(RenderStateId.AlphaFunction, RenderStateId.ComparisonAlways);
 
 	private static Blend MapBlend(uint value) => value switch
 	{

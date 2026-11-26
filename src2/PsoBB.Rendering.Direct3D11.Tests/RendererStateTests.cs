@@ -90,15 +90,15 @@ public sealed class RendererStateTests
 	public void RenderStateValuesReadPackedValues()
 	{
 		RenderStateValues states = new();
-		states.Set(Direct3D8RenderState.FogColor, 0x80112233);
-		states.Set(Direct3D8RenderState.FogStart, BitConverter.SingleToUInt32Bits(0.25f));
-		states.Set(Direct3D8RenderState.FogEnable, 1);
-		Vector4 color = states.GetColor(Direct3D8RenderState.FogColor, Vector4.Zero);
+		states.Set(RenderStateId.FogColor, 0x80112233);
+		states.Set(RenderStateId.FogStart, BitConverter.SingleToUInt32Bits(0.25f));
+		states.Set(RenderStateId.FogEnable, 1);
+		Vector4 color = states.GetColor(RenderStateId.FogColor, Vector4.Zero);
 		Assert.Equal(0x11 / 255.0f, color.X, 3);
 		Assert.Equal(0x22 / 255.0f, color.Y, 3);
 		Assert.Equal(0x33 / 255.0f, color.Z, 3);
 		Assert.Equal(0x80 / 255.0f, color.W, 3);
-		Assert.Equal(0.25f, states.GetSingle(Direct3D8RenderState.FogStart, 0));
-		Assert.True(states.GetBool(Direct3D8RenderState.FogEnable, false));
+		Assert.Equal(0.25f, states.GetSingle(RenderStateId.FogStart, 0));
+		Assert.True(states.GetBool(RenderStateId.FogEnable, false));
 	}
 }

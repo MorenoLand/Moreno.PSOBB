@@ -1,9 +1,14 @@
-namespace PsoBB.Rendering.Direct3D11;
+namespace PsoBB.Graphics;
 
 /// <summary>
-/// The render-state identifiers and default values the original Direct3D 8 client used.
+/// The render-state identifiers and default values used by the original client.
 /// </summary>
-internal static class Direct3D8RenderState
+/// <remarks>
+/// The ported game code sets these identifiers through <see cref="IRenderer.SetRenderState"/>; each
+/// backend translates them to its own API, so the identifiers stay stable across Direct3D 11,
+/// OpenGL and WebGL.
+/// </remarks>
+public static class RenderStateId
 {
 	public const uint ZEnable = 7;
 	public const uint FillMode = 8;
@@ -71,8 +76,11 @@ internal static class Direct3D8RenderState
 	public const uint CullCounterClockwise = 3;
 
 	public const uint ComparisonNever = 1;
+	public const uint ComparisonLessEqual = 4;
 	public const uint ComparisonAlways = 8;
 
 	public const uint BlendZero = 1;
 	public const uint BlendOne = 2;
+	public const uint BlendSourceAlpha = 5;
+	public const uint BlendInverseSourceAlpha = 6;
 }

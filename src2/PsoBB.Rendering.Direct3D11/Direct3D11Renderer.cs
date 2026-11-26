@@ -18,7 +18,7 @@ namespace PsoBB.Rendering.Direct3D11;
 /// per-vertex and table fog, and resource recovery after a device loss or resize. Retained textures
 /// keep a CPU copy of their pixels so they can be recreated on the replacement device.
 /// </remarks>
-public sealed class Direct3D11Renderer : IRenderer
+public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRenderer
 {
 	private const int TextureStageCount = 4;
 	private const int LightCount = 8;
@@ -502,7 +502,7 @@ public sealed class Direct3D11Renderer : IRenderer
 		_rasterizerState = _device.CreateRasterizerState(_states.CreateRasterizerDescription(Settings.MultisampleCount > 0));
 		_depthStencilState = _device.CreateDepthStencilState(_states.CreateDepthStencilDescription());
 		_context.OMSetBlendState(_blendState, new Color4(1, 1, 1, 1), uint.MaxValue);
-		_context.OMSetDepthStencilState(_depthStencilState, _states.Get(Direct3D8RenderState.StencilReference, 0));
+		_context.OMSetDepthStencilState(_depthStencilState, _states.Get(RenderStateId.StencilReference, 0));
 		_context.RSSetState(_rasterizerState);
 		for (int stage = 0; stage < TextureStageCount; stage++)
 		{
@@ -581,7 +581,7 @@ public sealed class Direct3D11Renderer : IRenderer
 			_rasterizerState = _device.CreateRasterizerState(_states.CreateRasterizerDescription(Settings.MultisampleCount > 0));
 			_depthStencilState = _device.CreateDepthStencilState(_states.CreateDepthStencilDescription());
 			_context.OMSetBlendState(_blendState, new Color4(1, 1, 1, 1), uint.MaxValue);
-			_context.OMSetDepthStencilState(_depthStencilState, _states.Get(Direct3D8RenderState.StencilReference, 0));
+			_context.OMSetDepthStencilState(_depthStencilState, _states.Get(RenderStateId.StencilReference, 0));
 			_context.RSSetState(_rasterizerState);
 		}
 		for (int stage = 0; stage < TextureStageCount; stage++)
@@ -599,8 +599,8 @@ public sealed class Direct3D11Renderer : IRenderer
 		if (!_constantsDirty)
 			return;
 		_constantsDirty = false;
-		Vector4 fogColor = _states.GetColor(Direct3D8RenderState.FogColor, Vector4.Zero);
-		uint tableMode = _states.Get(Direct3D8RenderState.FogTableMode, 0);
+		Vector4 fogColor = _states.GetColor(RenderStateId.FogColor, Vector4.Zero);
+		uint tableMode = _states.Get(RenderStateId.FogTableMode, 0);
 		SceneConstants constants = new()
 		{
 			View = _view,
@@ -611,14 +611,14 @@ public sealed class Direct3D11Renderer : IRenderer
 			TextureTransform3 = _textureTransforms[3],
 			FogColor = new Vector4(fogColor.X, fogColor.Y, fogColor.Z, 1),
 			FogParameters = new Vector4(
-				_states.GetSingle(Direct3D8RenderState.FogStart, 0),
-				_states.GetSingle(Direct3D8RenderState.FogEnd, 1),
-				_states.GetSingle(Direct3D8RenderState.FogDensity, 1),
+				_states.GetSingle(RenderStateId.FogStart, 0),
+				_states.GetSingle(RenderStateId.FogEnd, 1),
+				_states.GetSingle(RenderStateId.FogDensity, 1),
 				_states.GetFogMode()),
 			AlphaTest = new Vector4(_states.GetAlphaReference(), _states.GetAlphaFunction(), _states.IsAlphaTestEnabled() ? 1 : 0, 0),
 			ScreenSize = new Vector4(Settings.Width, Settings.Height, 1.0f / Settings.Width, 1.0f / Settings.Height),
 			FogFlags = new Vector4(
-				_states.GetBool(Direct3D8RenderState.RangeFogEnable, false) ? 1 : 0,
+				_states.GetBool(RenderStateId.RangeFogEnable, false) ? 1 : 0,
 				tableMode != 0 ? 1 : 0,
 				IsAffineProjection(_projection) ? 1 : 0,
 				0),
@@ -632,22 +632,22 @@ public sealed class Direct3D11Renderer : IRenderer
 			MaterialEmissive = _material.Emissive,
 			MaterialPower = new Vector4(_material.Power, 0, 0, 0),
 			LightingFlags = new Vector4(
-				_states.GetBool(Direct3D8RenderState.Lighting, true) ? 1 : 0,
-				_states.GetBool(Direct3D8RenderState.SpecularEnable, false) ? 1 : 0,
-				_states.GetBool(Direct3D8RenderState.ColorVertex, true) ? 1 : 0,
-				_states.GetBool(Direct3D8RenderState.LocalViewer, true) ? 1 : 0),
+				_states.GetBool(RenderStateId.Lighting, true) ? 1 : 0,
+				_states.GetBool(RenderStateId.SpecularEnable, false) ? 1 : 0,
+				_states.GetBool(RenderStateId.ColorVertex, true) ? 1 : 0,
+				_states.GetBool(RenderStateId.LocalViewer, true) ? 1 : 0),
 			MaterialSources = new Vector4(
-				_states.Get(Direct3D8RenderState.AmbientMaterialSource, Direct3D8RenderState.MaterialColorMaterial),
-				_states.Get(Direct3D8RenderState.DiffuseMaterialSource, Direct3D8RenderState.MaterialColorDiffuse),
-				_states.Get(Direct3D8RenderState.SpecularMaterialSource, Direct3D8RenderState.MaterialColorSpecular),
-				_states.Get(Direct3D8RenderState.EmissiveMaterialSource, Direct3D8RenderState.MaterialColorMaterial)),
+				_states.Get(RenderStateId.AmbientMaterialSource, RenderStateId.MaterialColorMaterial),
+				_states.Get(RenderStateId.DiffuseMaterialSource, RenderStateId.MaterialColorDiffuse),
+				_states.Get(RenderStateId.SpecularMaterialSource, RenderStateId.MaterialColorSpecular),
+				_states.Get(RenderStateId.EmissiveMaterialSource, RenderStateId.MaterialColorMaterial)),
 			VertexBlend = new Vector4(
-				_states.Get(Direct3D8RenderState.VertexBlend, Direct3D8RenderState.VertexBlendDisable),
-				_states.GetSingle(Direct3D8RenderState.TweenFactor, 0),
-				_states.GetBool(Direct3D8RenderState.IndexedVertexBlendEnable, false) ? 1 : 0,
-				_states.GetBool(Direct3D8RenderState.NormalizeNormals, false) ? 1 : 0),
-			GlobalAmbient = _states.GetColor(Direct3D8RenderState.Ambient, Vector4.Zero),
-			TextureFactor = _states.GetColor(Direct3D8RenderState.TextureFactor, Vector4.One),
+				_states.Get(RenderStateId.VertexBlend, RenderStateId.VertexBlendDisable),
+				_states.GetSingle(RenderStateId.TweenFactor, 0),
+				_states.GetBool(RenderStateId.IndexedVertexBlendEnable, false) ? 1 : 0,
+				_states.GetBool(RenderStateId.NormalizeNormals, false) ? 1 : 0),
+			GlobalAmbient = _states.GetColor(RenderStateId.Ambient, Vector4.Zero),
+			TextureFactor = _states.GetColor(RenderStateId.TextureFactor, Vector4.One),
 			StageColor0 = GetStageColor(0),
 			StageColor1 = GetStageColor(1),
 			StageColor2 = GetStageColor(2),

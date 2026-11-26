@@ -14,6 +14,10 @@ internal sealed class GameWindow : IDisposable
 	private const uint WindowMessageClose = 0x0010;
 	private const uint WindowMessageDestroy = 0x0002;
 	private const uint WindowMessageQuit = 0x0012;
+	private const uint WindowMessageSetIcon = 0x0080;
+	private const int ApplicationIconResource = 32512;
+	private const int IconSmall = 0;
+	private const int IconBig = 1;
 	private readonly string _className;
 	private readonly WindowMessageHandler _windowProcedure;
 	private readonly nint _instance;
@@ -32,6 +36,7 @@ internal sealed class GameWindow : IDisposable
 		_className = $"PsoBB.Windows.{Guid.NewGuid():N}";
 		_windowProcedure = WindowProcedure;
 		_instance = GetModuleHandle(null);
+		nint icon = LoadIcon(_instance, ApplicationIconResource);
 		WindowClass windowClass = new()
 		{
 			Size = (uint)Marshal.SizeOf<WindowClass>(),
@@ -39,6 +44,8 @@ internal sealed class GameWindow : IDisposable
 			Instance = _instance,
 			ClassName = _className,
 			Cursor = LoadCursor(0, 32512),
+			Icon = icon,
+			SmallIcon = icon,
 		};
 		if (RegisterClassEx(ref windowClass) == 0)
 			throw new InvalidOperationException($"RegisterClassEx failed with error {Marshal.GetLastWin32Error()}.");
@@ -51,6 +58,8 @@ internal sealed class GameWindow : IDisposable
 		}
 		ShowWindow(_handle, 5);
 		UpdateWindow(_handle);
+		SendMessage(_handle, WindowMessageSetIcon, IconBig, icon);
+		SendMessage(_handle, WindowMessageSetIcon, IconSmall, icon);
 	}
 
 	/// <summary>Gets the native window handle.</summary>
@@ -177,4 +186,10 @@ internal sealed class GameWindow : IDisposable
 
 	[DllImport("user32.dll")]
 	private static extern nint LoadCursor(nint instance, int cursorName);
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	private static extern nint LoadIcon(nint instance, nint iconName);
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	private static extern nint SendMessage(nint window, uint message, nint wParam, nint lParam);
 }
