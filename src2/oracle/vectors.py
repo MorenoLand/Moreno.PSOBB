@@ -133,6 +133,24 @@ def clear_pair_vectors(read):
     write("0082E930.json", vectors)
 
 
+def set_low_bit_vectors(read):
+    """0x005CEA60: sets the low bit of the word eight bytes into the pointed object."""
+    target = 0x30002000
+    vectors = []
+    for initial in (0x0000, 0x0001, 0x0002, 0x8000, 0xFFFE, 0xFFFF):
+        _, _, captured = run(
+            read,
+            0x005CEA60,
+            18,
+            stack=[target],
+            memory=[(target, b"\0" * 8 + struct.pack("<H", initial))],
+            capture=[(target + 8, 2)],
+        )
+        after = struct.unpack("<H", captured[target + 8])[0]
+        vectors.append({"initial": initial, "result": after})
+    write("005CEA60.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -140,6 +158,7 @@ def main():
     multiply_add_vectors(read)
     divide_vectors(read)
     clear_pair_vectors(read)
+    set_low_bit_vectors(read)
 
 
 if __name__ == "__main__":
