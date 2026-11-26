@@ -263,8 +263,8 @@ director's release pass; without a factory it emits the no-interface diagnostic.
   owns those calls.
 - The flash UV values `0xA96904/08/0C/10` have no writer in the lift; `DrawFlash` requires them from
   the caller rather than inventing constants.
-- The GUI skin and the account panel frame/header-bar textures behind `0x00710F80`/`0x007120EC`
-  are owned by the interface ports; the login port draws the header text, rows and hint.
+- `LoginDialogFrame` owns the title panel body, orange header and selected-row strip behind
+  `0x00710F80`/`0x007120EC`; the login port draws the header text, rows and hint.
 
 ## Verification
 
