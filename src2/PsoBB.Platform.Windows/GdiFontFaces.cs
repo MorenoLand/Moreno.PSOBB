@@ -12,7 +12,7 @@ namespace PsoBB.Platform.Windows;
 public static class GdiFontFaces
 {
 	/// <summary>The registry key that holds the configured face name.</summary>
-	public const string RegistryKeyPath = @"Software\SEGA\PHANTASY_STAR_ONLINE_Blue_Burst";
+	public const string RegistryKeyPath = @"Software\SonicTeam\PSOBB";
 
 	/// <summary>The registry value that holds the configured face name.</summary>
 	public const string FaceValueName = "FONT_JPN";
@@ -41,7 +41,6 @@ public static class GdiFontFaces
 	/// </summary>
 	/// <param name="faceName">The face name; an empty string asks GDI for its default face.</param>
 	/// <returns>The five-face table.</returns>
-	[Original(0x00841A10, "unknown_get_font_struct")]
 	public static FontFaceTable CreateFaceTable(string faceName) => new(CreateDescriptors(faceName));
 
 	/// <summary>

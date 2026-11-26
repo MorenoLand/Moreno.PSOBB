@@ -137,6 +137,7 @@ public sealed class GdiBitmapFontTests
 		using GdiBitmapFont gdiFont = GdiBitmapFont.Create(new GdiTestRenderer());
 
 		Assert.Equal(0x5F, gdiFont.Font.Glyphs.Count);
+		Assert.Equal(GdiFontFaces.ReadFaceName(), gdiFont.Faces[0].FaceName);
 		Assert.Equal(0, gdiFont.Font.GetAlphabetType('A'));
 		Assert.InRange(gdiFont.Font.GetGlyph('A').Width, 1, BitmapFont.GlyphHeight);
 	}
