@@ -1,4 +1,4 @@
-﻿# Static recompiler that translates the Phantasy Star Online Blue Burst client into portable C
+# Static recompiler that translates the Phantasy Star Online Blue Burst client into portable C
 
 This is a StaticShock project. It lifts the original 32-bit Windows client
 instruction by instruction into C, then builds a native Win32 host and a
