@@ -32,7 +32,7 @@ public sealed class RetailModelRenderTests
 		{
 			Assert.Equal(0x152u, surface.VertexFormat);
 			Assert.Equal(36, surface.Stride);
-			Assert.NotEmpty(surface.Indices);
+			Assert.True(surface.Indices.Length > 0);
 		});
 	}
 }
