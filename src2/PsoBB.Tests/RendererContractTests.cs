@@ -37,6 +37,36 @@ public sealed class RendererContractTests
 	}
 
 	/// <summary>
+	/// Lighting, texture-stage, world-matrix and resize commands reach the renderer through the contract.
+	/// </summary>
+	[Fact]
+	public void ExtendedFrameCommandsReachTheRenderer()
+	{
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		renderer.BeginFrame();
+		renderer.SetWorldMatrix(3, Matrix4x4.Identity);
+		renderer.SetMaterial(Material.Default);
+		renderer.SetLight(2, Light.Default);
+		renderer.SetLightEnabled(2, true);
+		renderer.SetTextureStageState(1, 1, 4);
+		renderer.Resize(800, 600);
+		renderer.EndFrame();
+		Assert.Equal(
+		[
+			"BeginFrame",
+			"WorldMatrix 3",
+			"Material",
+			"Light 2:Point",
+			"LightEnabled 2:True",
+			"TextureStage 1:1:4",
+			"Resize 800x600",
+			"EndFrame",
+		], renderer.Commands);
+		Assert.Equal(800, renderer.Settings.Width);
+		Assert.Equal(600, renderer.Settings.Height);
+	}
+
+	/// <summary>
 	/// A frame's commands reach the renderer in order and a texture keeps its dimensions.
 	/// </summary>
 	[Fact]
