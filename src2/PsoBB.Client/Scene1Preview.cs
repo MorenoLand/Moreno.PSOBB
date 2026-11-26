@@ -24,6 +24,9 @@ public static class Scene1Preview
 	{
 		ArgumentNullException.ThrowIfNull(host);
 		ArgumentNullException.ThrowIfNull(pump);
+		host.Renderer.BeginFrame();
+		host.Renderer.Clear(ClientHost.EmptyFrameColor);
+		host.Renderer.EndFrame();
 		using DataFileRegistry files = new(host.FileSystem, DataArchiveSource.Gsl("data/data.gsl"));
 		using TextureCache textures = new(host.Renderer);
 		using Scene1 scene = new(files, host.Renderer, textures);
