@@ -44,6 +44,48 @@ public sealed class SoundEffectLibraryTests
 	}
 
 	[Fact]
+	public void ResolvesAliasedIdentifiersThroughTheClientRemap()
+	{
+		(byte[] data, SoundBankDefinition definition) = SyntheticPacBank.Build("common.pac", new PacSoundSpec(532, 8000, 1, 16, [1]), new PacSoundSpec(1391, 8000, 1, 16, [2]));
+		using DataFileRegistry files = Files(("data/sound/common.pac", data));
+		SoundEffectLibrary library = new(files, Catalog(definition, Empty("map.pac")));
+		Assert.True(library.LoadCommonBank());
+		Assert.Equal(532, library.Find(651)?.SoundEffectId);
+		SoundEffectMapping mapping = Assert.NotNull(library.Resolve(1391));
+		Assert.Equal(1391, mapping.Slot);
+		Assert.Equal(65, mapping.VolumeIndex);
+		Assert.Equal(1391, mapping.Sample.SoundEffectId);
+	}
+
+	[Fact]
+	public void MapBankSuppliesTheTitleConfirmSound()
+	{
+		(byte[] commonData, SoundBankDefinition common) = SyntheticPacBank.Build("common.pac", new PacSoundSpec(1391, 8000, 1, 16, [1]));
+		(byte[] mapData, SoundBankDefinition map) = SyntheticPacBank.Build("map.pac", new PacSoundSpec(1056, 8000, 1, 16, [2]));
+		using DataFileRegistry files = Files(("data/sound/common.pac", commonData), ("data/sound/map.pac", mapData));
+		SoundEffectLibrary library = new(files, Catalog(common, map));
+		Assert.True(library.LoadCommonBank());
+		Assert.True(library.LoadMapBank(0));
+		Assert.NotNull(library.Find(1391));
+		Assert.NotNull(library.Find(1056));
+		library.UnloadMapBank();
+		Assert.Null(library.Find(1056));
+		Assert.NotNull(library.Find(1391));
+	}
+
+	[Fact]
+	public void IdentifiersOutsideTheClientTableAreMissing()
+	{
+		(byte[] data, SoundBankDefinition definition) = SyntheticPacBank.Build("common.pac", new PacSoundSpec(1391, 8000, 1, 16, [1]));
+		using DataFileRegistry files = Files(("data/sound/common.pac", data));
+		SoundEffectLibrary library = new(files, Catalog(definition, Empty("map.pac")));
+		Assert.True(library.LoadCommonBank());
+		Assert.Null(library.Find(0));
+		Assert.Null(library.Find(-1));
+		Assert.Null(library.Find(SoundEffectIds.SlotCount));
+	}
+
+	[Fact]
 	public void MissingCommonBankIsReported()
 	{
 		using DataFileRegistry files = Files();
