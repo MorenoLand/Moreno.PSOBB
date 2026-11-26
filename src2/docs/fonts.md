@@ -59,19 +59,20 @@ copies at the two-pixel offsets and then the visible pass.
 ## Windows host
 
 `PsoBB.Platform.Windows.GdiBitmapFont.Create(renderer)` reads `FONT_JPN` from
-`HKCU\Software\SEGA\PHANTASY_STAR_ONLINE_Blue_Burst`, creates the five 14-pixel `CreateFontA`
-faces from the `0xA21CE0` records, and rasterises the requested code units. `GdiGlyphRasterizer`
+`HKCU\Software\SonicTeam\PSOBB`, creates the five 14-pixel `CreateFontA` faces from the
+`0xA21CE0` records, and rasterises the requested code units. `GdiGlyphRasterizer`
 owns one compatible DC, one 32-bit 14-by-14 bottom-up DIB and the five fonts; it draws one
 character with `ExtTextOutW`, reverses the rows and quantises each 24-bit BGR pixel at
 `0x555555` and `0xAAAAAA` into the builder's four alpha levels. `GdiBitmapFont` uploads the
 pages through `FontTextures` and exposes the shared `TextRenderer`.
 
-The shipped registry helper at `0x0082D444` opens `Software\SonicTeam\PSOV2`; the configured
-SEGA path is the default. No key is present on the development machine, so the exact face used
-by `t09.png` is not recorded. The capture's advances and twenty-pixel rows match a Tahoma
-14-pixel face at the capture's 1.6 scale, while an empty name makes GDI choose its own default
-face (Arial on this machine). The port passes the configured name or the empty string through
-unchanged and does not substitute a face.
+The registry value `FONT_JPN` under `HKCU\Software\SonicTeam\PSOBB` is `Tahoma` on this
+machine; the factory reads it, and the resulting 14-pixel face reproduces the advances and
+twenty-pixel rows of `t09.png` at the capture's 1.6 scale, with each line width matching within
+one or two pixels. The lift's `SubKey`, `aSonicteam` and `aPsov2` symbols are auto-generated
+names, so the registry value is the evidence for the path. An empty value leaves the name empty
+and GDI selects its default face (Arial on this machine); the port passes the configured name or
+the empty string through unchanged and does not substitute a face.
 
 ## Port boundary
 
