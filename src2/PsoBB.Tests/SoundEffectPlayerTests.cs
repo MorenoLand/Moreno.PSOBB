@@ -45,6 +45,25 @@ public sealed class SoundEffectPlayerTests
 	}
 
 	[Fact]
+	public void LoopsOnlyTheLoopRegion()
+	{
+		SoundEffectPlayer player = new(44100);
+		AudioClip clip = new(44100, 1, [0.1f, 0.2f, 0.3f, 0.4f, 0.5f], 1, 4);
+		player.Play(clip, 1f, true);
+		float[] samples = new float[8];
+		Assert.Equal(1, player.Render(samples, 1));
+		Assert.Equal([0.1f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f, 0.2f], samples);
+	}
+
+	[Fact]
+	public void RejectsAnInvalidLoopRegion()
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() => new AudioClip(44100, 1, [0.5f], 1, 1));
+		Assert.Throws<ArgumentOutOfRangeException>(() => new AudioClip(44100, 1, [0.5f], 0, 2));
+		Assert.Throws<ArgumentOutOfRangeException>(() => new AudioClip(44100, 1, [0.5f], -1, 1));
+	}
+
+	[Fact]
 	public void StopRemovesVoice()
 	{
 		SoundEffectPlayer player = new(44100);
