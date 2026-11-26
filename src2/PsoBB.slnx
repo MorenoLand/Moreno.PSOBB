@@ -1,5 +1,7 @@
 <Solution>
 	<Project Path="PsoBB/PsoBB.csproj" />
 	<Project Path="PsoBB.Client/PsoBB.Client.csproj" />
+	<Project Path="PsoBB.Platform.Windows/PsoBB.Platform.Windows.csproj" />
+	<Project Path="PsoBB.Platform.Windows.Tests/PsoBB.Platform.Windows.Tests.csproj" />
 	<Project Path="PsoBB.Tests/PsoBB.Tests.csproj" />
 </Solution>
