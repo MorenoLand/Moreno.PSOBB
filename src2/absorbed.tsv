@@ -1,2 +1,4 @@
 # Original functions with no C# counterpart because the .NET runtime replaces them.
 # address	reason
+0x0082E940	The CLR allocator replaces the original heap allocation.
+0x0082E960	The CLR garbage collector replaces the original heap release.
