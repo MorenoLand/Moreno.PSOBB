@@ -3,6 +3,7 @@
 	<Project Path="PsoBB.Client/PsoBB.Client.csproj" />
 	<Project Path="PsoBB.Platform.Linux/PsoBB.Platform.Linux.csproj" />
 	<Project Path="PsoBB.Platform.Linux.Tests/PsoBB.Platform.Linux.Tests.csproj" />
+	<Project Path="PsoBB.Platform.Web/PsoBB.Platform.Web.csproj" />
 	<Project Path="PsoBB.Platform.Windows/PsoBB.Platform.Windows.csproj" />
 	<Project Path="PsoBB.Platform.Windows.Tests/PsoBB.Platform.Windows.Tests.csproj" />
 	<Project Path="PsoBB.Rendering.Direct3D11/PsoBB.Rendering.Direct3D11.csproj" />

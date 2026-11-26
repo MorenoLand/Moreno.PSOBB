@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PsoBB\PsoBB.csproj" />
     <ProjectReference Include="..\PsoBB.Client\PsoBB.Client.csproj" />
+    <ProjectReference Include="..\PsoBB.Platform.Web\PsoBB.Platform.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
