@@ -91,6 +91,25 @@ after the configuration stage `0x0082D650` and the registry reads at `0x00482EAC
 the same three values from `IRenderer.Settings`, the seam the host already applied, because the
 configuration stage is not ported.
 
+## Player movement
+
+`PsoBB.Player` ports the local player's creation state, the input-to-heading speed step, the
+heading interpolation, collision rejection and the `Player__Animate` clock.
+
+- The weapon animation table (`weapon_anim_data`) and the model animation-object vtable are not
+  ported. `PlayerAnimationSet` supplies the parsed idle, walk and run motions; `PlayerAnimation`
+  advances and wraps them from the parsed motion frame count.
+- `IGroundCollision` stands in for the wall and entity sweeps inside `player_about_to_collide`
+  (`0x00693844`). A contact rejects the step and resets velocity, which matches the rejection
+  return path; wall sliding, entity push-out and hitbox responses are not ported.
+- The original's per-frame displacement reads the writable-data global at `0x00A94324`, which
+  falls in the zero-filled uninitialised-data range. The portable step uses the verified walk and
+  run speeds at `0x0096ED84` and `0x0096ED88` once per task update instead of inventing a value
+  for the uninitialised global.
+- The original sets the running movement bit for forward movement and chooses walk or run from
+  the host's auto-run setting. The portable state distinguishes walking from running by the
+  normalized speed threshold, because the auto-run setting is not part of `InputManager`.
+
 ## Writable-data initial values are baked zero
 
 The writable globals at `0x00AAB378`-`0x00AAB3A8` and `0x00ACBE78`-`0x00ACBEE0` fall in the gap
