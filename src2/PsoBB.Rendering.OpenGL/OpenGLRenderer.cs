@@ -458,14 +458,14 @@ public sealed unsafe class OpenGLRenderer : IRenderer
 			_gl.Disable(EnableCap.StencilTest);
 			_gl.StencilMask(_states.StencilWriteMask);
 		}
-		if (_states.CullMode == Direct3D8RenderState.CullNone)
+		if (_states.CullMode == RenderStateId.CullNone)
 		{
 			_gl.Disable(EnableCap.CullFace);
 		}
 		else
 		{
 			_gl.Enable(EnableCap.CullFace);
-			_gl.CullFace(_states.CullMode == Direct3D8RenderState.CullClockwise ? TriangleFace.Front : TriangleFace.Back);
+			_gl.CullFace(_states.CullMode == RenderStateId.CullClockwise ? TriangleFace.Front : TriangleFace.Back);
 		}
 		_gl.FrontFace(FrontFaceDirection.Ccw);
 		_gl.PolygonMode(TriangleFace.FrontAndBack, _states.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
@@ -479,17 +479,17 @@ public sealed unsafe class OpenGLRenderer : IRenderer
 
 	private void UpdateConstants(VertexPipeline pipeline)
 	{
-		uint fogColor = _states.Get(Direct3D8RenderState.FogColor, 0);
+		uint fogColor = _states.Get(RenderStateId.FogColor, 0);
 		_gl.Uniform4(pipeline.FogColor, ((fogColor >> 16) & 0xFF) / 255.0f, ((fogColor >> 8) & 0xFF) / 255.0f, (fogColor & 0xFF) / 255.0f, 1);
 		_gl.Uniform4(
 			pipeline.FogParameters,
-			BitConverter.Int32BitsToSingle(unchecked((int)_states.Get(Direct3D8RenderState.FogStart, 0))),
-			BitConverter.Int32BitsToSingle(unchecked((int)_states.Get(Direct3D8RenderState.FogEnd, 0x3F800000))),
-			BitConverter.Int32BitsToSingle(unchecked((int)_states.Get(Direct3D8RenderState.FogDensity, 0x3F800000))),
+			BitConverter.Int32BitsToSingle(unchecked((int)_states.Get(RenderStateId.FogStart, 0))),
+			BitConverter.Int32BitsToSingle(unchecked((int)_states.Get(RenderStateId.FogEnd, 0x3F800000))),
+			BitConverter.Int32BitsToSingle(unchecked((int)_states.Get(RenderStateId.FogDensity, 0x3F800000))),
 			_states.GetFogMode());
 		_gl.Uniform4(pipeline.AlphaTest, _states.GetAlphaReference(), _states.GetAlphaFunction(), _states.IsAlphaTestEnabled() ? 1 : 0, 0);
 		_gl.Uniform4(pipeline.ScreenSize, Settings.Width, Settings.Height, 1.0f / Settings.Width, 1.0f / Settings.Height);
-		_gl.Uniform4(pipeline.FogRange, _states.Get(Direct3D8RenderState.RangeFogEnable, 0) != 0 ? 1 : 0, 0, 0, 0);
+		_gl.Uniform4(pipeline.FogRange, _states.Get(RenderStateId.RangeFogEnable, 0) != 0 ? 1 : 0, 0, 0, 0);
 		UploadMatrix(pipeline.World, _world);
 		UploadMatrix(pipeline.View, _view);
 		UploadMatrix(pipeline.Projection, _projection);
