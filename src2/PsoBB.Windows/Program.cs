@@ -16,8 +16,8 @@ namespace PsoBB.Windows;
 /// </summary>
 internal static class Program
 {
-	private const int WindowWidth = 1024;
-	private const int WindowHeight = 768;
+	private const int WindowWidth = 640;
+	private const int WindowHeight = 480;
 	private const int PreviewDecompressionLimit = 16 * 1024 * 1024;
 
 	/// <summary>
