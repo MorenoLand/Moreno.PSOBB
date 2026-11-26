@@ -56,7 +56,10 @@ public static class Scene2TitlePreview
 				action = dialog.RequestedAction;
 			}
 			else if (input.WasActionPressed(InputAction.Confirm))
+			{
 				menuVisible = true;
+				fade = TitleFade.Initial;
+			}
 			if (action == LoginDialogAction.ExitGame)
 				return;
 			Render(host.Renderer, art, menuVisible ? dialog : null, menuVisible, hidden, frame, capture);
