@@ -8,20 +8,74 @@ namespace PsoBB.Scenes;
 /// <summary>
 /// The account panel's four-row menu and its disabled key hint.
 /// </summary>
-/// <remarks>The rows resolve to unitxt list 41 strings 3 through 6 with row data 0 through 3; the hint is the data-image literal <c>[%s]</c> at <c>0x00974EBC</c>, stored as a disabled row with the yellow colour <c>0xFFFFCC33</c>.</remarks>
+/// <remarks>The header is unitxt list 41 string 2, the rows are strings 3 through 6 with row data 0 through 3, and the hint is the data-image format at <c>0x00974EBC</c> with the retail key label <c>d</c>.</remarks>
 public sealed class LoginDialog : IDisposable
 {
 	/// <summary>The unitxt list that holds the account-panel strings.</summary>
 	public const int TextList = GameText.LoginScreenList;
 
-	/// <summary>The hint text stored in the data image at <c>0x00974EBC</c>.</summary>
+	/// <summary>The hint format stored in the data image at <c>0x00974EBC</c>.</summary>
 	public const string HintFormat = "[%s]";
+
+	/// <summary>The confirm key label the retail title frame shows in the hint.</summary>
+	public const string DefaultHintKey = "d";
+
+	/// <summary>The hint text the retail title frame shows.</summary>
+	public const string DefaultHint = "[d]";
 
 	/// <summary>The hint row colour from the original row setup.</summary>
 	public const uint HintColor = 0xFFFFCC33;
 
 	/// <summary>The row step used by the list.</summary>
 	public const float RowHeight = 20f;
+
+	/// <summary>The account panel position from the data image at <c>0x00974E08</c>.</summary>
+	public static readonly Vector2 PanelPosition = new(210f, 340f);
+
+	/// <summary>The account panel size from the data image at <c>0x00974E08</c>.</summary>
+	public static readonly Vector2 PanelSize = new(220f, 120f);
+
+	/// <summary>The header height taken from the panel's first row.</summary>
+	public const float HeaderHeight = 20f;
+
+	/// <summary>The position of the header label inside the account panel.</summary>
+	public static readonly Vector2 HeaderPosition = PanelPosition;
+
+	/// <summary>The position of the four-row list inside the account panel.</summary>
+	public static readonly Vector2 RowAreaPosition = new(PanelPosition.X, PanelPosition.Y + HeaderHeight);
+
+	/// <summary>The size of the four-row list and its disabled hint row.</summary>
+	public static readonly Vector2 RowAreaSize = new(PanelSize.X, PanelSize.Y - HeaderHeight);
+
+	/// <summary>The scene-2 selector element that owns the header frame.</summary>
+	public const int SelectorHeaderElement = 15;
+
+	/// <summary>The scene-2 selector elements that own the four row frames.</summary>
+	public static readonly int[] SelectorRowElements = [11, 12, 13, 14];
+
+	/// <summary>The scene-2 selector element that owns the selected-row frame.</summary>
+	public const int SelectorSelectionElement = 10;
+
+	/// <summary>The scene-2 selector header frame position.</summary>
+	public static readonly Vector2 SelectorHeaderPosition = new(192f, 308f);
+
+	/// <summary>The scene-2 selector row frame positions.</summary>
+	public static readonly Vector2[] SelectorRowPositions =
+	[
+		new(193f, 300f),
+		new(193f, 332f),
+		new(193f, 364f),
+		new(193f, 396f),
+	];
+
+	/// <summary>The scene-2 selector selected-row frame position.</summary>
+	public static readonly Vector2 SelectorSelectionPosition = new(193f, 338f);
+
+	/// <summary>The frame table the scene-2 selector uses for its element animation.</summary>
+	public const int SelectorFrameTable = 0x009CFB60;
+
+	/// <summary>The frame index of the selected-row element.</summary>
+	public const int SelectorSelectionFrame = 10;
 
 	/// <summary>The row data value of the start-game row.</summary>
 	public const int StartGameData = 0;
@@ -38,6 +92,7 @@ public sealed class LoginDialog : IDisposable
 	/// <summary>The row data value of the hint row.</summary>
 	public const int HintData = 4;
 
+	private readonly UiLabel _header;
 	private readonly UiListWindow _menu;
 	private IUiTextSurface? _textSurface;
 	private LoginDialogAction? _requestedAction;
@@ -51,11 +106,19 @@ public sealed class LoginDialog : IDisposable
 	/// <param name="hintText">The hint row text; the data-image literal is used by default.</param>
 	/// <param name="textSurface">The optional text surface used to measure and draw the rows.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
-	public LoginDialog(GameText text, string hintText = HintFormat, IUiTextSurface? textSurface = null)
+	public LoginDialog(GameText text, string hintText = DefaultHint, IUiTextSurface? textSurface = null)
 	{
 		ArgumentNullException.ThrowIfNull(text);
+		_header = new UiLabel
+		{
+			Position = HeaderPosition,
+			Size = new Vector2(PanelSize.X, HeaderHeight),
+		};
+		_header.SetText(text.GetLoginScreenText(LoginScreenText.Login));
 		_menu = new UiListWindow
 		{
+			Position = RowAreaPosition,
+			Size = RowAreaSize,
 			ItemHeight = RowHeight,
 			ScrollBarWidth = 0f,
 		};
@@ -71,8 +134,23 @@ public sealed class LoginDialog : IDisposable
 		TextSurface = textSurface;
 	}
 
+	/// <summary>Gets the header label that carries unitxt list 41 string 2.</summary>
+	public UiLabel Header => _header;
+
 	/// <summary>Gets the list that owns the four rows and the hint.</summary>
 	public UiListWindow Menu => _menu;
+
+	/// <summary>
+	/// Gets or sets the scene-2 selector frame renderer that draws the element-table header and row frames behind this panel.
+	/// </summary>
+	public Action<UiDrawList>? SelectorFrameDraw { get; set; }
+
+	/// <summary>
+	/// Substitutes the confirm key label into the data-image hint format.
+	/// </summary>
+	/// <param name="key">The confirm key label.</param>
+	/// <returns>The formatted hint.</returns>
+	public static string FormatHint(string key) => HintFormat.Replace("%s", key, StringComparison.Ordinal);
 
 	/// <summary>Gets the action requested by the last confirmation, or <see langword="null"/>.</summary>
 	public LoginDialogAction? RequestedAction => _requestedAction;
@@ -84,7 +162,7 @@ public sealed class LoginDialog : IDisposable
 	public bool IsDisposed => _disposed;
 
 	/// <summary>
-	/// Applies the text surface used to measure and draw the rows and hint.
+	/// Applies the text surface used to measure and draw the header, rows and hint.
 	/// </summary>
 	public IUiTextSurface? TextSurface
 	{
@@ -92,12 +170,8 @@ public sealed class LoginDialog : IDisposable
 		set
 		{
 			_textSurface = value;
+			_header.TextSurface = value;
 			_menu.TextSurface = value;
-			float width = 0f;
-			if (value is not null)
-				foreach (UiListItem item in _menu.Items)
-					width = MathF.Max(width, value.Measure(item.Text));
-			_menu.Size = new Vector2(MathF.Ceiling(width), _menu.Items.Count * RowHeight);
 		}
 	}
 
@@ -174,6 +248,8 @@ public sealed class LoginDialog : IDisposable
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		if (_closed)
 			return;
+		SelectorFrameDraw?.Invoke(drawList);
+		_header.Draw(drawList);
 		_menu.Draw(drawList);
 	}
 
@@ -185,6 +261,7 @@ public sealed class LoginDialog : IDisposable
 		if (_disposed)
 			return;
 		_disposed = true;
+		_header.Dispose();
 		_menu.Dispose();
 	}
 }
