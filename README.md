@@ -17,6 +17,14 @@ python src2/oracle/vectors.py
 python src2/tools/coverage.py
 ```
 
+Run the Windows program with the folder that contains `data\data.gsl`:
+
+```powershell
+bin\PsoBB.Windows.exe "<game folder>"
+```
+
+`--preview <entry>` draws one texture from `data\data.gsl` instead of starting the client, for example `--preview title2_eng.xvm`.
+
 The tracker reports byte-weighted coverage of the original code. The C lift remains the reference implementation and the oracle.
 
 ## Status
