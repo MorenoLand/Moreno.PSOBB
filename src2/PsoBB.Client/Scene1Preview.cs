@@ -20,7 +20,7 @@ public static class Scene1Preview
 	/// <param name="pump">Returns whether the host window is still open.</param>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
 	/// <exception cref="FileNotFoundException">The data archive or logo archive is missing.</exception>
-	public static void Run(ClientHost host, Func<bool> pump)
+	public static void Run(ClientHost host, Func<bool> pump, Action<int>? capture = null)
 	{
 		ArgumentNullException.ThrowIfNull(host);
 		ArgumentNullException.ThrowIfNull(pump);
@@ -30,18 +30,26 @@ public static class Scene1Preview
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
 		long previous = host.Clock.Timestamp;
+		double accumulator = 0;
+		int frame = 0;
 		while (pump() && !scene.IsComplete)
 		{
 			long now = host.Clock.Timestamp;
-			TimeSpan elapsed = TimeSpan.FromSeconds((double)(now - previous) / frequency);
+			accumulator += (double)(now - previous) / frequency;
 			previous = now;
-			input.Update(elapsed);
+			if (accumulator < FrameSeconds)
+				continue;
+			accumulator -= FrameSeconds;
+			input.Update(TimeSpan.FromSeconds(FrameSeconds));
 			scene.Update(input);
-			Render(host.Renderer, scene);
+			Render(host.Renderer, scene, capture, frame);
+			frame++;
 		}
 	}
 
-	private static void Render(IRenderer renderer, Scene1 scene)
+	private const double FrameSeconds = 1.0 / 60.0;
+
+	private static void Render(IRenderer renderer, Scene1 scene, Action<int>? capture, int frame)
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
@@ -56,6 +64,7 @@ public static class Scene1Preview
 		UiDrawList draw = new();
 		scene.Draw(draw);
 		draw.Render(renderer);
+		capture?.Invoke(frame);
 		renderer.EndFrame();
 	}
 }

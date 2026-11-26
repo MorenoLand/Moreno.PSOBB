@@ -29,8 +29,14 @@ public sealed class LoginDialog : IDisposable
 	/// <summary>The row step used by the list.</summary>
 	public const float RowHeight = 20f;
 
-	/// <summary>The account panel position from the data image at <c>0x00974E08</c>.</summary>
-	public static readonly Vector2 PanelPosition = new(210f, 340f);
+	/// <summary>The network account panel position from the data image at <c>0x00974E08</c>.</summary>
+	public static readonly Vector2 NetworkPanelPosition = new(210f, 340f);
+
+	/// <summary>The alternate offline panel position written by the branch at <c>0x00761CC3</c>.</summary>
+	public static readonly Vector2 AlternatePanelPosition = new(210f, 330f);
+
+	/// <summary>The offline title-menu panel position written by the branch at <c>0x00761CD5</c>.</summary>
+	public static readonly Vector2 PanelPosition = new(210f, 300f);
 
 	/// <summary>The account panel size from the data image at <c>0x00974E08</c>.</summary>
 	public static readonly Vector2 PanelSize = new(220f, 120f);
@@ -40,6 +46,9 @@ public sealed class LoginDialog : IDisposable
 
 	/// <summary>The position of the header label inside the account panel.</summary>
 	public static readonly Vector2 HeaderPosition = PanelPosition;
+
+	/// <summary>The position of the header frame used by the scene-2 selector.</summary>
+	public static readonly Vector2 SelectorHeaderPosition = new(192f, 308f);
 
 	/// <summary>The position of the four-row list inside the account panel.</summary>
 	public static readonly Vector2 RowAreaPosition = new(PanelPosition.X, PanelPosition.Y + HeaderHeight);
@@ -55,9 +64,6 @@ public sealed class LoginDialog : IDisposable
 
 	/// <summary>The scene-2 selector element that owns the selected-row frame.</summary>
 	public const int SelectorSelectionElement = 10;
-
-	/// <summary>The scene-2 selector header frame position.</summary>
-	public static readonly Vector2 SelectorHeaderPosition = new(192f, 308f);
 
 	/// <summary>The scene-2 selector row frame positions.</summary>
 	public static readonly Vector2[] SelectorRowPositions =
