@@ -36,3 +36,4 @@ The C# side exports `BrowserPlatformHost` with `Create`, `Pump`, `PollInput`, `P
 - The data root is held in memory, so a full retail install needs enough browser memory for its archives.
 - Settings are limited by the origin's `localStorage` quota.
 - There are no background threads; `StartThread` bodies run on the pump.
+- A page can only open a WebSocket, not the raw TCP stream the game protocol needs. `BrowserGameConnection` refuses every transport operation; a host that runs a WebSocket-to-TCP relay supplies its own `IGameConnection`.

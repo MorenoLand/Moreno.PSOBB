@@ -23,6 +23,9 @@ public enum PacketCommand : ushort
 	/// <summary>Client login with account, character slot and connection phase.</summary>
 	ClientLogin = 0x0093,
 
+	/// <summary>Character server welcome carrying its copyright text and the two encryption keys.</summary>
+	CharacterServerInit = 0x009B,
+
 	/// <summary>Client request for the account system file.</summary>
 	SystemFileRequest = 0x00E0,
 

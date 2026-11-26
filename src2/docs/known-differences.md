@@ -1,5 +1,15 @@
 # Known differences from the original client
 
+## Network session
+
+`PsoBB.Net.GameSession` keeps the original wire format, the eight-byte padding before encryption, the receive-buffer limit and the welcome key order. Its transport and lifecycle differ in these ways:
+
+- The desktop seam connects synchronously and then switches the socket to non-blocking mode. The original starts a non-blocking connect and polls it from the socket state machine, so a slow host can delay the first frame here where the original would keep running.
+- A remote orderly close moves the session to `Disconnected`. The original latches an error byte and runs its disconnect handler. A transport error moves this session to `Failed` with a reason instead of only setting the error byte.
+- Partial sends are retained in an ordered queue and retried. The original calls the socket send wrapper once per packet and treats a short result as an error.
+- The session validates and applies the command 0x03 and 0x9B welcomes, then returns the welcome packet to the caller. The original welcome handlers also build and send the client login or 0xDB registration packet from account state; that response belongs to the protocol layer above the session.
+- A browser page cannot open a raw TCP stream. `BrowserGameConnection` refuses transport operations and a host relay must implement `IGameConnection` over WebSockets.
+
 ## Archive readers
 
 The portable archive readers in `PsoBB.Archives` turn archive bytes into a validated directory. The original reads through a fixed zero-filled buffer and a host file API that returns short reads, so it has no equivalent truncation errors. The readers expose declared table values; the original's storage layer rounds every read to 2048-byte sectors.
