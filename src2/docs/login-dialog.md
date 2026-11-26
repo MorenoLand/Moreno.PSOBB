@@ -22,6 +22,19 @@ flag `0x4` branch is the only caller of the XVM texture-font renderer `0x0071D92
 rows have item flags `0x41` (enabled and coloured), so their text takes the bitmap-font renderer
 `0x0071D58C`; they do not use the texture-font atlas.
 
+The header label is created by the list base `0x0073566C` through `0x00761320` and `0x00760A28`
+with unitxt list 41 string 2. The panel rectangle passed in the online branch is the four floats
+at `0x00974E08` (210, 340, 220, 120); the first twenty pixels hold the header and the remaining
+hundred hold the four rows and hint. The data-image hint is `[%s]`; the retail frame shows `[d]`,
+so `LoginDialog.DefaultHintKey` is `d` and `DefaultHint` is `[d]`.
+
+`0x006FF0D4` is not the account dialog list. It calls the scene draw pair `0x004D28A4` and
+`0x004D2968` and drives the scene-2 selector element table `0x009CFF00`: header element 15 at
+(192, 308), row elements 11 through 14 at (193, 300), (193, 332), (193, 364) and (193, 396),
+and selected-row element 10 at (193, 338) with frame 10 of table `0x009CFB60`. Those frames
+belong to the scene-2 selector object, so `LoginDialog` exposes their addresses and positions
+as constants and a `SelectorFrameDraw` hook instead of drawing them twice.
+
 ## Atlas
 
 `0x0079324C` selects the locale atlas from these data-image names:
@@ -48,7 +61,8 @@ texture-font path: the metric table, the cell quad, advancing, wrapping, atlas l
 binding and release. Wide glyphs and the page-selection rule above code unit `0x00FF` are not
 established; the account rows do not use that path.
 
-The account panel itself is `PsoBB.Scenes.LoginDialog`: four enabled rows, a disabled yellow
-hint, wrapping selection, the data-value confirm mapping and close. The panel frame, header
-label and the substitution of the hint's `%s` with a bound key are outside this port because
-the machine code does not build them in the row path above.
+The account panel itself is `PsoBB.Scenes.LoginDialog`: the list 41 string 2 header label, four
+enabled rows, a disabled yellow hint, wrapping selection, the data-value confirm mapping and
+close. Data value 0 closes the account panel to start the game; it is not a separate Exit
+action. The scene-2 selector frames are reached through `SelectorFrameDraw`; their proven
+addresses and positions are constants on `LoginDialog`.

@@ -5,7 +5,7 @@ namespace PsoBB.Scenes;
 /// </summary>
 public enum LoginDialogAction
 {
-	/// <summary>Closes the account panel and starts the game.</summary>
+	/// <summary>Closes the account panel to start the game; the original sets state 9.</summary>
 	StartGame,
 	/// <summary>Exits the game.</summary>
 	ExitGame,
