@@ -6,6 +6,7 @@ namespace PsoBB.Tests;
 /// <summary>
 /// Checks that the global state holder starts from the data-image values and resets around every case.
 /// </summary>
+[Collection("Global state")]
 public sealed class GlobalStateTests : IDisposable
 {
 	public GlobalStateTests() => GlobalState.Reset();

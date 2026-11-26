@@ -10,6 +10,7 @@ namespace PsoBB.Tests;
 /// <summary>
 /// Checks boot, the frame loop, stop handling and disposal against in-memory services.
 /// </summary>
+[Collection("Global state")]
 public sealed class ClientHostTests : IDisposable
 {
 	private static readonly DateTimeOffset Start = new(2026, 11, 26, 12, 0, 0, TimeSpan.Zero);

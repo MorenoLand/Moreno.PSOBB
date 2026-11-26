@@ -69,8 +69,7 @@ internal static class Program
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
-		while (window.Pump())
-			host.RunFrames(1);
+		TitlePreview.Run(host, window.Pump);
 		host.RequestStop();
 	}
 
