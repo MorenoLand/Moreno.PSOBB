@@ -22,6 +22,9 @@ public sealed class ReconnectPacket
 	/// <summary>The reserved trailing value, normally zero.</summary>
 	public ushort Unused { get; init; }
 
+	/// <summary>Gets the IPv4 address as four decimal octets, the form the host connection accepts.</summary>
+	public string Host => $"{Address >> 24}.{(Address >> 16) & 0xFF}.{(Address >> 8) & 0xFF}.{Address & 0xFF}";
+
 	/// <summary>
 	/// Reads the command payload.
 	/// </summary>

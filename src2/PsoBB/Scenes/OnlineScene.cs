@@ -17,8 +17,9 @@ namespace PsoBB.Scenes;
 /// <c>0x407458</c> selects and submits the two translucent download panels that <c>0x407FB0</c> and
 /// <c>0x40808C</c> draw. Loading completion sends the client to scene 2 through <c>0x7BD97C</c>'s tail,
 /// unless the loading result is 3, which returns to root scene 0 first. The network exchange is the merged
-/// <see cref="LoginFlow"/>: the scene consumes its states and stops at command <c>0x19</c>, because the
-/// client has no separate ship or block list command.
+/// <see cref="LoginFlow"/>: the scene consumes its states, opens the redirect target with
+/// <see cref="GameServerFlow"/>, and feeds the game and lobby replies into <see cref="LobbyWorld"/>. A
+/// command whose layout is not in the lift stops the redirected flow with a diagnostic.
 /// </remarks>
 public sealed class OnlineScene : IDisposable
 {
@@ -63,6 +64,7 @@ public sealed class OnlineScene : IDisposable
 
 	private readonly ITexture _progressTexture;
 	private readonly LoginFlow? _loginFlow;
+	private GameServerFlow? _gameServerFlow;
 	private OnlineSceneState _state = OnlineSceneState.Loading;
 	private bool _loading = true;
 	private bool _disposed;
@@ -102,11 +104,17 @@ public sealed class OnlineScene : IDisposable
 	/// <summary>Gets the merged login flow the scene consumes, or <see langword="null"/> when none was supplied.</summary>
 	public LoginFlow? LoginFlow => _loginFlow;
 
-	/// <summary>Gets the reason the merged flow reported a failure, or <see langword="null"/>.</summary>
-	public string? FailureReason => _loginFlow?.FailureReason;
+	/// <summary>Gets the reason the merged flow or the redirected game-server flow reported a failure, or <see langword="null"/>.</summary>
+	public string? FailureReason => _gameServerFlow?.Diagnostic ?? _loginFlow?.FailureReason;
 
 	/// <summary>Gets the server redirect from command 0x19, or <see langword="null"/> before it arrives.</summary>
 	public ReconnectPacket? Redirect => _loginFlow?.Redirect;
+
+	/// <summary>Gets the redirected game-server flow, or <see langword="null"/> before command 0x19 arrived.</summary>
+	public GameServerFlow? GameServerFlow => _gameServerFlow;
+
+	/// <summary>Gets the lobby world fed by the redirected game server, or <see langword="null"/>.</summary>
+	public LobbyWorld? LobbyWorld => _gameServerFlow?.World;
 
 	/// <summary>Gets the character slot approved by the server, or <see langword="null"/>.</summary>
 	public int? SelectedCharacterIndex => _loginFlow?.SelectedCharacterIndex;
@@ -174,7 +182,7 @@ public sealed class OnlineScene : IDisposable
 		}
 		if (_loading)
 			return;
-		if (_state is OnlineSceneState.Transitioned or OnlineSceneState.Canceled or OnlineSceneState.Redirected or OnlineSceneState.Failed)
+		if (_state is OnlineSceneState.Transitioned or OnlineSceneState.Canceled or OnlineSceneState.Failed)
 			return;
 		UpdateConnection();
 	}
@@ -201,6 +209,7 @@ public sealed class OnlineScene : IDisposable
 	public void Cancel()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
+		_gameServerFlow?.Disconnect();
 		_loginFlow?.Disconnect();
 		_state = OnlineSceneState.Canceled;
 		SceneManager.RequestScene(SceneManager.ExitScene);
@@ -232,6 +241,7 @@ public sealed class OnlineScene : IDisposable
 		_disposed = true;
 		_loading = false;
 		_state = OnlineSceneState.Released;
+		_gameServerFlow?.Disconnect();
 		_loginFlow?.Disconnect();
 		_progressTexture.Dispose();
 	}
@@ -244,6 +254,11 @@ public sealed class OnlineScene : IDisposable
 			_state = OnlineSceneState.Idle;
 			return;
 		}
+		if (_gameServerFlow is not null || _loginFlow.State == LoginFlowState.Redirected)
+		{
+			UpdateGameServer();
+			return;
+		}
 		_loginFlow.Pump();
 		_state = _loginFlow.State switch
 		{
@@ -253,6 +268,31 @@ public sealed class OnlineScene : IDisposable
 			LoginFlowState.CharacterSelected => OnlineSceneState.CharacterSelected,
 			LoginFlowState.Redirected => OnlineSceneState.Redirected,
 			LoginFlowState.Failed => OnlineSceneState.Failed,
+			_ => OnlineSceneState.Idle,
+		};
+	}
+
+	private void UpdateGameServer()
+	{
+		if (_loginFlow is null)
+			return;
+		if (_gameServerFlow is null)
+		{
+			GameServerFlow flow = new(_loginFlow);
+			_gameServerFlow = flow;
+			if (!flow.Start())
+			{
+				_state = OnlineSceneState.Failed;
+				return;
+			}
+		}
+		_gameServerFlow.Pump();
+		_state = _gameServerFlow.State switch
+		{
+			GameServerFlowState.Disconnected => OnlineSceneState.Idle,
+			GameServerFlowState.Connecting or GameServerFlowState.Authenticating => OnlineSceneState.Connecting,
+			GameServerFlowState.Game or GameServerFlowState.Lobby => OnlineSceneState.GameServer,
+			GameServerFlowState.Failed or GameServerFlowState.Unsupported => OnlineSceneState.Failed,
 			_ => OnlineSceneState.Idle,
 		};
 	}

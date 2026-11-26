@@ -8,7 +8,7 @@
 - A remote orderly close moves the session to `Disconnected`. The original latches an error byte and runs its disconnect handler. A transport error moves this session to `Failed` with a reason instead of only setting the error byte.
 - Partial sends are retained in an ordered queue and retried. The original calls the socket send wrapper once per packet and treats a short result as an error.
 - The session validates and applies the command 0x03 and 0x9B welcomes, then returns the welcome packet to the caller. The original welcome handlers also build and send the client login or 0xDB registration packet from account state; that response belongs to the protocol layer above the session.
-- `LoginFlow` stops at the command 0x19 redirect. The notes establish the 0x93 login, 0xE6 client initialization, 0xE0 system-file request, 0xE1 or 0xE2 answer, 0xE3 preview request, 0xE4 choice answer and 0x19 redirect, but no ship, block or lobby list command and no 0xE5 preview body. The caller re-arms a flow on the next connection with the login phase that connection needs.
+- `LoginFlow` stops at the command 0x19 redirect. The notes establish the 0x93 login, 0xE6 client initialization, 0xE0 system-file request, 0xE1 or 0xE2 answer, 0xE3 preview request, 0xE4 choice answer and 0x19 redirect, but no 0xE5 preview body. `GameServerFlow` reopens the same session at the redirect target and sends the stored 0x93 login after the second welcome; commands 0x64/0x65/0x66/0x67/0x68/0x69 and 0x60/0x62/0x6C/0x6D feed `LobbyWorld`. The fixed-size list copies at commands 0x1A, 0x81 and 0x83 have no record codec in the lift, so `GameServerFlow` stops there with a diagnostic instead of ignoring or guessing their layout.
 - `LoginFlow` has no protocol timer. The transport is non-blocking and the host pumps the flow; a stalled server leaves the current stage waiting, and an orderly close or transport failure moves the flow to `Failed`.
 - A browser page cannot open a raw TCP stream. `BrowserGameConnection` refuses transport operations and a host relay must implement `IGameConnection` over WebSockets.
 
@@ -180,8 +180,10 @@ that override is not ported.
 
 `PsoBB.Scenes.OnlineScene` consumes the merged `LoginFlow` instead of reproducing the 123212-byte
 network manager at `0x00797908` and the download transport behind `0x007A0370`. The scene sends no
-packets itself; command 0x19 stops at `LoginFlowState.Redirected` because the client has no
-separate ship, block or lobby list command.
+packets itself. After command 0x19 it hands the same session to `GameServerFlow`, which reopens the
+redirect target and feeds the 0x64/0x67 player and lobby lists into `LobbyWorld`; the fixed-size list
+copies at commands 0x1A, 0x81 and 0x83 stop with a diagnostic because their record codec is not in
+the lift. No scene number is requested by this phase.
 
 The two download panels from `0x00407FB0` and `0x0040808C` are submitted while the scene is loading
 or connecting. The original gates both on the progress-window state bit; the port has no download

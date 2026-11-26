@@ -48,15 +48,20 @@ merged `TextRenderer` through `DrawStatus`. `Cancel` closes the connection and r
 The network exchange is the merged `PsoBB.Net.LoginFlow` over `GameSession`. The scene exposes the
 flow, pumps it during `Update`, maps its states, delegates the 0xE3 character preview request to
 `RequestCharacterSelection`, and records the 0xE4 approval and the 0x19 redirect. It does not send
-a packet itself and does not duplicate the session. `SceneDirector` supplies the flow and the
+a packet itself and does not duplicate the session. Once command 0x19 arrives, the scene hands the
+same session to `GameServerFlow`, reopens the redirect target, sends the stored 0x93 login after the
+second welcome, and feeds the game and lobby replies into `LobbyWorld`; the scene reports
+`OnlineSceneState.GameServer` while that flow is healthy. `SceneDirector` supplies the flow and the
 selected login endpoint when `SceneNetworkOptions` carries a host table; see `scene-director.md`.
 
 ## Unported boundary
 
 - The shared lobby and game update `0x007BCBF0`/`0x007BD2F0`, its page flags, the 3D rings at
   `0x007BC4E8`/`0x007BC508`, the frame timer `0x007BD288`, the network manager at `0x00797908`
-  and the scene-2 hand-off are not ported. The scene stops at the merged flow's redirect because
-  the client establishes no separate ship, block or lobby list command.
+  and the scene-2 hand-off are not ported. The redirected game-server phase stops at the first
+  command outside the 0x64/0x67 families: commands 0x1A, 0x81 and 0x83 only copy fixed-size list
+  payloads at `0x007C8854`, `0x007C8DC4` and `0x007C89EC`, and no record codec for those lists is
+  present in the lift.
 - The progress-window state bit that gates the two panels in `0x00407FB0` and `0x0040808C` is not
   reproduced; the port draws them while the scene is loading or connecting.
 - The 23-entry initialiser table, the allocator, the download transport and the message-table
@@ -67,5 +72,6 @@ selected login endpoint when `SceneNetworkOptions` carries a host table; see `sc
 `OnlineSceneTests` builds a synthetic GSL archive with the English and neutral progress-bar
 surfaces. It covers scene parameter and root, all loading results, cancel input, the two panel
 quads and their renderer submission, the neutral fallback, a missing surface, merged-flow states,
-the 0xE3/0xE4 character exchange, the 0x19 redirect boundary, a rejected login and idempotent
-release.
+the 0xE3/0xE4 character exchange, the 0x19 redirect, the redirected connection and second login,
+the 0x64 and 0x67 lists, an unsupported list command, cancel and release after the redirect, a
+rejected login and idempotent release.
