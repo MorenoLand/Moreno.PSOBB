@@ -31,23 +31,39 @@ def image_reader():
     return read
 
 
-def run(read, address, size, stack=(), registers=None):
-    """Run one function with stack arguments and return eax and edx."""
-    code = read(address, size)
+def run(read, address, size, stack=(), registers=None, memory=(), capture=()):
+    """Run one function with stack and memory inputs and return eax, edx and captured memory."""
     machine = Uc(UC_ARCH_X86, UC_MODE_32)
-    machine.mem_map(address & ~0xFFF, 0x1000)
-    machine.mem_write(address, code)
-    machine.mem_map(STACK - 0x1000, 0x2000)
+    mapped = set()
+
+    def map_page(target):
+        base = target & ~0xFFF
+        if base not in mapped:
+            machine.mem_map(base, 0x1000)
+            mapped.add(base)
+
+    map_page(address)
+    machine.mem_write(address, read(address, size))
+    map_page(STACK - 0x40)
     esp = STACK - 0x40
     machine.mem_write(esp, struct.pack("<I", 0xFFFFFFFF))
     for index, value in enumerate(stack):
         machine.mem_write(esp + 4 + 4 * index, struct.pack("<I", value & 0xFFFFFFFF))
+    for target, data in memory:
+        for offset in range(0, len(data), 0x1000):
+            map_page(target + offset)
+        machine.mem_write(target, data)
     for name, register in (("eax", UC_X86_REG_EAX), ("ebx", UC_X86_REG_EBX), ("ecx", UC_X86_REG_ECX),
                            ("edx", UC_X86_REG_EDX), ("ebp", UC_X86_REG_EBP), ("esi", UC_X86_REG_ESI), ("edi", UC_X86_REG_EDI)):
         machine.reg_write(register, (registers or {}).get(name, 0))
     machine.reg_write(UC_X86_REG_ESP, esp)
     machine.emu_start(address, address + size - 1)
-    return machine.reg_read(UC_X86_REG_EAX) & 0xFFFFFFFF, machine.reg_read(UC_X86_REG_EDX) & 0xFFFFFFFF
+    captured = {}
+    for target, length in capture:
+        captured[target] = machine.mem_read(target, length)
+    eax = machine.reg_read(UC_X86_REG_EAX) & 0xFFFFFFFF
+    edx = machine.reg_read(UC_X86_REG_EDX) & 0xFFFFFFFF
+    return eax, edx, captured
 
 
 def write(name, vectors):
@@ -65,7 +81,7 @@ def below_page_vectors(read):
     values += [generator.randrange(0x10000) for _ in range(52)]
     vectors = []
     for value in values:
-        eax, _ = run(read, 0x0051F8D8, 15, [value])
+        eax, _, _ = run(read, 0x0051F8D8, 15, [value])
         vectors.append({"value": value, "result": eax})
     write("0051F8D8.json", vectors)
 
@@ -78,7 +94,7 @@ def multiply_add_vectors(read):
     cases += [(generator.randrange(-0x80000000, 0x80000000), generator.randrange(-0x80000000, 0x80000000),
                generator.randrange(-0x8000, 0x8000)) for _ in range(40)]
     for addend, factor, multiplier in cases:
-        eax, _ = run(read, 0x007A9608, 15, [addend, factor, multiplier])
+        eax, _, _ = run(read, 0x007A9608, 15, [addend, factor, multiplier])
         vectors.append({"addend": addend, "factor": factor, "multiplier": multiplier, "result": eax})
     write("007A9608.json", vectors)
 
@@ -92,11 +108,29 @@ def divide_vectors(read):
     vectors = []
     for total, divisor in pairs:
         try:
-            eax, edx = run(read, 0x008A8CE1, 16, [total, divisor])
+            eax, edx, _ = run(read, 0x008A8CE1, 16, [total, divisor])
         except Exception:
             continue
         vectors.append({"total": total, "divisor": divisor, "quotient": eax, "remainder": edx})
     write("008A8CE1.json", vectors)
+
+
+def clear_pair_vectors(read):
+    """0x0082E930: writes zero through two 32-bit pointers."""
+    target = 0x30001000
+    vectors = []
+    for first, second in ((0xDEADBEEF, 0x12345678), (0, 1), (0xFFFFFFFF, 0x80000000)):
+        _, _, captured = run(
+            read,
+            0x0082E930,
+            15,
+            stack=[target, target + 4],
+            memory=[(target, struct.pack("<II", first, second))],
+            capture=[(target, 8)],
+        )
+        after = struct.unpack("<II", captured[target])
+        vectors.append({"first": first, "second": second, "first_after": after[0], "second_after": after[1]})
+    write("0082E930.json", vectors)
 
 
 def main():
@@ -105,6 +139,7 @@ def main():
     below_page_vectors(read)
     multiply_add_vectors(read)
     divide_vectors(read)
+    clear_pair_vectors(read)
 
 
 if __name__ == "__main__":
