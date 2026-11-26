@@ -54,7 +54,7 @@ internal static class Program
 			host.RequestStop();
 			return 0;
 		}
-		catch (Exception exception) when (exception is FileNotFoundException or InvalidDataException or OpenGLUnavailableException or InvalidOperationException or AudioDeviceException or AudioContextException or DllNotFoundException or EntryPointNotFoundException or TypeInitializationException or BadImageFormatException or PlatformNotSupportedException)
+		catch (Exception exception) when (exception is not OutOfMemoryException)
 		{
 			Console.Error.WriteLine($"Phantasy Star Online Blue Burst could not start: {exception.Message}");
 			return 1;
