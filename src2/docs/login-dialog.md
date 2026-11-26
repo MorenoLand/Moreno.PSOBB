@@ -28,12 +28,24 @@ at `0x00974E08` (210, 340, 220, 120); the first twenty pixels hold the header an
 hundred hold the four rows and hint. The data-image hint is `[%s]`; the retail frame shows `[d]`,
 so `LoginDialog.DefaultHintKey` is `d` and `DefaultHint` is `[d]`.
 
-`0x006FF0D4` is not the account dialog list. It calls the scene draw pair `0x004D28A4` and
-`0x004D2968` and drives the scene-2 selector element table `0x009CFF00`: header element 15 at
-(192, 308), row elements 11 through 14 at (193, 300), (193, 332), (193, 364) and (193, 396),
-and selected-row element 10 at (193, 338) with frame 10 of table `0x009CFB60`. Those frames
-belong to the scene-2 selector object, so `LoginDialog` exposes their addresses and positions
-as constants and a `SelectorFrameDraw` hook instead of drawing them twice.
+The account list draw is `0x007352D0`. It calls `0x00710F80` for the window frame, `0x0072A648`
+for child windows, `0x007353E8` for the selected row and `0x00735428` for the normal rows. The
+row routine `0x007120EC` binds `dword_A983D8` (the `f256_hyouji` UI texture) and draws three
+horizontal slices: left 18 pixels from UV `(151, 57)`, middle 30 pixels from UV `(169, 57)` and
+right 16 pixels from UV `(183, 57)`, with the selected row using V `76` instead of `57`. The
+window frame `0x00710F80` draws the nine-slice background and border; the header child is
+`0x0073566C` → `0x00761320` → `0x00761390`.
+
+`0x006FF0D4` is the scene-2 selector object, not the account list. It drives the element table
+`0x009CFF00`: element 15 at (192, 308), rows 11 through 14 at (193, 300), (193, 332), (193, 364)
+and (193, 396), and selected-row element 10 at (193, 338) with frame 10 of table `0x009CFB60`.
+When its state is 0 it draws the visible 256 by 32 strip at (193, 338), which is the selected-row
+highlight in t09; `LoginDialog` therefore keeps the `SelectorFrameDraw` hook.
+
+The exact texture page selected from `f256_hyouji` by `dword_A983D8`, the `0x00710F80` corner
+and edge UVs, and the header child's draw UVs/colours are not established from the machine code
+or the data image. Those elements are not drawn by the port; the panel rectangle and row text
+are proven, but the textured background, header bar and row fills stop at that boundary.
 
 ## Atlas
 
