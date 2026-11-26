@@ -99,12 +99,9 @@ public sealed class BitmapFontBuilder
 	/// Completes the atlas and returns the immutable font.
 	/// </summary>
 	/// <returns>The font with its transparent missing-glyph cell.</returns>
-	/// <exception cref="ArgumentException">The face name is empty.</exception>
 	[Original(0x007AC6E8, "init_font_rendering_stuff")]
 	public BitmapFont Build()
 	{
-		if (string.IsNullOrEmpty(Descriptor.FaceName))
-			throw new ArgumentException("The font descriptor needs a face name.", nameof(Descriptor));
 		if (DefaultAdvance is < 0 or > byte.MaxValue)
 			throw new ArgumentOutOfRangeException(nameof(DefaultAdvance));
 		if (SpaceAdvance is < 0 or > byte.MaxValue)
