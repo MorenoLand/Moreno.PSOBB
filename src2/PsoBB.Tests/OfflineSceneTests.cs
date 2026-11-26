@@ -26,6 +26,8 @@ public sealed class OfflineSceneTests : IDisposable
 		using OfflineScene scene = new(files);
 		Assert.True(scene.HasCharacterSave);
 		Assert.Equal(OfflineScene.CharacterFileLength, scene.CharacterSave.Length);
+		Assert.NotNull(scene.ParsedCharacterSave);
+		Assert.Equal(OfflineScene.CharacterFileLength, scene.ParsedCharacterSave!.Bytes.Length);
 		Assert.NotNull(scene.LightTable);
 		Assert.Equal(1, scene.LightTable.Count);
 		Assert.Equal(OfflineScene.SceneParameter, GameState.SceneParameter);

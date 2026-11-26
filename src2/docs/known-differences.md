@@ -178,9 +178,10 @@ window object and keeps the panels visible through the connection phase.
 
 `PsoBB.Scenes.OfflineScene` is the scene-10 shell. It loads the `PSO_CHARACTER` save and
 `lightentry.bin`, keeps the 47 initialiser and release addresses, and reproduces the flag and
-restart transitions. The save decoder, field map, game object, player and field renderer are not
-ported; the scene has no draw entry, so it submits no interface geometry. See
-`scene-10-offline.md`.
+restart transitions. The save container is parsed into `PsoBB.Save.CharacterSave`, but the scene
+does not consume individual fields; the 408-byte game object, player and field renderer are not
+ported. The scene has no draw entry, so it submits no interface geometry. See
+`character-save.md` and `scene-10-offline.md`.
 
 ## The scene table is baked from the shipped image
 
