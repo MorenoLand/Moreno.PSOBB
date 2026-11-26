@@ -1,30 +1,28 @@
 namespace PsoBB.Mathematics;
 
 /// <summary>
-/// Integer helpers reproduced from the original client. Every operation wraps.
+/// The integer helpers the client uses for scaling and biased division.
 /// </summary>
 public static class IntegerMath
 {
 	/// <summary>
-	/// Returns <paramref name="addend"/> plus <paramref name="factor"/> times the signed 16-bit
-	/// <paramref name="value"/>, with the original's 32-bit wrap-around.
-	/// Original 0x007A9608.
+	/// Returns the sum of an addend and the product of a 32-bit factor and a signed 16-bit value.
+	/// The multiplication and addition wrap at 32 bits.
 	/// </summary>
-	/// <param name="addend">Value added after the multiplication.</param>
-	/// <param name="factor">32-bit multiplier.</param>
-	/// <param name="value">Signed 16-bit operand.</param>
-	/// <returns>The wrapped 32-bit result.</returns>
+	/// <param name="addend">The value added after the multiplication.</param>
+	/// <param name="factor">The 32-bit multiplier.</param>
+	/// <param name="value">The signed 16-bit operand.</param>
+	/// <returns>The wrapped sum.</returns>
 	[Original(0x007A9608)]
 	public static int MultiplyAdd(int addend, int factor, short value) => unchecked(addend + factor * value);
 
 	/// <summary>
-	/// Computes <c>(total + divisor - 1) / divisor</c> with the original's 32-bit wrap and
-	/// truncation toward zero, returning both the quotient and the remainder.
-	/// Original 0x008A8CE1.
+	/// Divides a value after adding one less than the divisor and truncates toward zero, returning
+	/// the quotient and the remainder. The bias addition wraps at 32 bits.
 	/// </summary>
-	/// <param name="total">Value the original adds the divisor bias to.</param>
-	/// <param name="divisor">Non-zero divisor.</param>
-	/// <returns>The quotient and remainder produced by the original division.</returns>
+	/// <param name="total">The value the divisor bias is added to.</param>
+	/// <param name="divisor">The non-zero divisor.</param>
+	/// <returns>The quotient and remainder of the adjusted division.</returns>
 	[Original(0x008A8CE1)]
 	public static DivisionResult DivideRoundingUp(int total, int divisor)
 	{

@@ -9,7 +9,7 @@ namespace PsoBB.Tests;
 public sealed class IntegerMathTests
 {
 	/// <summary>
-	/// Loads the 0x007A9608 vectors.
+	/// Loads the vectors for the multiply-add helper.
 	/// </summary>
 	/// <returns>Addend, factor, multiplier and expected result tuples.</returns>
 	public static List<object[]> MultiplyAddVectors() => Load("007A9608.json", vector =>
@@ -21,7 +21,7 @@ public sealed class IntegerMathTests
 	]);
 
 	/// <summary>
-	/// Loads the 0x008A8CE1 vectors.
+	/// Loads the vectors for the biased division helper.
 	/// </summary>
 	/// <returns>Total, divisor, quotient and remainder tuples.</returns>
 	public static List<object[]> DivideVectors() => Load("008A8CE1.json", vector =>
@@ -33,12 +33,12 @@ public sealed class IntegerMathTests
 	]);
 
 	/// <summary>
-	/// The ported multiply-add returns the original's eax for every vector.
+	/// The ported multiply-add returns the recorded result for every vector.
 	/// </summary>
-	/// <param name="addend">Value added after the multiplication.</param>
-	/// <param name="factor">32-bit multiplier.</param>
-	/// <param name="multiplier">Signed 16-bit operand.</param>
-	/// <param name="expected">The original's eax.</param>
+	/// <param name="addend">The value added after the multiplication.</param>
+	/// <param name="factor">The 32-bit multiplier.</param>
+	/// <param name="multiplier">The signed 16-bit operand.</param>
+	/// <param name="expected">The expected combined value.</param>
 	[Theory]
 	[MemberData(nameof(MultiplyAddVectors))]
 	public void MultiplyAddMatchesTheMachineCode(int addend, int factor, short multiplier, int expected)
@@ -47,12 +47,12 @@ public sealed class IntegerMathTests
 	}
 
 	/// <summary>
-	/// The ported division returns the original's eax and edx for every vector.
+	/// The ported division returns the recorded quotient and remainder for every vector.
 	/// </summary>
-	/// <param name="total">Value the original adds the divisor bias to.</param>
-	/// <param name="divisor">Non-zero divisor.</param>
-	/// <param name="quotient">The original's eax.</param>
-	/// <param name="remainder">The original's edx.</param>
+	/// <param name="total">The value the divisor bias is added to.</param>
+	/// <param name="divisor">The non-zero divisor.</param>
+	/// <param name="quotient">The expected quotient.</param>
+	/// <param name="remainder">The expected remainder.</param>
 	[Theory]
 	[MemberData(nameof(DivideVectors))]
 	public void DivideRoundingUpMatchesTheMachineCode(int total, int divisor, int quotient, int remainder)
