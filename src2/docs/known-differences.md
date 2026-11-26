@@ -26,6 +26,16 @@ thirteen-screen preview container and activates screen 8. Its controls and 3D pr
 ported; the scene exposes the loaded assets and transitions only. The options controls are the
 pause-menu panel at `0x007538EC`/`0x00753D84`. See `scene-5-character-making.md`.
 
+## Text resources
+
+`PsoBB.Data.Pr2Container` and `PsoBB.Data.Pr3RelocationTable` decode the locale text containers. `PsoBB.Text.UnitxtTable` parses the indexed UTF-16 bundles and `PsoBB.Text.GameText` reads the title and account labels from list 41. The differences are:
+
+- PR3 relocation is exposed as field and target payload offsets. The original adds the loaded payload address to each field; a managed byte array has no equivalent base, so the port returns the same field-to-target association without an absolute address.
+- A truncated PR2 header, a stream that differs from its declared size, an invalid PRS stream, a pointer outside the payload and a string without a UTF-16 terminator are rejected with `Pr2FormatException` or `UnitxtFormatException`. The original trusts these files and reads outside its allocation.
+- A unitxt bundle with a non-positive list count is rejected. The original marks the table unloaded, leaves the list pointer null and would read through it on the first lookup.
+- Unitxt decompression uses the original 0x90000-byte temporary buffer, so a bundle that expands beyond it is rejected instead of overwriting adjacent memory.
+- The client also loads the locale `text*.pr2` string blobs, but the lift has no reader for their relocated root. The port decodes the containers and does not invent a string-ID mapping for those blobs; the title, menu, item and system strings exposed by `GameText` come from the unitxt tables.
+
 ## Archive readers
 
 The portable archive readers in `PsoBB.Archives` turn archive bytes into a validated directory. The original reads through a fixed zero-filled buffer and a host file API that returns short reads, so it has no equivalent truncation errors. The readers expose declared table values; the original's storage layer rounds every read to 2048-byte sectors.
