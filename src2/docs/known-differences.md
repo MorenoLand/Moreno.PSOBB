@@ -72,6 +72,16 @@ reloads from the model's source descriptor. The port retains the decoded `Textur
 cache instead, so a released GPU texture can be uploaded again; the renderer seam creates it from
 decoded BGRA pixels rather than the original's Direct3D 8 formats and pitch calculation.
 
+## Interface controls
+
+The menu controls in `PsoBB.Gui` run above `UiElement` and take synthetic `UiEvent` messages. The original controls read the DirectInput and IME globals directly and are placed from data-driven layout records, so the port exposes positions, colours and text as properties instead of loading a layout.
+
+- A button invokes its callback on a completed click or a focused Return or Space press (`0x00713068`). The shared transition animation in `0x00713054` is not reproduced; highlighting is the element state bit.
+- The list window reproduces the original row navigation (`0x00736768`, `0x007381E0`), activation (`0x0073885C`) and the three-frame scroll fields (`0x00715178`, `0x007151DC`, `0x0071522C`). The original has no separate scroll-bar class: the scroll state and its two child elements live in the list window, so `UiScrollBar` exposes that state as an element.
+- The check box is the original two-state selector record (`0x0073E5D4`) and advance rule (`0x0073E60C`). The original draws the selected value as text (`0x0073E6B4`); the port draws a filled inset quad and leaves the label to the caller.
+- The edit box receives `TextInput` messages instead of reading the Windows IME composition buffer in `0x00723BDC`. The commit still removes ASCII and full-width spaces before storing the line.
+- Labels use the text surface for drawing and measure their width for `AutoSize` instead of the original's scale animation (`0x0073A4EC`, `0x0073A524`).
+
 ## WebGL renderer
 
 The browser WebGL 2 renderer preserves the Direct3D 11 renderer's visible output for solid geometry, textures, blending, depth, stencil, alpha test and fog. The remaining differences come from the browser graphics API.
