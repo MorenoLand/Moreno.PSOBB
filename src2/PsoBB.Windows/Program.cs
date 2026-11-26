@@ -11,7 +11,7 @@ using PsoBB.Rendering.Direct3D11;
 namespace PsoBB.Windows;
 
 /// <summary>
-/// The Windows program: creates the window and platform services, loads the data image and runs the client host.
+/// The Windows program: creates the window and platform services and runs the client host.
 /// </summary>
 internal static class Program
 {
@@ -66,6 +66,7 @@ internal static class Program
 		WindowsAudioDevice audio = new();
 		Direct3D11Renderer renderer = new(window.Handle, RenderSettings.Default);
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
+		_ = new ClientStartup(renderer).Start();
 		while (window.Pump())
 			host.RunFrames(1);
 		host.RequestStop();
