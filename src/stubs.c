@@ -1,0 +1,24 @@
+#include "protos.h"
+void f_00e0a42b(void) { UNSUP(0x00e0a42b, "function not lifted"); }
+void f_03c88160(void) { UNSUP(0x03c88160, "function not lifted"); }
+void f_0c20227b(void) { UNSUP(0x0c20227b, "function not lifted"); }
+void f_0efc5fdb(void) { UNSUP(0x0efc5fdb, "function not lifted"); }
+void f_0fdcb9fd(void) { UNSUP(0x0fdcb9fd, "function not lifted"); }
+void f_205b87dc(void) { UNSUP(0x205b87dc, "function not lifted"); }
+void f_30c02ae9(void) { UNSUP(0x30c02ae9, "function not lifted"); }
+void f_37ee57cf(void) { UNSUP(0x37ee57cf, "function not lifted"); }
+void f_4f90aa54(void) { UNSUP(0x4f90aa54, "function not lifted"); }
+void f_6547b613(void) { UNSUP(0x6547b613, "function not lifted"); }
+void f_65554de2(void) { UNSUP(0x65554de2, "function not lifted"); }
+void f_7c69fab0(void) { UNSUP(0x7c69fab0, "function not lifted"); }
+void f_825b038d(void) { UNSUP(0x825b038d, "function not lifted"); }
+void f_832a2204(void) { UNSUP(0x832a2204, "function not lifted"); }
+void f_856a3cc4(void) { UNSUP(0x856a3cc4, "function not lifted"); }
+void f_896ba9bd(void) { UNSUP(0x896ba9bd, "function not lifted"); }
+void f_8bd8b20e(void) { UNSUP(0x8bd8b20e, "function not lifted"); }
+void f_8c352d03(void) { UNSUP(0x8c352d03, "function not lifted"); }
+void f_8c6b6b13(void) { UNSUP(0x8c6b6b13, "function not lifted"); }
+void f_8d5b6d7e(void) { UNSUP(0x8d5b6d7e, "function not lifted"); }
+void f_b782f2ce(void) { UNSUP(0xb782f2ce, "function not lifted"); }
+void f_e8e0a114(void) { UNSUP(0xe8e0a114, "function not lifted"); }
+void f_eb8709b0(void) { UNSUP(0xeb8709b0, "function not lifted"); }

@@ -1,0 +1,625 @@
+00403f20 00403f22 out dx, al
+00405f20 00405ebb aad 0x97
+00408da0 00408da0 rcl byte ptr [edx - 0x75], 0xc8
+0041002d 00410039 lcall 0x805, 0xd9c1d800
+00410045 00410047 lcall 0x9a32, 0x1005d900
+00410047 00410047 lcall 0x9a32, 0x1005d900
+0041004d 0041004d lcall 0x9a32, 0x1405d900
+0041005f 00410061 int 0xd9
+00411420 00411422 int1 
+004116a2 004116a5 aam 1
+0041b6e0 0041b6e6 in al, dx
+00420020 00420020 insb byte ptr es:[edi], dx
+00423ca0 00423ca0 str word ptr [ebx - 0x5bc887eb]
+00423ca0 00423cad into 
+00425246 00425248 lcall 0xc741, 0x20000000
+0042577b 0042578a out 0x27, al
+0042577b 0042578c das 
+0042577b 00425794 les ecx, ptr [ebx + ebx*2]
+0042577b 004257d6 out dx, al
+00429c20 00429c20 iretd 
+0042e120 0042e122 outsb dx, byte ptr [esi]
+0043cf40 0043cf40 in eax, dx
+0043d560 0043d5d1 lcall 0x3777, 0x3fe85000
+00440049 00440049 in al, dx
+00440049 00440050 in al, 0x89
+00443b40 00443b45 into 
+00445345 00445350 in al, 0xf8
+00445f44 00445f44 cli 
+00445f44 00445f52 lock add byte ptr [eax], al
+00449bff 00449bff ljmp 0:0xa164008c
+00450017 00450018 les eax, ptr [ebp - 0x257bf040]
+00450044 00450045 in al, dx
+00450045 00450045 in al, dx
+0045004c 0045004c insd dword ptr es:[edi], dx
+00450052 00450053 lcall 0x138b, 0x4508900
+00450053 00450053 lcall 0x138b, 0x4508900
+00450056 0045007d fisttp dword ptr [edi]
+00454255 00454255 lcall 0xec45, 0x8b590017
+00454752 0045475d aaa 
+00454752 0045475e sti 
+00454d49 00454d4c in al, 3
+0045554c 0045554c aas 
+00455649 0045564d lcall 3, 0x988b8b00
+0045b400 0045b400 sti 
+0045b840 0045b849 insb byte ptr es:[edi], dx
+00460062 0046006d insb byte ptr es:[edi], dx
+00461c02 00464bba bound esp, qword ptr [ebp + 0x67]
+0046415a 00464bba bound esp, qword ptr [ebp + 0x67]
+00464420 00464bba bound esp, qword ptr [ebp + 0x67]
+0046464f 00464bba bound esp, qword ptr [ebp + 0x67]
+00464f4f 00468057 bound esp, qword ptr [ebp + 0x67]
+00464f53 00468057 bound esp, qword ptr [ebp + 0x67]
+00464f57 00468057 bound esp, qword ptr [ebp + 0x67]
+00465345 00468057 bound esp, qword ptr [ebp + 0x67]
+00465542 00468057 bound esp, qword ptr [ebp + 0x67]
+00465653 00468057 bound esp, qword ptr [ebp + 0x67]
+00465860 00468057 bound esp, qword ptr [ebp + 0x67]
+00467481 00468057 bound esp, qword ptr [ebp + 0x67]
+00467500 00468057 bound esp, qword ptr [ebp + 0x67]
+0046798e 00468057 bound esp, qword ptr [ebp + 0x67]
+00467cb2 00468057 bound esp, qword ptr [ebp + 0x67]
+004699ff 0046b763 bound esp, qword ptr [ebp + 0x67]
+004699ff 0046b7d7 outsb dx, byte ptr gs:[esi]
+0046b390 0046b763 bound esp, qword ptr [ebp + 0x67]
+0046b390 0046b7d7 outsb dx, byte ptr gs:[esi]
+0046c2ab 0046ea77 bound esp, qword ptr [ebp + 0x67]
+0046f6a0 00471eab bound esp, qword ptr [ebp + 0x67]
+0046f880 00471eab bound esp, qword ptr [ebp + 0x67]
+00470000 00471eab bound esp, qword ptr [ebp + 0x67]
+00470002 00471eab bound esp, qword ptr [ebp + 0x67]
+00470004 00471eab bound esp, qword ptr [ebp + 0x67]
+00470020 00471eab bound esp, qword ptr [ebp + 0x67]
+00470034 00471eab bound esp, qword ptr [ebp + 0x67]
+00470042 00471eab bound esp, qword ptr [ebp + 0x67]
+00470046 00471eab bound esp, qword ptr [ebp + 0x67]
+0047004e 00471eab bound esp, qword ptr [ebp + 0x67]
+00470064 00471eab bound esp, qword ptr [ebp + 0x67]
+004700a9 00471eab bound esp, qword ptr [ebp + 0x67]
+00470200 00471eab bound esp, qword ptr [ebp + 0x67]
+00470540 00471eab bound esp, qword ptr [ebp + 0x67]
+00471880 00471eab bound esp, qword ptr [ebp + 0x67]
+00472c30 0047517f bound esp, qword ptr [ebp + 0x67]
+00472c30 0047518a in al, dx
+00472c30 004751de aam 0
+00474020 0047517f bound esp, qword ptr [ebp + 0x67]
+00474020 0047518a in al, dx
+00474020 004751de aam 0
+0047414d 0047517f bound esp, qword ptr [ebp + 0x67]
+0047414d 0047518a in al, dx
+0047414d 004751de aam 0
+00474840 0047517f bound esp, qword ptr [ebp + 0x67]
+00474840 0047518a in al, dx
+00474840 004751de aam 0
+00474942 0047517f bound esp, qword ptr [ebp + 0x67]
+00474942 0047518a in al, dx
+00474942 004751de aam 0
+00474944 0047517f bound esp, qword ptr [ebp + 0x67]
+00474944 0047518a in al, dx
+00474944 004751de aam 0
+00474b48 0047517f bound esp, qword ptr [ebp + 0x67]
+00474b48 0047518a in al, dx
+00474b48 004751de aam 0
+00474e45 0047517f bound esp, qword ptr [ebp + 0x67]
+00474e45 0047518a in al, dx
+00474e45 004751de aam 0
+00474e49 0047517f bound esp, qword ptr [ebp + 0x67]
+00474e49 0047518a in al, dx
+00474e49 004751de aam 0
+00475542 004785ab bound esp, qword ptr [ebp + 0x67]
+00476040 004785ab bound esp, qword ptr [ebp + 0x67]
+00476887 004785ab bound esp, qword ptr [ebp + 0x67]
+00476d7b 004785ab bound esp, qword ptr [ebp + 0x67]
+00477ee4 004785ab bound esp, qword ptr [ebp + 0x67]
+00478b20 0047b942 bound esp, qword ptr [ebp + 0x67]
+00478b20 0047b9b2 outsb dx, byte ptr gs:[esi]
+0047a5a0 0047b942 bound esp, qword ptr [ebp + 0x67]
+0047a5a0 0047b9b2 outsb dx, byte ptr gs:[esi]
+0047cf20 0047ec4b bound esp, qword ptr [ebp + 0x67]
+0047cf20 0047ec58 ljmp 0:0x8be1d
+0047e160 0047ec4b bound esp, qword ptr [ebp + 0x67]
+0047e160 0047ec58 ljmp 0:0x8be1d
+00480000 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480020 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480043 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480047 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480053 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480054 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480057 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480077 00481f0b bound esp, qword ptr [ebp + 0x67]
+0048008c 00481f0b bound esp, qword ptr [ebp + 0x67]
+004800b7 00481f0b bound esp, qword ptr [ebp + 0x67]
+00480a3a 00481f0b bound esp, qword ptr [ebp + 0x67]
+00484352 00484358 lcall 0x13, 0x42d9e800
+00484354 00484358 lcall 0x13, 0x42d9e800
+00489f00 00489f06 cli 
+0048b837 0048b835 out dx, al
+0048b837 0048b846 les edx, ptr [eax + 0x53]
+0048cf65 0048cf6c das 
+00490001 0049000a aam 0
+00490002 0049000a aam 0
+00490048 00490049 in al, dx
+00496a6f 00496a7d in eax, dx
+0049e900 0049e915 cli 
+0049f540 0049f566 into 
+004b0020 004b0020 pop es
+004b004e 004b004e pop es
+004b4f50 004b4f51 pop es
+004c0000 004c0000 lcall 0x9a, 0xbe9ca300
+004c00f2 004c00f7 in al, dx
+004c4156 004c4158 rcl byte ptr [eax + 0x50], 0x52
+004c4353 004c4359 insb byte ptr es:[edi], dx
+004c4542 004c4558 in eax, dx
+004c7026 004c7026 les ecx, ptr [ecx + eax]
+004c7773 004c7775 insb byte ptr es:[edi], dx
+004cd22c 004cd25d aad 0x64
+004cd22c 004cd260 lcall 0x308, 0x2474ff00
+004d0000 004d0004 iretd 
+004d5345 004d5345 rcl byte ptr [edi + 0x56], 0x51
+004e0000 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0004 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0028 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0041 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0045 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0046 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0049 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e004f 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0050 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0055 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0057 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e005f 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e007a 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e0089 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e008f 004e2c40 bound esp, qword ptr [ebp + 0x67]
+004e3f00 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e3f00 004e63e6 outsb dx, byte ptr gs:[esi]
+004e3f00 004e647e aam 0
+004e4143 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4143 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4143 004e647e aam 0
+004e4150 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4150 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4150 004e647e aam 0
+004e4153 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4153 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4153 004e647e aam 0
+004e4544 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4544 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4544 004e647e aam 0
+004e454c 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e454c 004e63e6 outsb dx, byte ptr gs:[esi]
+004e454c 004e647e aam 0
+004e4550 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4550 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4550 004e647e aam 0
+004e4553 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4553 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4553 004e647e aam 0
+004e4554 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4554 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4554 004e647e aam 0
+004e4556 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4556 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4556 004e647e aam 0
+004e4843 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4843 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4843 004e647e aam 0
+004e4946 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4946 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4946 004e647e aam 0
+004e4953 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4953 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4953 004e647e aam 0
+004e4f20 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f20 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f20 004e647e aam 0
+004e4f4e 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f4e 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f4e 004e647e aam 0
+004e4f50 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f50 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f50 004e647e aam 0
+004e4f53 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f53 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f53 004e647e aam 0
+004e4f54 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f54 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f54 004e647e aam 0
+004e4f57 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f57 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f57 004e647e aam 0
+004e4f5f 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e4f5f 004e63e6 outsb dx, byte ptr gs:[esi]
+004e4f5f 004e647e aam 0
+004e5345 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e5345 004e63e6 outsb dx, byte ptr gs:[esi]
+004e5345 004e647e aam 0
+004e5547 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e5547 004e63e6 outsb dx, byte ptr gs:[esi]
+004e5547 004e647e aam 0
+004e5552 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e5552 004e63e6 outsb dx, byte ptr gs:[esi]
+004e5552 004e647e aam 0
+004e574f 004e6370 bound esp, qword ptr [ebp + 0x67]
+004e574f 004e63e6 outsb dx, byte ptr gs:[esi]
+004e574f 004e647e aam 0
+004ee8fe 004ee8a0 in al, dx
+004f5449 004f5451 out dx, eax
+004f544f 004f5451 out dx, eax
+004f5454 004f5454 cli 
+004f83c4 004f83c9 aas 
+004f841c 004f8422 in al, dx
+00500000 00500012 les ebp, ptr [eax]
+00500048 0050004a insb byte ptr es:[edi], dx
+00504f54 00504f54 in eax, dx
+00510000 00510000 int 0x10
+00514552 00514552 pop ss
+0051e8fd 0051e8fe int1 
+00527e3d 00527e3d das 
+00530053 00530053 les edx, ptr [eax]
+00534953 00534953 les ecx, ptr [eax]
+00536880 00536880 in al, 0x8b
+0053d996 0053d996 insd dword ptr es:[edi], dx
+0054002d 00540031 into 
+00540049 00540049 into 
+00540062 0053fff1 insb byte ptr es:[edi], dx
+00540063 0053fff1 insb byte ptr es:[edi], dx
+00544948 00544951 daa 
+00544948 0054496d lds edi, ptr [eax]
+00548a9e 00548a9e in al, dx
+00550020 00550020 insd dword ptr es:[edi], dx
+00550042 00550055 pop es
+00550047 00550055 pop es
+0055004e 00550055 pop es
+00555555 0055555a fnstenv [ebp + 0x5b]
+00555f44 00555f46 rcl byte ptr [edx + 0x52], cl
+00570000 00570000 in al, 0
+005719e0 005719e0 in al, dx
+00574f4c 00574f4c int 0xe8
+00574f4c 00574f4f das 
+0057786f 0057786f les eax, ptr [eax]
+005780ee 005780f6 insb byte ptr es:[edi], dx
+00580018 00580032 in al, 0xd9
+0058001a 00580032 in al, 0xd9
+0058008f 0058009c rcr bl, 0x5d
+005814e0 005814e8 insb byte ptr es:[edi], dx
+0058c180 0058c181 pop es
+00590045 00590045 outsd dx, dword ptr [esi]
+005a0078 005a0084 pop es
+005a0096 005a0102 les ebx, ptr [eax]
+005a5c5f 005a5c5f aam 0xe8
+005a5c5f 005a5c61 out 0x1d, eax
+005b121d 005b1221 int 0xe8
+005b6d8d 005b6d80 aam 0xde
+005b6d8d 005b6d82 pop ds
+005b7c80 005b7c94 out 0xb, al
+005b82cf 005b82d5 in al, dx
+005b8ef1 005b8f1e in eax, dx
+005c007c 005c0082 in eax, dx
+005c2ac8 005c2ae6 pop es
+005d7820 005d7821 salc 
+005da1c0 005da1c4 int 0xe8
+005da3df 005da3df into 
+005edcc0 005edcdc int 0xe8
+00610048 0061004f in al, 0x8b
+00610062 0061006c cli 
+00610067 0061006c cli 
+00610068 0061006c cli 
+0061006a 0061006c cli 
+0061006c 0061006c cli 
+00610070 00610070 sti 
+006100e7 006100e7 aad 0x8e
+00610f4c 00610f4c mov es, word ptr [eax]
+00615f74 00615f74 in al, dx
+00615f74 00615f75 ljmp 0x8b04:0x538900a8
+00617375 00617375 in al, dx
+00617375 0061737c in al, 0x89
+006185ae 006185ae iretd 
+0061a0a0 0061a0a5 out dx, eax
+0061a0a0 0061a0a6 frstor dword ptr [ebx]
+0061a820 0061a820 iretd 
+0061ffff 0062000b aam 9
+00620042 00620042 aam 0x8b
+006200aa 006200b4 in al, dx
+00624f54 00624f5d cli 
+00625f6e 00625f16 rcr byte ptr [ebx], 0x93
+00630000 00630000 les edx, ptr [eax]
+0063576a 0063576b pop ds
+00636170 006360fc insb byte ptr es:[edi], dx
+00637266 0063726c in al, dx
+00637860 00637860 in eax, 0x5d
+006398a9 006398a9 les edx, ptr [eax]
+00640025 00640025 insb byte ptr es:[edi], dx
+00640025 0064002a lcall 0, 0x680017
+00640039 0064003a pop ss
+00640039 00640042 pop ss
+00640042 00640042 pop ss
+00640072 00640091 in al, 0x8b
+00646552 00646554 mov es, word ptr [eax]
+0064656c 0064656c in al, 0x89
+00650000 0065000d les ebx, ptr [eax]
+00650052 00650061 pop ds
+0065005f 00650061 pop ds
+00650063 00650063 ljmp 0x1b74:0x1f883ff
+00657069 0065706c les ecx, ptr [ebx - 0x14d7db8c]
+00670061 00670061 les ecx, ptr [eax*4 + 0x4840fc0]
+00675ca0 00675ca6 ljmp 0xfc:0x45c7fffb
+00675ca0 00675cb5 in al, dx
+00676e65 00676e6d int 0xe8
+00676e65 00676e6f lds edx, ptr [esp + edx]
+00676e69 00676e6d int 0xe8
+00676e69 00676e6f lds edx, ptr [esp + edx]
+00677541 00677556 aam 1
+00678ba0 00678ba1 aam 0xc7
+0067c527 0067c529 aas 
+0067df70 0067df7c fbld tbyte ptr [edi]
+0067e5c0 0067e5c1 in al, dx
+00680043 00680046 int 0x52
+00687467 00687467 pop ss
+0068c7ff 0068c7ff pop es
+00690050 00690051 aad 0xff
+00690050 00690068 les edx, ptr [eax]
+00690053 00690068 les edx, ptr [eax]
+00690063 00690068 les edx, ptr [eax]
+00690068 00690068 les edx, ptr [eax]
+006a56d2 006a56d4 les ecx, ptr [eax]
+006a610e 006a6114 aam 0x89
+006b8fa5 006b8fa5 in al, dx
+006c0053 006c0053 insb byte ptr es:[edi], dx
+006c0061 006c0061 les ecx, ptr [eax]
+006c0072 006c0073 pop es
+006c00af 006c00af ljmp 0x3ca1:0x90c3009c
+006c00af 006c00bc pop es
+006c616d 006c616d les eax, ptr [edx]
+006c6d62 006c6d65 int 0x61
+006c6d65 006c6d65 int 0x61
+006c6e6a 006c6e6a insb byte ptr es:[edi], dx
+006c6e6a 006c6e6e pop ss
+006c6e6a 006c6e6f insb byte ptr es:[edi], dx
+006d0049 006d0049 int 0xe8
+006d30e0 006d30e6 in al, dx
+006d7670 006d7670 out dx, eax
+006dd460 006dd461 in al, dx
+006e0000 006e0001 cli 
+006e0001 006e0001 cli 
+006e0028 006e0030 insb byte ptr es:[edi], dx
+006e2480 006e2481 outsd dx, dword ptr [esi]
+006e614a 006e6180 lcall 0x4f8, 0x83000002
+006e632e 006e6330 aas 
+006e6f68 006e6f68 in eax, 0x5d
+006e6f6c 006e6f6e lock add byte ptr [eax], al
+006e754a 006e754b in al, dx
+006eb0d7 006eb0d7 les ecx, ptr [ebx + ebx*2]
+006ee869 006ee869 iretd 
+006f006c 006f006c aas 
+006f616b 006f80c4 bound esp, qword ptr [ebp + 0x67]
+006f616b 006f80db insb byte ptr es:[edi], dx
+006f6369 006f80c4 bound esp, qword ptr [ebp + 0x67]
+006f6369 006f80db insb byte ptr es:[edi], dx
+006f666e 006f80c4 bound esp, qword ptr [ebp + 0x67]
+006f666e 006f80db insb byte ptr es:[edi], dx
+006f676f 006f80c4 bound esp, qword ptr [ebp + 0x67]
+006f676f 006f80db insb byte ptr es:[edi], dx
+006f6bc0 006f80c4 bound esp, qword ptr [ebp + 0x67]
+006f6bc0 006f80db insb byte ptr es:[edi], dx
+006f95b6 006fb778 bound esp, qword ptr [ebp + 0x67]
+006fa1fa 006fb778 bound esp, qword ptr [ebp + 0x67]
+006fbec0 006feb50 bound esp, qword ptr [ebp + 0x67]
+006fe3c0 006feb50 bound esp, qword ptr [ebp + 0x67]
+00700000 006fffcd das 
+00700000 006fffce in al, dx
+00700053 0070005b in al, dx
+00700055 0070005b in al, dx
+00706372 00706374 mov ds, esp
+00706d63 00706d63 out dx, al
+00710000 0071000f int 0x84
+0071e9e0 0071e9e6 insb byte ptr es:[edi], dx
+00720033 00720033 int 0xde
+00720033 00720035 ljmp 0x5cd9:0xfcd8cbd9
+00720046 0072004d les edi, ptr [esi]
+00726574 00726579 aas 
+00726f72 00726f7f iretd 
+00726f74 00726f7f iretd 
+0072f020 0072f020 les ebp, ptr [ecx - 0xe8b1800]
+00730000 00730000 insb byte ptr es:[edi], dx
+00730025 00730025 in al, dx
+00730061 00730061 daa 
+00730069 00730069 pop es
+00730073 00730073 lock add eax, dword ptr [eax]
+00732520 00732520 pop es
+0073635f 00736364 in al, dx
+0073676e 0073676e rcl byte ptr [eax + 0x50], 0x50
+00736b32 00736b32 les edx, ptr [eax]
+0073793f 00737946 lds eax, ptr [eax + eax]
+0073dc06 0073dc06 in al, dx
+00746938 00746949 pop es
+00747fe0 00747fe2 les ecx, ptr [0xc00]
+0075e438 0075e438 into 
+0075e440 0075e440 pop es
+0075e4dc 0075e4e1 into 
+0075e4dc 0075e55c out 0xff, eax
+0075e55a 0075e55c out 0xff, eax
+0075e61e 0075e61e out dx, eax
+0075e7a0 0075e7ae into 
+0075e812 0075e812 les ecx, ptr [eax]
+0075e8ac 0075e8b2 in al, dx
+0075e95a 0075e95a in al, dx
+0075e980 0075e98b in al, dx
+0075eb14 0075eb17 int1 
+0075ebdc 0075ebdc pop es
+0075ebf4 0075ebf6 int 0xe8
+0075ec70 0075ec70 pop es
+0075ecbc 0075ecbc iretd 
+0075ecc8 0075ecc8 out 0x90, al
+0075ed2c 0075ed2c lds ebx, ptr [ebp + 0x5f]
+0075ed44 0075ed44 les eax, ptr [eax + ebp*8]
+0075ed44 0075ed47 in eax, 0x7f
+0075edd0 0075edd5 aas 
+0075ee04 0075ee04 insb byte ptr es:[edi], dx
+0075ee04 0075ee06 out 0xff, al
+0075ee42 0075ee12 in al, dx
+0075eed8 0075eed8 aam 0x38
+0075eed8 0075eeda sti 
+0075ef48 0075ef53 sti 
+0075ef56 0075ef94 les ecx, ptr [eax + ebp*2]
+0075ef94 0075ef94 les ecx, ptr [eax + ebp*2]
+0075efa4 0075efb2 in al, dx
+0075eff2 0075eff8 in al, dx
+0075f064 0075f066 out 0x38, al
+0075f0d2 0075f0d2 les eax, ptr [ebx + ecx*4]
+0075f0d2 0075f0d6 in al, dx
+0075f0f8 0075f0fb in al, dx
+0075f14e 0075f150 sti 
+0075f16e 0075f16e in al, dx
+0075f1ce 0075f1d3 in al, dx
+0075f1de 0075f1df in al, dx
+0075f214 0075f214 cli 
+0075f214 0075f21a in al, dx
+0075f266 0075f26c in al, dx
+0075f280 0075f280 in al, dx
+0075f2d4 0075f2d4 in al, dx
+0075f2f6 0075f2f7 in al, dx
+0075f35c 0075f35c in al, dx
+0075f368 0075f368 in al, dx
+0075f394 0075f3a7 in al, dx
+0075f3a6 0075f3a7 in al, dx
+0075f404 0075f404 in al, dx
+0075f48a 0075f4a0 rcl byte ptr [eax + 0x50], 0x50
+0075f49c 0075f4a0 rcl byte ptr [eax + 0x50], 0x50
+0075f4bc 0075f4cf sti 
+0075f4fc 0075f4fd in al, dx
+0075f50c 0075f513 in al, dx
+0075f56e 0075f56f outsd dx, dword ptr [esi]
+0075f580 0075f580 in al, dx
+0075f592 0075f5a2 in al, dx
+0075f5a6 0075f5a8 aad 7
+0075f5c2 0075f5c2 in al, dx
+0075f614 0075f626 in al, dx
+0075f61e 0075f626 in al, dx
+0075f664 0075f664 outsb dx, byte ptr [esi]
+00766f4e 00766f55 insb byte ptr es:[edi], dx
+00769dbe 00769dc0 iretd 
+0076a200 0076a206 int 0x8b
+00784650 00784651 in al, 0xff
+00784b65 00784b31 in al, 0xe3
+00790074 00790076 iretd 
+00796f72 00796f72 aad 0xa9
+00798da9 00798da9 les esp, ptr [ecx + eax]
+00799a60 00799a60 in al, 0x89
+007a0069 007a0069 les ebp, ptr [ecx + 0x61e7e800]
+007a0069 007a006f out dx, al
+007a0079 007a0098 les ebp, ptr [ecx + 0x3d20300]
+007b9ece 007b9ece insb byte ptr es:[edi], dx
+007c0097 007c0097 in al, 0x8b
+007c00ea 007c00ea insb byte ptr es:[edi], dx
+007c253c 007c4c8b bound esp, qword ptr [ebp + 0x67]
+007c83f8 007c8400 les esp, ptr [esi]
+007c98ee 007cc763 bound esp, qword ptr [ebp + 0x67]
+007c98ee 007cc7cc in al, 0x87
+007ca152 007cc763 bound esp, qword ptr [ebp + 0x67]
+007ca152 007cc7cc in al, 0x87
+007cb4bd 007cc763 bound esp, qword ptr [ebp + 0x67]
+007cb4bd 007cc7cc in al, 0x87
+007cc99c 007cfa93 bound esp, qword ptr [ebp + 0x67]
+007cc99c 007cfaf2 in al, dx
+007cebda 007cfa93 bound esp, qword ptr [ebp + 0x67]
+007cebda 007cfaf2 in al, dx
+007cfdf9 007d2d32 bound esp, qword ptr [ebp + 0x67]
+007d003d 007d2d32 bound esp, qword ptr [ebp + 0x67]
+007d0058 007d2d32 bound esp, qword ptr [ebp + 0x67]
+007d007b 007d2d32 bound esp, qword ptr [ebp + 0x67]
+007d007c 007d2d32 bound esp, qword ptr [ebp + 0x67]
+007d00dc 007d2d32 bound esp, qword ptr [ebp + 0x67]
+007d6960 007d75c3 bound esp, qword ptr [ebp + 0x67]
+007d90af 007dae22 bound esp, qword ptr [ebp + 0x67]
+007d9aac 007dae22 bound esp, qword ptr [ebp + 0x67]
+007da3d7 007dae22 bound esp, qword ptr [ebp + 0x67]
+007da5c1 007dae22 bound esp, qword ptr [ebp + 0x67]
+007dbedd 007de336 bound esp, qword ptr [ebp + 0x67]
+007dc5d6 007de336 bound esp, qword ptr [ebp + 0x67]
+007ddd24 007de336 bound esp, qword ptr [ebp + 0x67]
+007df028 007e18fb bound esp, qword ptr [ebp + 0x67]
+007e0000 007e18fb bound esp, qword ptr [ebp + 0x67]
+007e0039 007e18fb bound esp, qword ptr [ebp + 0x67]
+007e0062 007e18fb bound esp, qword ptr [ebp + 0x67]
+007e00b1 007e18fb bound esp, qword ptr [ebp + 0x67]
+007e511c 007e511d in al, 0x8b
+007e511c 007e5126 in al, dx
+007e7a16 007e86fe bound esp, qword ptr [ebp + 0x67]
+007e7a16 007e8709 in al, 0xfc
+007e83a7 007e86fe bound esp, qword ptr [ebp + 0x67]
+007e83a7 007e8709 in al, 0xfc
+007e8520 007e86fe bound esp, qword ptr [ebp + 0x67]
+007e8520 007e8709 in al, 0xfc
+007e868b 007e86fe bound esp, qword ptr [ebp + 0x67]
+007e868b 007e8709 in al, 0xfc
+007e9a80 007eb9eb bound esp, qword ptr [ebp + 0x67]
+007e9a80 007eb9f6 ljmp 0:0x8bed2
+007ecc48 007eeffe bound esp, qword ptr [ebp + 0x67]
+007f0024 007f251b bound esp, qword ptr [ebp + 0x67]
+007f0058 007f251b bound esp, qword ptr [ebp + 0x67]
+007f007e 007f251b bound esp, qword ptr [ebp + 0x67]
+007f00ff 007f251b bound esp, qword ptr [ebp + 0x67]
+007f7b3c 007f9bc3 bound esp, qword ptr [ebp + 0x67]
+007f7b3c 007f9bce ljmp 0:0x8bed4
+007f7d5d 007f9bc3 bound esp, qword ptr [ebp + 0x67]
+007f7d5d 007f9bce ljmp 0:0x8bed4
+007f7e7d 007f9bc3 bound esp, qword ptr [ebp + 0x67]
+007f7e7d 007f9bce ljmp 0:0x8bed4
+007f8486 007f9bc3 bound esp, qword ptr [ebp + 0x67]
+007f8486 007f9bce ljmp 0:0x8bed4
+007f8da6 007f9bc3 bound esp, qword ptr [ebp + 0x67]
+007f8da6 007f9bce ljmp 0:0x8bed4
+007f9640 007f9bc3 bound esp, qword ptr [ebp + 0x67]
+007f9640 007f9bce ljmp 0:0x8bed4
+007fffff 00800196 bound esp, qword ptr [ebp + 0x67]
+00800000 00800196 bound esp, qword ptr [ebp + 0x67]
+00800068 00800196 bound esp, qword ptr [ebp + 0x67]
+00800078 00800196 bound esp, qword ptr [ebp + 0x67]
+00800080 00800196 bound esp, qword ptr [ebp + 0x67]
+00804b40 00804b40 sti 
+0080a6b3 0080a6b3 das 
+0080b4e4 0080b4f3 iretd 
+0080b4e4 0080b4f7 aam 0
+0081bade 0081dd1c bound esp, qword ptr [ebp + 0x67]
+0081e900 008214d4 bound esp, qword ptr [ebp + 0x67]
+0081ef20 008214d4 bound esp, qword ptr [ebp + 0x67]
+00820000 008214d4 bound esp, qword ptr [ebp + 0x67]
+00820010 008214d4 bound esp, qword ptr [ebp + 0x67]
+00820082 008214d4 bound esp, qword ptr [ebp + 0x67]
+0082009b 008214d4 bound esp, qword ptr [ebp + 0x67]
+008200cd 008214d4 bound esp, qword ptr [ebp + 0x67]
+00820502 008214d4 bound esp, qword ptr [ebp + 0x67]
+00820931 008214d4 bound esp, qword ptr [ebp + 0x67]
+0082c2ff 0082c300 pop es
+0083ea02 0083ea0b out dx, al
+00840000 00840004 daa 
+00843f10 00843f14 into 
+0085002d 0085006e cli 
+0085002d 00850086 insd dword ptr es:[edi], dx
+00850084 00850086 insd dword ptr es:[edi], dx
+0085244a 00852457 das 
+00858c80 00858e79 mov es, word ptr [ebp + 0x3468a00]
+00861d00 00861eec pop ds
+00861d00 00861ef9 pop ds
+00866c78 00866c78 in al, dx
+0086c4a0 0086cf95 rcr bh, 0xe0
+0086c8e2 0086cf95 rcr bh, 0xe0
+00880030 00880032 insb byte ptr es:[edi], dx
+00898b8b 00898b8b int1 
+008b0108 008b0108 pavgb mm6, qword ptr [edi + ecx + 0xf0fd26a]
+008b0108 008b0149 psubq mm6, qword ptr [edi + ecx + 0xf9ed10f]
+008b0108 008b015e outsd dx, dword ptr [esi]
+008b0108 008b0162 pminub mm3, qword ptr [esi + 0x28486f0f]
+008b613c 008b613c aam 0
+008bb3cc 008bb3ce outsb dx, byte ptr [esi]
+008bfa50 008c0339 mov es, word ptr [eax]
+008bfa50 008c03f9 lcall 0, 0x8000
+008bfce0 008c0339 mov es, word ptr [eax]
+008bfce0 008c03f9 lcall 0, 0x8000
+008c0000 008c0339 mov es, word ptr [eax]
+008c0000 008c03f9 lcall 0, 0x8000
+008c0062 008c0339 mov es, word ptr [eax]
+008c0062 008c03f9 lcall 0, 0x8000
+008c006e 008c0339 mov es, word ptr [eax]
+008c006e 008c03f9 lcall 0, 0x8000

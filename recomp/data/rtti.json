@@ -1,0 +1,48 @@
+{
+ "classes": [
+  {
+   "bases": [],
+   "col": "0x009a01ec",
+   "descriptor": "0x00a239c0",
+   "method_count": 1,
+   "name": "type_info",
+   "vtable": "0x00997fc8",
+   "vtables": [
+    "0x00997fc8"
+   ]
+  }
+ ],
+ "counts": {
+  "classes": 1,
+  "descriptors_without_vtable": 1,
+  "methods": 1,
+  "type_descriptors": 2,
+  "vtables": 1
+ },
+ "limitations": [
+  "MSVC RTTI only (type descriptor names .?AV/.?AU); Itanium/GCC RTTI is not decoded.",
+  "vfuncN names are positional, not semantic method names.",
+  "Multiple inheritance, thunks and secondary vtables can produce duplicate entries.",
+  "A descriptor without a valid CompleteObjectLocator is counted as an orphan, not guessed."
+ ],
+ "methods": {
+  "0x0085a67c": [
+   "type_info::vfunc0"
+  ]
+ },
+ "schema": 1,
+ "target_sha256": "f4d4bd463c07fec2542452735deb5237641634100d9223d2d0f0ae4000315cc0",
+ "vtables": [
+  {
+   "address": "0x00997fc8",
+   "class": "type_info",
+   "methods": [
+    {
+     "address": "0x0085a67c",
+     "name": "type_info::vfunc0",
+     "slot": 0
+    }
+   ]
+  }
+ ]
+}

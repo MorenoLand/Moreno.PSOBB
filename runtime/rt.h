@@ -1,0 +1,165 @@
+/* rt.h: runtime model shared by all lifted functions (see lift.py). 32-bit build: a guest address is a host pointer. */
+#ifndef RT_H
+#define RT_H
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+typedef uint8_t u8; typedef uint16_t u16; typedef uint32_t u32; typedef uint64_t u64;
+typedef int8_t i8; typedef int16_t i16; typedef int32_t i32; typedef int64_t i64;
+
+/* recomp links no API/override implementation. Give its fallbacks ordinary
+ * definitions: PE/COFF weak externals do not satisfy other objects' strong
+ * references. Client and calltest builds still allow the real overrides. */
+#if defined(SS_RECOMP_DRIVER)
+#define RT_FALLBACK
+#else
+#define RT_FALLBACK __attribute__((weak))
+#endif
+
+extern u32 r_eax, r_ecx, r_edx, r_ebx, r_esp, r_ebp, r_esi, r_edi;
+extern u32 fZ, fS, fC, fO, fP, fA;              /* the guest's EFLAGS bits: shared by every lifted function like the registers */
+extern long double fpr[8];
+extern int ftop;
+extern u16 fsw, fcw;
+
+extern u32 rt_teb;
+#define TEB rt_teb
+#define R8(a)  (*(u8 *)(uintptr_t)(a))
+#define R16(a) (*(u16 *)(uintptr_t)(a))
+#define R32(a) (*(u32 *)(uintptr_t)(a))
+#define R64(a) (*(u64 *)(uintptr_t)(a))
+#define W64(a, v) (*(u64 *)(uintptr_t)(a) = (u64)(v))
+#define W8(a, v)  (*(u8 *)(uintptr_t)(a) = (u8)(v))
+#define W16(a, v) (*(u16 *)(uintptr_t)(a) = (u16)(v))
+extern u32 rt_watch_lo, rt_watch_hi;                 /* debugging: report 32-bit writes into [lo, hi) (build with -DRT_WATCH) */
+void rt_watch_hit(u32 addr, u32 value, const char *fn);
+#ifdef RT_WATCH
+#define W32(a, v) do { u32 w_a_ = (u32)(a), w_v_ = (u32)(v); if (w_a_ - rt_watch_lo < rt_watch_hi - rt_watch_lo) rt_watch_hit(w_a_, w_v_, __func__); *(u32 *)(uintptr_t)w_a_ = w_v_; } while (0)
+#else
+#define W32(a, v) (*(u32 *)(uintptr_t)(a) = (u32)(v))
+#endif
+#define R_F32(a) ((long double)*(float *)(uintptr_t)(a))
+#define R_F64(a) ((long double)*(double *)(uintptr_t)(a))
+#define W_F32(a, v) (*(float *)(uintptr_t)(a) = (float)(v))
+#define W_F64(a, v) (*(double *)(uintptr_t)(a) = (v))
+long double rt_r_f80(u32 a);
+void rt_w_f80(u32 a, long double v);
+#define R_F80(a) rt_r_f80(a)
+#define W_F80(a, v) rt_w_f80((a), (v))
+
+#define ST(i) fpr[(ftop + (i)) & 7]
+#define FPUSH(x) do { long double fpv_ = (x); ftop = (ftop - 1) & 7; fpr[ftop] = fpv_; } while (0)
+#define FPOP() (ftop = (ftop + 1) & 7)
+
+long double fx_rint(long double v);
+i16 fx_int16(long double v);
+i32 fx_int32(long double v);
+i64 fx_int64(long double v);
+void fx_compare(long double a, long double b);
+double fx_rint_mx(double v);
+void fx_bcd_store(u32 addr, long double v);
+u16 fx_sw(void);
+
+__attribute__((noreturn)) void rt_unsup(u32 addr, const char *msg);
+#define UNSUP(a, msg) rt_unsup((a), (msg))
+void call_ind(u32 target);
+void jmp_ind(u32 target);                       /* indirect jmp: a landing resumes its owner, otherwise a tail call */
+int rt_is_thunk(u32 target);                    /* Delphi MakeObjectInstance thunk (guest heap): E8 rel32 / 59 E9 rel32 */
+
+/* Delphi exception landings: try/except pushes {next, handler, ebp} on fs:[0]; the RTL unwinds and
+ * jumps into the middle of the function that owns the frame. The generator wraps that function: the
+ * wrapper records itself here and setjmps; jmp_ind finds the innermost active owner and longjmps. */
+typedef struct LandRec {
+    void *jb[5];
+    struct LandRec *prev;
+    u32 owner;
+    u32 esp;
+} LandRec;
+typedef struct { u32 addr; u32 owner; } LandEnt;
+extern const LandEnt land_table[];
+extern const unsigned land_count;
+extern u32 rt_land_target;
+extern LandRec *rt_land_top;
+void rt_land_enter(LandRec *r, u32 owner);
+void rt_land_leave(LandRec *r);
+void rt_reraise(void);
+u32 gcall(u32 addr, u32 ecx_value, int cdecl_, int n, ...);   /* api.c: call the guest function at addr from native code; ecx for a thiscall, cdecl_ = 1 when the caller removes the n 32-bit arguments; returns eax.
+                                                                  Declared here and not in api.h, which includes <windows.h> on Windows: the host bridges (src/host) must not. */
+
+typedef struct { u32 addr; void (*fn)(void); } FnEnt;
+extern const FnEnt fn_table[];
+extern const unsigned fn_count;
+void rt_shadow_dump(void);                           /* crash report: the guest call stack of a profile build */
+void rt_prof_dump(void);                             /* prints the per-function call counts of a profile build; does nothing otherwise */
+#ifdef RT_PROFILE
+void rt_prof(u32 addr);                              /* debugging: log every function the first time it runs (build with -DRT_PROFILE) */
+u32 rt_fn_addr(const void *f);                       /* the guest address of a function given the function (or the address itself) */
+#define FN_ENTER(a) rt_prof(rt_fn_addr((const void *)(a)))
+void rt_bb(u32 addr);                                 /* debugging: RECOMP_BBLOG=lo-hi (hex) prints every labelled block reached in that address range */
+#define BB(a) rt_bb(a)
+void rt_fn_ret(u32 fea);                             /* debugging: RECOMP_RETLOG=hex,hex prints eax when those functions return */
+#define FN_RET(a) rt_fn_ret(rt_fn_addr((const void *)(a)))
+#else
+#define FN_ENTER(a) ((void)0)
+#define BB(a) ((void)0)
+#define FN_RET(a) ((void)0)
+#endif
+extern u32 rt_eflags_extra;
+extern int rt_df;                                    /* direction flag */
+void rt_cpuid(u32 leaf, u32 sub, u32 *a, u32 *b, u32 *c, u32 *d);
+u64 rt_rdtsc(void);
+typedef union { u8 b[16]; u16 w[8]; u32 d[4]; u64 q[2]; float fs[4]; double f[2]; } XMM;
+typedef union { u64 q; u32 d[2]; i32 sd[2]; u16 w[4]; u8 b[8]; float f[2]; } MM64;
+
+static inline i8 rt_sat8(i32 v) { return (i8)(v < -128 ? -128 : (v > 127 ? 127 : v)); }
+static inline i16 rt_sat16(i32 v) { return (i16)(v < -32768 ? -32768 : (v > 32767 ? 32767 : v)); }
+static inline u8 rt_satu8(i32 v) { return (u8)(v < 0 ? 0 : (v > 255 ? 255 : v)); }
+static inline u16 rt_satu16(i32 v) { return (u16)(v < 0 ? 0 : (v > 65535 ? 65535 : v)); }
+
+/* 3DNow! packed single-precision. The reciprocal and reciprocal-square-root estimates are
+ * computed exactly here; the hardware instructions return a 12-bit approximation. */
+static inline u64 rt_pf(u64 a) { MM64 t; t.q = a; return t.q; }
+static inline u64 rt_pf_add(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] + y.f[0]; r.f[1] = x.f[1] + y.f[1]; return r.q; }
+static inline u64 rt_pf_sub(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] - y.f[0]; r.f[1] = x.f[1] - y.f[1]; return r.q; }
+static inline u64 rt_pf_mul(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] * y.f[0]; r.f[1] = x.f[1] * y.f[1]; return r.q; }
+static inline u64 rt_pf_subr(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = y.f[0] - x.f[0]; r.f[1] = y.f[1] - x.f[1]; return r.q; }
+static inline u64 rt_pf_acc(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] + x.f[1]; r.f[1] = y.f[0] + y.f[1]; return r.q; }
+static inline u64 rt_pf_pnacc(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] - x.f[1]; r.f[1] = y.f[0] - y.f[1]; return r.q; }
+static inline u64 rt_pf_nacc(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[1] - x.f[0]; r.f[1] = y.f[1] - y.f[0]; return r.q; }
+static inline u64 rt_pf_max(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] > y.f[0] ? x.f[0] : y.f[0]; r.f[1] = x.f[1] > y.f[1] ? x.f[1] : y.f[1]; return r.q; }
+static inline u64 rt_pf_min(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = x.f[0] < y.f[0] ? x.f[0] : y.f[0]; r.f[1] = x.f[1] < y.f[1] ? x.f[1] : y.f[1]; return r.q; }
+static inline u64 rt_pf_cmpge(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.d[0] = (x.f[0] >= y.f[0]) ? 0xffffffffu : 0; r.d[1] = (x.f[1] >= y.f[1]) ? 0xffffffffu : 0; return r.q; }
+static inline u64 rt_pf_cmpgt(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.d[0] = (x.f[0] > y.f[0]) ? 0xffffffffu : 0; r.d[1] = (x.f[1] > y.f[1]) ? 0xffffffffu : 0; return r.q; }
+static inline u64 rt_pf_cmpeq(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.d[0] = (x.f[0] == y.f[0]) ? 0xffffffffu : 0; r.d[1] = (x.f[1] == y.f[1]) ? 0xffffffffu : 0; return r.q; }
+#undef RT_PFCMP
+
+static inline u64 rt_pf_rcp(u64 a) { MM64 x, r; x.q = a; r.f[0] = 1.0f / x.f[0]; r.f[1] = 1.0f / x.f[1]; return r.q; }
+static inline u64 rt_pf_rsqrt(u64 a) { MM64 x, r; x.q = a; r.f[0] = 1.0f / sqrtf(x.f[0]); r.f[1] = 1.0f / sqrtf(x.f[1]); return r.q; }
+static inline u64 rt_pf_rcpit1(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = y.f[0] * (2.0f - x.f[0] * y.f[0]); r.f[1] = y.f[1] * (2.0f - x.f[1] * y.f[1]); return r.q; }
+static inline u64 rt_pf_rcpit2(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = 0.5f * y.f[0] * (3.0f - x.f[0] * y.f[0] * y.f[0]);
+    r.f[1] = 0.5f * y.f[1] * (3.0f - x.f[1] * y.f[1] * y.f[1]); return r.q; }
+static inline u64 rt_pf_rsqit1(u64 a, u64 b) { MM64 x, y, r; x.q = a; y.q = b;
+    r.f[0] = 0.5f * (3.0f - x.f[0] * y.f[0] * y.f[0]); r.f[1] = 0.5f * (3.0f - x.f[1] * y.f[1] * y.f[1]); return r.q; }
+static inline u64 rt_pf2id(u64 a) { MM64 x, r; x.q = a; r.sd[0] = (i32)x.f[0]; r.sd[1] = (i32)x.f[1]; return r.q; }
+static inline u64 rt_pf2iw(u64 a) { MM64 x, r; x.q = a; r.d[0] = (u32)(i32)(i16)x.f[0]; r.d[1] = (u32)(i32)(i16)x.f[1]; return r.q; }
+static inline u64 rt_pi2fd(u64 a) { MM64 x, r; x.q = a; r.f[0] = (float)x.sd[0]; r.f[1] = (float)x.sd[1]; return r.q; }
+extern XMM xmm[8];
+extern u32 mxcsr;
+#endif
