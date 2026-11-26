@@ -365,8 +365,7 @@ public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRende
 	}
 
 	/// <summary>Copies the current render target to a staging texture and returns its BGRA bytes, for tests.</summary>
-	internal byte[] CaptureBackBuffer()
-	{
+	internal byte[] CaptureBackBuffer()	{
 		ThrowIfDisposed();
 		EnsureDevice();
 		int width = Settings.Width;
@@ -393,6 +392,9 @@ public sealed class Direct3D11Renderer : IFixedFunctionRenderer, IResizableRende
 		_context.Unmap(staging, 0);
 		return pixels;
 	}
+
+	/// <summary>Copies the current render target to a staging texture and returns its BGRA bytes.</summary>
+	public byte[] CaptureFrame() => CaptureBackBuffer();
 
 	private static Matrix4x4[] CreateWorldMatrices()
 	{

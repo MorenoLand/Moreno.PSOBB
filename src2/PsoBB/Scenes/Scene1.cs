@@ -38,6 +38,9 @@ public sealed class Scene1 : IDisposable
 	/// <summary>The direction vector both the initialiser and the update write.</summary>
 	public static readonly Vector3 ScreenDirection = new(0f, 0f, -100f);
 
+	/// <summary>The full-screen overlay size used by the fade task at <c>0x00788820</c>.</summary>
+	public static readonly Vector2 FadeOverlaySize = new(640f, 480f);
+
 	/// <summary>The transition handler the initialiser selects for scenes one through two.</summary>
 	public const uint TransitionHandlerAddress = 0x005BA38C;
 
@@ -119,6 +122,18 @@ public sealed class Scene1 : IDisposable
 	/// <summary>Gets a value indicating whether bit 1 of the title drawing flag is set.</summary>
 	public static bool TitleDrawingEnabled => (TitleFlags & 2) != 0;
 
+	/// <summary>Sets bit 1 of the title drawing flag, which enables the loading draw.</summary>
+	[Original(0x0078DFE4, "TitleDrawing_Enable_0078dfe4")]
+	public static void EnableTitleDrawing() => TitleFlags |= 2;
+
+	/// <summary>Clears bit 1 of the title drawing flag when it is set.</summary>
+	[Original(0x0078DDA4, "TitleDrawing_Disable_0078dda4")]
+	public static void DisableTitleDrawing()
+	{
+		if ((TitleFlags & 2) != 0)
+			TitleFlags &= ~2u;
+	}
+
 	/// <summary>Gets the width the logo resource group stores from the display settings.</summary>
 	public static int TitleScreenWidth { get; private set; }
 
@@ -157,7 +172,7 @@ public sealed class Scene1 : IDisposable
 	}
 
 	/// <summary>
-	/// Adds the logo rectangles for the current timeline state.
+	/// Adds the logo rectangles for the current timeline state and the black fade overlay.
 	/// </summary>
 	/// <param name="draw">The draw list that receives the quads.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
@@ -166,9 +181,10 @@ public sealed class Scene1 : IDisposable
 	{
 		ArgumentNullException.ThrowIfNull(draw);
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		if (_sequence.IsFinished)
-			return;
-		_logo.Draw(draw, _sequence.Variant);
+		if (!_sequence.IsFinished)
+			_logo.Draw(draw, _sequence.Variant);
+		if (_sequence.Alpha > 0)
+			draw.Add(new UiQuad(Vector2.Zero, FadeOverlaySize, new Vector4(0f, 0f, 1f, 1f), null, (uint)_sequence.Alpha << 24));
 	}
 
 	/// <summary>

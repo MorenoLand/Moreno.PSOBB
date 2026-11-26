@@ -39,6 +39,21 @@ public sealed class Scene2TitleArt : IDisposable
 	/// <summary>The depth the flash passes to <c>0x0082B440</c>.</summary>
 	public const float FlashDepth = 1f - 0.007142857f;
 
+	/// <summary>The element index of the press-enter strip in the table at <c>0x009CFF00</c>.</summary>
+	public const int SelectorElement = 10;
+
+	/// <summary>The frame index of the press-enter strip in the table at <c>0x009CFB60</c>.</summary>
+	public const int SelectorFrame = 10;
+
+	/// <summary>The press-enter strip position from element 10.</summary>
+	public static readonly Vector2 SelectorPosition = new(193f, 338f);
+
+	/// <summary>The press-enter strip size from frame 10: 256 by 32 pixels.</summary>
+	public static readonly Vector2 SelectorSize = new(256f, 32f);
+
+	/// <summary>The inclusive source rectangle of frame 10 in title texture 0.</summary>
+	public static readonly Vector4 SelectorTextureCoordinates = new(0f, 0f, 255f / 256f, 31f / 256f);
+
 	/// <summary>Gets the selected title set.</summary>
 	public Scene2TitleSet TitleSet { get; }
 
@@ -194,6 +209,32 @@ public sealed class Scene2TitleArt : IDisposable
 				cosine * y + x * sine + emblem.Center.Y);
 			AddEmblemQuad(draw, 12, center, 104f, -2 * angle, emblem.RingU, emblem.RingV, 0.203125f, color, 1f - 0.008474576f);
 		}
+	}
+
+	/// <summary>
+	/// Adds the press-enter strip: element 10 of <c>0x009CFF00</c>, frame 10 of <c>0x009CFB60</c>,
+	/// using the first title texture and the original alpha-blend mode.
+	/// </summary>
+	/// <param name="draw">The draw list that receives the strip quad.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The title art is released.</exception>
+	[Original(0x006FF0D4, "TitleMenu_DrawSelector_006ff0d4")]
+	public void DrawSelectorStrip(TitleArtDrawList draw)
+	{
+		ArgumentNullException.ThrowIfNull(draw);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		Vector2 right = new(SelectorPosition.X + SelectorSize.X, SelectorPosition.Y);
+		Vector2 bottom = new(SelectorPosition.X + SelectorSize.X, SelectorPosition.Y + SelectorSize.Y);
+		Vector2 leftBottom = new(SelectorPosition.X, SelectorPosition.Y + SelectorSize.Y);
+		draw.AddOverlay(new TitleArtOverlayQuad(
+			_textures[0],
+			new TitleArtVertex(SelectorPosition, new Vector2(SelectorTextureCoordinates.X, SelectorTextureCoordinates.Y)),
+			new TitleArtVertex(right, new Vector2(SelectorTextureCoordinates.Z, SelectorTextureCoordinates.Y)),
+			new TitleArtVertex(bottom, new Vector2(SelectorTextureCoordinates.Z, SelectorTextureCoordinates.W)),
+			new TitleArtVertex(leftBottom, new Vector2(SelectorTextureCoordinates.X, SelectorTextureCoordinates.W)),
+			0xFFFFFFFFu,
+			1f,
+			TitleArtBlend.Alpha));
 	}
 
 	/// <summary>
@@ -531,6 +572,8 @@ public enum TitleArtBlend
 	Alpha = 1,
 	/// <summary>Additive source-one, destination-one blending.</summary>
 	Additive = 2,
+	/// <summary>Source-alpha, destination-one blending for the pulsing loading emblem.</summary>
+	AdditiveAlpha = 3,
 }
 
 /// <summary>
@@ -602,6 +645,9 @@ public sealed class TitleArtDrawList
 
 	private static void SetBlend(IRenderer renderer, TitleArtBlend blend)
 	{
+		renderer.SetRenderState(RenderStateId.AlphaTestEnable, 1);
+		renderer.SetRenderState(RenderStateId.AlphaReference, 16);
+		renderer.SetRenderState(RenderStateId.AlphaFunction, RenderStateId.ComparisonGreater);
 		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, blend == TitleArtBlend.Opaque ? 0u : 1u);
 		if (blend == TitleArtBlend.Alpha)
 		{
@@ -611,6 +657,11 @@ public sealed class TitleArtDrawList
 		else if (blend == TitleArtBlend.Additive)
 		{
 			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendOne);
+			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendOne);
+		}
+		else if (blend == TitleArtBlend.AdditiveAlpha)
+		{
+			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
 			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendOne);
 		}
 		renderer.SetRenderState(RenderStateId.Lighting, 0);

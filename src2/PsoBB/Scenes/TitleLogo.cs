@@ -92,7 +92,7 @@ public sealed class TitleLogo : IDisposable
 		{
 			for (int index = 0; index < count; index++)
 			{
-				TextureRequest request = textures.Acquire(decoded[index])
+				TextureRequest request = textures.Acquire(KeyWhite(decoded[index]))
 					?? throw new InvalidOperationException("The texture cache has no slot for a logo sprite.");
 				_requests[index] = request;
 				_frames[index] = request.Texture;
@@ -164,6 +164,17 @@ public sealed class TitleLogo : IDisposable
 	private static bool IsXvm(ReadOnlySpan<byte> data) =>
 		data.Length >= 4 && BinaryPrimitives.ReadUInt32LittleEndian(data) == 0x484D5658;
 
+	private static XvmTexture KeyWhite(XvmTexture texture)
+	{
+		byte[] pixels = texture.Image.Pixels.ToArray();
+		for (int index = 0; index + 3 < pixels.Length; index += 4)
+		{
+			if (pixels[index] == 255 && pixels[index + 1] == 255 && pixels[index + 2] == 255)
+				pixels[index + 3] = 0;
+		}
+		return new XvmTexture(texture.GlobalIndex, texture.Format, texture.Width, texture.Height, texture.Offset, new TextureImage(texture.Width, texture.Height, pixels));
+	}
+
 	private static ReadOnlyMemory<byte> Decompress(ReadOnlyMemory<byte> data, string name)
 	{
 		int capacity = Math.Max(0x10000, data.Length * 4);
@@ -199,37 +210,46 @@ public readonly record struct TitleLogoQuad(int TextureIndex, int X, int Y, int 
 /// texture offset used by the draw at <c>0x411E30</c>.
 /// </summary>
 /// <remarks>
-/// The initializer registers <c>0x411E78</c> on a thirty-two tick timer. That callback advances the
-/// state to one. State one counts sixty object updates, then enters state two and schedules
-/// <c>0x411E94</c> on another thirty-two tick timer. The callback sets the finished flag unless the
-/// cinematic path is selected, in which case it continues through states three through seven and
-/// nine through ten exactly as the jump table at <c>0x8FA96C</c> directs.
+/// The sequence owns the full-screen black overlay task at <c>0x7889B0</c>: the initializer starts
+/// it at alpha 255 and the update adds the negative step <c>flt_97A724</c> until it reaches
+/// <c>flt_97A720</c>, then invokes the completion callback and sets bit 4. The scene states at
+/// <c>0x411C94</c> hold for sixty updates, start the reverse task at <c>0x788938</c>, and switch the
+/// sprite-group variant while the overlay is opaque. The draw at <c>0x411E30</c> uses the variant
+/// offset for the eight logo rectangles.
 /// </remarks>
 public sealed class TitleLogoSequence
 {
 	/// <summary>The number of updates the frame counter must exceed to change state.</summary>
 	public const int FrameLimit = 60;
 
-	/// <summary>The number of timer ticks a scheduled callback waits.</summary>
-	public const int TimerTicks = 32;
+	/// <summary>The alpha value the overlay task starts with and fades to.</summary>
+	public const int FadeMaximum = 255;
+
+	/// <summary>The amount the overlay alpha changes on every update.</summary>
+	public const int FadeStep = 8;
+
+	/// <summary>The number of updates the overlay takes to reach the other end.</summary>
+	public const int FadeFrames = 32;
 
 	private readonly bool _cinematic;
 	private int _state;
 	private int _frames;
 	private int _variant;
-	private int _timerTicks;
-	private Action? _timerAction;
+	private int _alpha;
+	private int _fadeDirection;
+	private bool _fadeStarted;
 	private bool _finished;
 
 	/// <summary>
-	/// Starts the sequence with the one-shot callback the initializer schedules.
+	/// Starts the sequence with the full-screen overlay at opaque black.
 	/// </summary>
 	/// <param name="cinematic">Whether the cinematic logo descriptor is loaded.</param>
 	[Original(0x00411BE8, "TitleLogoSequence_Init_00411be8")]
 	public TitleLogoSequence(bool cinematic)
 	{
 		_cinematic = cinematic;
-		Schedule(Start);
+		_alpha = FadeMaximum;
+		_fadeDirection = -1;
 	}
 
 	/// <summary>Gets the current state, the global at <c>0xA3B07C</c>.</summary>
@@ -241,11 +261,14 @@ public sealed class TitleLogoSequence
 	/// <summary>Gets the sprite-group variant at object offset <c>+0x20</c>.</summary>
 	public int Variant => _variant;
 
+	/// <summary>Gets the full-screen black overlay alpha from object offset <c>+0x1C</c>.</summary>
+	public int Alpha => _alpha;
+
 	/// <summary>Gets a value indicating whether the completion callback ran, the global at <c>0xA3B078</c>.</summary>
 	public bool IsFinished => _finished;
 
 	/// <summary>
-	/// Advances the timer and one state handler for this update.
+	/// Advances the overlay task, then one state handler for this update.
 	/// </summary>
 	[Original(0x00411C94, "TitleLogoSequence_Update_00411c94")]
 	public void Update()
@@ -266,19 +289,41 @@ public sealed class TitleLogoSequence
 			case 7:
 				_frames = 0;
 				_variant = 2;
-				_state = 2;
+				_state = 8;
 				break;
 			case 9:
 				AdvanceThen(10);
 				break;
 		}
-		if (_timerAction is null)
+		if (_fadeStarted)
+			_fadeStarted = false;
+		else
+			AdvanceFade();
+	}
+
+	private void AdvanceFade()
+	{
+		if (_fadeDirection == 0)
 			return;
-		if (--_timerTicks > 0)
-			return;
-		Action action = _timerAction;
-		_timerAction = null;
-		action();
+		int direction = _fadeDirection;
+		_alpha += FadeStep * direction;
+		if (direction < 0)
+		{
+			if (_alpha > 0)
+				return;
+			_alpha = 0;
+		}
+		else
+		{
+			if (_alpha < FadeMaximum)
+				return;
+			_alpha = FadeMaximum;
+		}
+		_fadeDirection = 0;
+		if (direction > 0)
+			Finish();
+		else
+			_state++;
 	}
 
 	private void AdvanceThen(int next)
@@ -287,10 +332,9 @@ public sealed class TitleLogoSequence
 		if (_frames <= FrameLimit)
 			return;
 		_state = next;
-		Schedule(Finish);
+		_fadeDirection = 1;
+		_fadeStarted = true;
 	}
-
-	private void Start() => _state++;
 
 	private void Finish()
 	{
@@ -303,21 +347,17 @@ public sealed class TitleLogoSequence
 		{
 			case 2:
 				_state = 3;
-				Schedule(Finish);
+				_fadeDirection = -1;
+				_fadeStarted = true;
 				break;
 			case 6:
 				_state = 7;
-				Schedule(Finish);
+				_fadeDirection = -1;
+				_fadeStarted = true;
 				break;
 			default:
 				_finished = true;
 				break;
 		}
-	}
-
-	private void Schedule(Action action)
-	{
-		_timerTicks = TimerTicks;
-		_timerAction = action;
 	}
 }
