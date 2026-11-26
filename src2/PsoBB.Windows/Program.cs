@@ -33,6 +33,9 @@ internal static class Program
 		string? previewEntry = null;
 		bool scene1 = false;
 		bool scene2 = false;
+		bool nowLoading = false;
+		bool title = false;
+		bool menu = false;
 		for (int index = 0; index < args.Length; index++)
 		{
 			if (args[index] == "--preview" && index + 1 < args.Length)
@@ -41,6 +44,12 @@ internal static class Program
 				scene1 = true;
 			else if (args[index] == "--scene2")
 				scene2 = true;
+			else if (args[index] == "--nowloading")
+				nowLoading = true;
+			else if (args[index] == "--title")
+				title = true;
+			else if (args[index] == "--menu")
+				menu = true;
 			else if (!args[index].StartsWith("--", StringComparison.Ordinal))
 				dataFolder = args[index];
 		}
@@ -62,6 +71,12 @@ internal static class Program
 				RunScene1(window, dataFolder);
 			else if (scene2)
 				RunScene2(window, dataFolder);
+			else if (nowLoading)
+				RunNowLoading(window, dataFolder);
+			else if (title)
+				RunTitle(window, dataFolder, false);
+			else if (menu)
+				RunTitle(window, dataFolder, true);
 			else
 				RunClient(window, dataFolder);
 			return 0;
@@ -89,8 +104,46 @@ internal static class Program
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
 		Scene1Preview.Run(host, window.Pump);
+		NowLoadingPreview.Run(host, window.Pump, 1);
 		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
 		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text));
+		host.RequestStop();
+	}
+
+	private static void RunNowLoading(GameWindow window, string dataFolder)
+	{
+		WindowsFileSystem files = new(dataFolder);
+		WindowsGameClock clock = new();
+		using WindowsGameSettings settings = new(@"Software\PsoBBRecomp");
+		using WindowsGameInput input = new(window.Handle);
+		WindowsDispatcher dispatcher = new(clock);
+		WindowsAudioDevice audio = new();
+		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
+		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
+		NowLoadingPreview.Run(host, window.Pump);
+		host.RequestStop();
+	}
+
+	private static void RunTitle(GameWindow window, string dataFolder, bool menu)
+	{
+		WindowsFileSystem files = new(dataFolder);
+		WindowsGameClock clock = new();
+		using WindowsGameSettings settings = new(@"Software\PsoBBRecomp");
+		using WindowsGameInput input = new(window.Handle);
+		WindowsDispatcher dispatcher = new(clock);
+		WindowsAudioDevice audio = new();
+		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
+		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
+		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
+		string? captureDirectory = Environment.GetEnvironmentVariable("PSOBB_CAPTURE");
+		Action<int>? capture = captureDirectory is null ? null : frame =>
+		{
+			if (frame is not (0 or 2 or 10 or 60))
+				return;
+			Directory.CreateDirectory(captureDirectory);
+			WriteBmp(Path.Combine(captureDirectory, $"{(menu ? "menu" : "title")}-{frame:D3}.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());
+		};
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), GameTextLocale.English, menu, capture);
 		host.RequestStop();
 	}
 
@@ -105,7 +158,7 @@ internal static class Program
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
-		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text));
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), GameTextLocale.English, true);
 		host.RequestStop();
 	}
 
@@ -119,8 +172,48 @@ internal static class Program
 		WindowsAudioDevice audio = new();
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
-		Scene1Preview.Run(host, window.Pump);
+		string? captureDirectory = Environment.GetEnvironmentVariable("PSOBB_CAPTURE");
+		Action<int>? capture = captureDirectory is null ? null : frame =>
+		{
+			if (frame is not (0 or 16 or 32 or 60 or 92 or 124))
+				return;
+			Directory.CreateDirectory(captureDirectory);
+			WriteBmp(Path.Combine(captureDirectory, $"splash-{frame:D3}.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());
+		};
+		Scene1Preview.Run(host, window.Pump, capture);
 		host.RequestStop();
+	}
+
+	private static void WriteBmp(string path, int width, int height, byte[] bgra)
+	{
+		int row = width * 3;
+		int padding = (4 - row % 4) % 4;
+		int size = 54 + (row + padding) * height;
+		using FileStream stream = File.Create(path);
+		Span<byte> header = stackalloc byte[54];
+		header[0] = (byte)'B';
+		header[1] = (byte)'M';
+		System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(header[2..], size);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(header[10..], 54);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(header[14..], 40);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(header[18..], width);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(header[22..], height);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt16LittleEndian(header[26..], 1);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt16LittleEndian(header[28..], 24);
+		System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(header[34..], (row + padding) * height);
+		stream.Write(header);
+		byte[] line = new byte[row + padding];
+		for (int y = height - 1; y >= 0; y--)
+		{
+			for (int x = 0; x < width; x++)
+			{
+				int source = (y * width + x) * 4;
+				line[x * 3] = bgra[source];
+				line[x * 3 + 1] = bgra[source + 1];
+				line[x * 3 + 2] = bgra[source + 2];
+			}
+			stream.Write(line);
+		}
 	}
 
 	private static void RunPreview(GameWindow window, string dataFolder, string entryName)

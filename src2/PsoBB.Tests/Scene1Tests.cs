@@ -102,8 +102,8 @@ public sealed class Scene1Tests : IDisposable
 		using Scene1 scene = new(files, renderer, textures, cinematicLogo: true);
 		UiDrawList draw = new();
 		scene.Draw(draw);
-		Assert.Equal(8, draw.Quads.Count);
-		for (int index = 0; index < draw.Quads.Count; index++)
+		Assert.Equal(9, draw.Quads.Count);
+		for (int index = 0; index < 8; index++)
 		{
 			TitleLogoQuad quad = TitleLogo.Quads[index];
 			UiQuad submitted = draw.Quads[index];
@@ -113,6 +113,8 @@ public sealed class Scene1Tests : IDisposable
 			Assert.Equal(new Vector4(0f, 0f, 1f, 1f), submitted.TextureCoordinates);
 			Assert.Equal(0xFFFFFFFFu, submitted.Color);
 		}
+		Assert.Equal(Scene1.FadeOverlaySize, draw.Quads[8].Size);
+		Assert.Equal(0xFF000000u, draw.Quads[8].Color);
 	}
 
 	[Fact]
@@ -133,12 +135,14 @@ public sealed class Scene1Tests : IDisposable
 	}
 
 	[Fact]
-	public void TheTimelineWaitsThirtyTwoSixtyAndThirtyTwoUpdates()
+	public void TheTimelineFadesOutHoldsSixtyAndFadesIn()
 	{
 		TitleLogoSequence sequence = new(cinematic: false);
-		for (int index = 0; index < TitleLogoSequence.TimerTicks; index++)
+		Assert.Equal(TitleLogoSequence.FadeMaximum, sequence.Alpha);
+		for (int index = 0; index < TitleLogoSequence.FadeFrames; index++)
 			sequence.Update();
 		Assert.Equal(1, sequence.State);
+		Assert.Equal(0, sequence.Alpha);
 		Assert.Equal(0, sequence.Frames);
 		Assert.False(sequence.IsFinished);
 		for (int index = 0; index < TitleLogoSequence.FrameLimit; index++)
@@ -148,32 +152,63 @@ public sealed class Scene1Tests : IDisposable
 		sequence.Update();
 		Assert.Equal(2, sequence.State);
 		Assert.False(sequence.IsFinished);
-		for (int index = 0; index < TitleLogoSequence.TimerTicks - 2; index++)
+		for (int index = 0; index < TitleLogoSequence.FadeFrames - 1; index++)
 			sequence.Update();
 		Assert.False(sequence.IsFinished);
 		sequence.Update();
 		Assert.True(sequence.IsFinished);
 		Assert.Equal(0, sequence.Variant);
+		Assert.Equal(TitleLogoSequence.FadeMaximum, sequence.Alpha);
 	}
 
 	[Fact]
 	public void TheCinematicTimelineContinuesThroughTheJumpTable()
 	{
 		TitleLogoSequence sequence = new(cinematic: true);
-		for (int index = 0; index < TitleLogoSequence.TimerTicks + TitleLogoSequence.FrameLimit + 1 + TitleLogoSequence.TimerTicks - 1; index++)
-			sequence.Update();
+		Advance(sequence, TitleLogoSequence.FadeFrames);
+		Assert.Equal(1, sequence.State);
+		Advance(sequence, TitleLogoSequence.FrameLimit + 1);
+		Assert.Equal(2, sequence.State);
+		Advance(sequence, TitleLogoSequence.FadeFrames);
 		Assert.Equal(3, sequence.State);
-		Assert.Equal(0, sequence.Variant);
-		Assert.False(sequence.IsFinished);
 		sequence.Update();
 		Assert.Equal(4, sequence.State);
 		Assert.Equal(1, sequence.Variant);
-		Assert.False(sequence.IsFinished);
-		for (int index = 0; index < TitleLogoSequence.TimerTicks - 2; index++)
-			sequence.Update();
+		Advance(sequence, TitleLogoSequence.FadeFrames);
+		Assert.Equal(5, sequence.State);
+		Advance(sequence, TitleLogoSequence.FrameLimit + 1);
+		Assert.Equal(6, sequence.State);
+		Advance(sequence, TitleLogoSequence.FadeFrames);
+		Assert.Equal(7, sequence.State);
+		sequence.Update();
+		Assert.Equal(8, sequence.State);
+		Assert.Equal(2, sequence.Variant);
+		Advance(sequence, TitleLogoSequence.FadeFrames);
+		Assert.Equal(9, sequence.State);
+		Advance(sequence, TitleLogoSequence.FrameLimit + 1);
+		Assert.Equal(10, sequence.State);
+		Advance(sequence, TitleLogoSequence.FadeFrames - 1);
 		Assert.False(sequence.IsFinished);
 		sequence.Update();
 		Assert.True(sequence.IsFinished);
+	}
+
+	private static void Advance(TitleLogoSequence sequence, int count)
+	{
+		for (int index = 0; index < count; index++)
+			sequence.Update();
+	}
+
+	[Fact]
+	public void TheFadeOverlayStartsOpaqueAndClearsAfterTheSceneTwoRequest()
+	{
+		TitleLogoSequence sequence = new(cinematic: false);
+		Assert.Equal(TitleLogoSequence.FadeMaximum, sequence.Alpha);
+		for (int index = 1; index <= TitleLogoSequence.FadeFrames; index++)
+		{
+			sequence.Update();
+			Assert.Equal(Math.Max(0, TitleLogoSequence.FadeMaximum - index * TitleLogoSequence.FadeStep), sequence.Alpha);
+		}
 	}
 
 	[Fact]
@@ -186,7 +221,7 @@ public sealed class Scene1Tests : IDisposable
 		MemoryGameInput source = new();
 		InputManager input = new(source);
 		input.Update(TimeSpan.Zero);
-		int total = TitleLogoSequence.TimerTicks + TitleLogoSequence.FrameLimit + 1 + TitleLogoSequence.TimerTicks - 1;
+		int total = TitleLogoSequence.FadeFrames + TitleLogoSequence.FrameLimit + 1 + TitleLogoSequence.FadeFrames;
 		for (int index = 0; index < total; index++)
 			scene.Update(input);
 		Assert.True(scene.Sequence.IsFinished);

@@ -174,7 +174,7 @@ public sealed class SceneDirectoryTests : IDisposable
 		using SceneDirectory directory = new(files, renderer);
 		using SceneDirector director = new(new InputManager(new MemoryGameInput()), directory);
 		GameState.CurrentScene = Scene1.SceneNumber;
-		int total = TitleLogoSequence.TimerTicks + TitleLogoSequence.FrameLimit + 1 + TitleLogoSequence.TimerTicks - 1;
+		int total = TitleLogoSequence.FadeFrames + TitleLogoSequence.FrameLimit + 1 + TitleLogoSequence.FadeFrames;
 		for (int index = 0; index < total; index++)
 			director.Update();
 
