@@ -1,0 +1,33 @@
+namespace PsoBB.Mathematics;
+
+/// <summary>
+/// The floating-point helpers the client uses for vector and angle work.
+/// </summary>
+public static class FloatingPointMath
+{
+	/// <summary>
+	/// Returns the absolute value, preserving negative zero and clearing only a set sign bit.
+	/// </summary>
+	/// <param name="value">The value to convert.</param>
+	/// <returns>The absolute value.</returns>
+	[Original(0x0082E900)]
+	public static float Absolute(float value)
+	{
+		uint bits = BitConverter.SingleToUInt32Bits(value);
+		return bits > 0x80000000u ? -value : value;
+	}
+
+	/// <summary>
+	/// Returns the square root of a non-negative value; for a negative value it returns the
+	/// negated square root of the magnitude instead of a NaN.
+	/// </summary>
+	/// <param name="value">The value to take the square root of.</param>
+	/// <returns>The square root, with the sign of the input preserved.</returns>
+	[Original(0x0082DC9C)]
+	public static float SquareRoot(float value)
+	{
+		if (!(value >= 0.0f))
+			return -(float)Math.Sqrt(-value);
+		return (float)Math.Sqrt(value);
+	}
+}
