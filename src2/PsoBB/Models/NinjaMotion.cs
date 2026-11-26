@@ -31,6 +31,18 @@ public sealed class NinjaMotion
 	/// <summary>Gets the bone tracks in model-node order.</summary>
 	public IReadOnlyList<NinjaBoneAnimation> Bones { get; }
 
+	/// <summary>Gets a value indicating whether the motion drives translation.</summary>
+	public bool HasTranslation => (MotionFlags & 0x1) != 0;
+
+	/// <summary>Gets a value indicating whether the motion drives Euler rotation.</summary>
+	public bool HasEulerRotation => (MotionFlags & 0x2) != 0;
+
+	/// <summary>Gets a value indicating whether the motion drives scale.</summary>
+	public bool HasScale => (MotionFlags & 0x4) != 0;
+
+	/// <summary>Gets a value indicating whether the motion drives quaternion rotation.</summary>
+	public bool HasQuaternionRotation => (MotionFlags & 0x2000) != 0;
+
 	/// <summary>
 	/// Reads a motion chunk body.
 	/// </summary>
@@ -39,7 +51,6 @@ public sealed class NinjaMotion
 	/// <param name="sourceOffset">The body offset for error messages.</param>
 	/// <returns>The parsed motion.</returns>
 	/// <exception cref="ModelFormatException">A pointer, count or keyframe range is invalid.</exception>
-	[Original(0x008303DC, "NJM_InitializeAnimationContext_008303dc")]
 	public static NinjaMotion Parse(ReadOnlyMemory<byte> body, int boneCount, int sourceOffset = 0)
 	{
 		ReadOnlySpan<byte> data = body.Span;
@@ -61,16 +72,28 @@ public sealed class NinjaMotion
 			boneCount = available;
 		else if (boneCount < 0 || boneCount > available)
 			throw new ModelFormatException("The NMDM bone count lies outside the chunk.", sourceOffset);
-		NinjaBoneAnimation[] bones = new NinjaBoneAnimation[boneCount];
+		TrackSpan[] spans = new TrackSpan[boneCount * factorCount];
 		for (int bone = 0; bone < boneCount; bone++)
 		{
 			int recordOffset = (int)recordsOffset + bone * recordSize;
-			NinjaAnimationTrack[] tracks = new NinjaAnimationTrack[factorCount];
 			for (int track = 0; track < factorCount; track++)
 			{
 				uint trackOffset = BinaryPrimitives.ReadUInt32LittleEndian(data[(recordOffset + track * 4)..]);
 				uint keyCount = BinaryPrimitives.ReadUInt32LittleEndian(data[(recordOffset + factorCount * 4 + track * 4)..]);
-				tracks[track] = ReadTrack(data, trackOffset, keyCount, track, sourceOffset);
+				spans[bone * factorCount + track] = new TrackSpan(trackOffset, keyCount);
+			}
+		}
+		for (int index = 0; index < spans.Length; index++)
+			spans[index] = DescribeTrack(data, spans, index, index % factorCount, recordsOffset, motionFlags, frameCount, sourceOffset);
+		NinjaBoneAnimation[] bones = new NinjaBoneAnimation[boneCount];
+		for (int bone = 0; bone < boneCount; bone++)
+		{
+			NinjaAnimationTrack[] tracks = new NinjaAnimationTrack[factorCount];
+			for (int track = 0; track < factorCount; track++)
+			{
+				TrackSpan span = spans[bone * factorCount + track];
+				NinjaAnimationChannel channel = ChannelFor(track, motionFlags);
+				tracks[track] = new NinjaAnimationTrack(channel, span.Kind, span.RecordSize, ReadTrack(data, span));
 			}
 			bones[bone] = new NinjaBoneAnimation(tracks);
 		}
@@ -78,50 +101,187 @@ public sealed class NinjaMotion
 	}
 
 	/// <summary>
-	/// Reads one keyframe track.
+	/// Returns the pose channel for a track index using the motion flag order.
 	/// </summary>
-	/// <param name="data">The NMDM body.</param>
-	/// <param name="offset">The keyframe-array offset.</param>
-	/// <param name="count">The keyframe count.</param>
-	/// <param name="index">The track index inside its bone record.</param>
-	/// <param name="sourceOffset">The body offset for error messages.</param>
-	/// <returns>The parsed track.</returns>
-	private static NinjaAnimationTrack ReadTrack(ReadOnlySpan<byte> data, uint offset, uint count, int index, int sourceOffset)
+	/// <param name="track">The track index.</param>
+	/// <param name="flags">The motion flags.</param>
+	/// <returns>The channel the track drives.</returns>
+	private static NinjaAnimationChannel ChannelFor(int track, ushort flags)
 	{
-		NinjaAnimationChannel channel = index switch
+		int slot = 0;
+		if ((flags & 0x1) != 0)
+		{
+			if (track == slot)
+				return NinjaAnimationChannel.Translation;
+			slot++;
+		}
+		if ((flags & 0x2002) != 0)
+		{
+			if (track == slot)
+				return NinjaAnimationChannel.Rotation;
+			slot++;
+		}
+		if ((flags & 0x4) != 0)
+		{
+			if (track == slot)
+				return NinjaAnimationChannel.Scale;
+			slot++;
+		}
+		return track switch
 		{
 			0 => NinjaAnimationChannel.Translation,
 			1 => NinjaAnimationChannel.Rotation,
 			2 => NinjaAnimationChannel.Scale,
 			_ => NinjaAnimationChannel.Other,
 		};
-		if (count > int.MaxValue || count > (uint)data.Length / 0x10)
+	}
+
+	/// <summary>
+	/// Determines the stored record size and kind of one keyframe track.
+	/// </summary>
+	/// <param name="data">The NMDM body.</param>
+	/// <param name="spans">Every track span in the motion.</param>
+	/// <param name="index">The span to describe.</param>
+	/// <param name="track">The track index within its bone record.</param>
+	/// <param name="recordsOffset">The motion record array offset.</param>
+	/// <param name="flags">The motion flags.</param>
+	/// <param name="frameCount">The animation frame count.</param>
+	/// <param name="sourceOffset">The body offset for error messages.</param>
+	/// <returns>The described span.</returns>
+	private static TrackSpan DescribeTrack(ReadOnlySpan<byte> data, TrackSpan[] spans, int index, int track, uint recordsOffset, ushort flags, uint frameCount, int sourceOffset)
+	{
+		TrackSpan span = spans[index];
+		NinjaAnimationChannel channel = ChannelFor(track, flags);
+		bool quaternion = (flags & 0x2000) != 0 && channel == NinjaAnimationChannel.Rotation;
+		if (span.Count == 0)
+			return span with { Kind = quaternion ? NinjaAnimationTrackKind.Quaternion : NinjaAnimationTrackKind.Float3, RecordSize = 0 };
+		if (span.Count > int.MaxValue)
 			throw new ModelFormatException("The NMDM keyframe count is invalid.", sourceOffset);
-		if (offset > data.Length || count * 0x10 > data.Length - offset)
+		if (span.Offset > data.Length)
 			throw new ModelFormatException("The NMDM keyframe array lies outside the chunk.", sourceOffset);
-		NinjaKeyframe[] keyframes = new NinjaKeyframe[(int)count];
-		for (int key = 0; key < keyframes.Length; key++)
+		uint next = recordsOffset > span.Offset ? recordsOffset : (uint)data.Length;
+		foreach (TrackSpan other in spans)
+			if (other.Offset > span.Offset && other.Offset < next)
+				next = other.Offset;
+		long available = (long)next - span.Offset;
+		if (available <= 0)
+			available = data.Length - span.Offset;
+		NinjaAnimationTrackKind kind;
+		int recordSize;
+		if (quaternion)
 		{
-			int keyOffset = (int)offset + key * 0x10;
-			uint frame = BinaryPrimitives.ReadUInt32LittleEndian(data[keyOffset..]);
-			float x;
-			float y;
-			float z;
-			if (channel == NinjaAnimationChannel.Rotation)
+			kind = NinjaAnimationTrackKind.Quaternion;
+			recordSize = 20;
+		}
+		else if (channel == NinjaAnimationChannel.Rotation)
+		{
+			if (available % span.Count == 0 && available / span.Count == 8)
 			{
-				x = AngleToRadians(BinaryPrimitives.ReadInt32LittleEndian(data[(keyOffset + 4)..]));
-				y = AngleToRadians(BinaryPrimitives.ReadInt32LittleEndian(data[(keyOffset + 8)..]));
-				z = AngleToRadians(BinaryPrimitives.ReadInt32LittleEndian(data[(keyOffset + 12)..]));
+				kind = NinjaAnimationTrackKind.Angle16;
+				recordSize = 8;
+			}
+			else if (available % span.Count == 0 && available / span.Count == 16)
+			{
+				kind = NinjaAnimationTrackKind.Angle32;
+				recordSize = 16;
+			}
+			else if (available >= (long)span.Count * 16 && LooksLike32BitFrames(data, span.Offset, span.Count, frameCount))
+			{
+				kind = NinjaAnimationTrackKind.Angle32;
+				recordSize = 16;
 			}
 			else
 			{
-				x = BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 4)..]);
-				y = BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 8)..]);
-				z = BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 12)..]);
+				kind = NinjaAnimationTrackKind.Angle16;
+				recordSize = 8;
 			}
-			keyframes[key] = new NinjaKeyframe(frame, x, y, z);
 		}
-		return new NinjaAnimationTrack(channel, keyframes);
+		else
+		{
+			kind = NinjaAnimationTrackKind.Float3;
+			recordSize = 16;
+		}
+		if (recordSize != 0 && (long)span.Offset + (long)span.Count * recordSize > data.Length)
+			throw new ModelFormatException("The NMDM keyframe array lies outside the chunk.", sourceOffset);
+		return span with { Kind = kind, RecordSize = recordSize };
+	}
+
+	/// <summary>
+	/// Returns true when a 32-bit-frame rotation track has increasing frame values in range.
+	/// </summary>
+	/// <param name="data">The NMDM body.</param>
+	/// <param name="offset">The track offset.</param>
+	/// <param name="count">The keyframe count.</param>
+	/// <param name="frameCount">The animation frame count.</param>
+	/// <returns>True when the records look like 32-bit frames.</returns>
+	private static bool LooksLike32BitFrames(ReadOnlySpan<byte> data, uint offset, uint count, uint frameCount)
+	{
+		long end = (long)offset + (long)count * 16;
+		if (end > data.Length)
+			return false;
+		uint previous = 0;
+		for (int index = 0; index < count; index++)
+		{
+			uint frame = BinaryPrimitives.ReadUInt32LittleEndian(data[(int)(offset + index * 16)..]);
+			if (index == 0 ? frame > frameCount : frame < previous)
+				return false;
+			previous = frame;
+		}
+		return true;
+	}
+
+	/// <summary>
+	/// Reads one keyframe track in its detected record layout.
+	/// </summary>
+	/// <param name="data">The NMDM body.</param>
+	/// <param name="span">The described track.</param>
+	/// <returns>The keyframes.</returns>
+	private static NinjaKeyframe[] ReadTrack(ReadOnlySpan<byte> data, TrackSpan span)
+	{
+		NinjaKeyframe[] keyframes = new NinjaKeyframe[(int)span.Count];
+		for (int key = 0; key < keyframes.Length; key++)
+		{
+			int keyOffset = (int)span.Offset + key * span.RecordSize;
+			switch (span.Kind)
+			{
+				case NinjaAnimationTrackKind.Angle16:
+				{
+					int x = BinaryPrimitives.ReadInt16LittleEndian(data[(keyOffset + 2)..]);
+					int y = BinaryPrimitives.ReadInt16LittleEndian(data[(keyOffset + 4)..]);
+					int z = BinaryPrimitives.ReadInt16LittleEndian(data[(keyOffset + 6)..]);
+					keyframes[key] = new NinjaKeyframe(
+						BinaryPrimitives.ReadUInt16LittleEndian(data[keyOffset..]),
+						AngleToRadians(x), AngleToRadians(y), AngleToRadians(z), 0, x, y, z);
+					break;
+				}
+				case NinjaAnimationTrackKind.Angle32:
+				{
+					int x = BinaryPrimitives.ReadInt32LittleEndian(data[(keyOffset + 4)..]);
+					int y = BinaryPrimitives.ReadInt32LittleEndian(data[(keyOffset + 8)..]);
+					int z = BinaryPrimitives.ReadInt32LittleEndian(data[(keyOffset + 12)..]);
+					keyframes[key] = new NinjaKeyframe(
+						BinaryPrimitives.ReadUInt32LittleEndian(data[keyOffset..]),
+						AngleToRadians(x), AngleToRadians(y), AngleToRadians(z), 0, x, y, z);
+					break;
+				}
+				case NinjaAnimationTrackKind.Quaternion:
+					keyframes[key] = new NinjaKeyframe(
+						BinaryPrimitives.ReadUInt32LittleEndian(data[keyOffset..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 4)..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 8)..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 12)..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 16)..]));
+					break;
+				default:
+					keyframes[key] = new NinjaKeyframe(
+						BinaryPrimitives.ReadUInt32LittleEndian(data[keyOffset..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 4)..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 8)..]),
+						BinaryPrimitives.ReadSingleLittleEndian(data[(keyOffset + 12)..]));
+					break;
+			}
+		}
+		return keyframes;
 	}
 
 	/// <summary>
@@ -130,4 +290,6 @@ public sealed class NinjaMotion
 	/// <param name="angle">The original angle unit.</param>
 	/// <returns>The angle in radians.</returns>
 	private static float AngleToRadians(int angle) => (float)(angle * (Math.Tau / 65536.0));
+
+	private readonly record struct TrackSpan(uint Offset, uint Count, NinjaAnimationTrackKind Kind = NinjaAnimationTrackKind.Float3, int RecordSize = 0);
 }

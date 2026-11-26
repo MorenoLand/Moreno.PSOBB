@@ -65,6 +65,8 @@ A PAE archive's model section is a relocated block, a raw NJCM body or a Ninja c
 ## Limitations
 
 - The readers take complete buffers, use flat offsets and reject malformed ranges. The original trusts its loaders and dereferences guest addresses directly.
+- The NJCM reader implements the converted mesh layout used by the port's fixtures, not the retail chunk-model mesh. In `bin/data/bm_ene_astark.bml`, entry `nj00_astark.nj` root node 0 points to a retail `njcm_model_t` at body offset 0x2590 whose first two words are the vertex-chunk offset 0x24C4 and the polygon-chunk offset 0x34. `NinjaMesh.Read` therefore rejects that file; retail model rendering remains unverified.
+- The NMDM reader detects the retail quaternion track record (20 bytes) and the 16-bit and 32-bit Euler angle records. A retail motion such as `cstand_bm2c_s_moj_body.njm` parses with quaternion tracks; only the retail model mesh remains unsupported.
 - A `.rlc` file has no index or bone count; the caller supplies the model node count.
 - A BML archive with separate model and animation entries uses the first model entry's animated node count. Callers that pair a specific model with a specific motion can parse the exposed chunks with that model's count.
 - PAE texture names are paired with decoded archive textures by list order. The render-state index selects the NJTL entry; the client fills each entry's texture slot from the same archive.

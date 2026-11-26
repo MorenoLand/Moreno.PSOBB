@@ -51,4 +51,10 @@ public sealed class SceneSurface
 
 	/// <summary>Gets the alpha-test reference value for the alpha-tested pass.</summary>
 	public uint AlphaReference { get; init; }
+
+	/// <summary>Gets the horizontal texture address mode for texture stage zero.</summary>
+	public uint AddressU { get; init; } = TextureStageStateId.AddressWrap;
+
+	/// <summary>Gets the vertical texture address mode for texture stage zero.</summary>
+	public uint AddressV { get; init; } = TextureStageStateId.AddressWrap;
 }
