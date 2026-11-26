@@ -38,26 +38,30 @@ internal readonly struct FlexibleVertexFormat
 	private const uint LastBetaUByte4Direct3D9 = 0x2000;
 	private const uint LastBetaColor = 0x8000;
 
-	private FlexibleVertexFormat(VertexPositionFormat position, int blendWeightCount, bool packedLastWeight, bool hasNormal, bool hasPointSize, bool hasDiffuse, bool hasSpecular, int textureCoordinateCount, int textureCoordinateSize, int size)
+	private FlexibleVertexFormat(uint code, VertexPositionFormat position, int blendValueCount, bool packedIndices, bool hasNormal, bool hasPointSize, bool hasDiffuse, bool hasSpecular, int textureCoordinateCount, int size)
 	{
+		Code = code;
 		Position = position;
-		BlendWeightCount = blendWeightCount;
-		PackedLastWeight = packedLastWeight;
+		BlendValueCount = blendValueCount;
+		PackedIndices = packedIndices;
 		HasNormal = hasNormal;
 		HasPointSize = hasPointSize;
 		HasDiffuse = hasDiffuse;
 		HasSpecular = hasSpecular;
 		TextureCoordinateCount = textureCoordinateCount;
-		TextureCoordinateSize = textureCoordinateSize;
 		Size = size;
 	}
 
+	/// <summary>Gets the original flexible vertex format code.</summary>
+	public uint Code { get; }
 	/// <summary>Gets the position layout.</summary>
 	public VertexPositionFormat Position { get; }
-	/// <summary>Gets the number of blend weights, or zero.</summary>
-	public int BlendWeightCount { get; }
-	/// <summary>Gets whether the last blend weight is a packed four-byte value.</summary>
-	public bool PackedLastWeight { get; }
+	/// <summary>Gets the number of beta fields, including a packed index field.</summary>
+	public int BlendValueCount { get; }
+	/// <summary>Gets whether the last beta field is a packed four-index value instead of a float weight.</summary>
+	public bool PackedIndices { get; }
+	/// <summary>Gets the number of float blend weights.</summary>
+	public int ExplicitWeightCount => PackedIndices ? Math.Max(0, BlendValueCount - 1) : BlendValueCount;
 	/// <summary>Gets whether the format declares a normal.</summary>
 	public bool HasNormal { get; }
 	/// <summary>Gets whether the format declares a point size.</summary>
@@ -68,13 +72,16 @@ internal readonly struct FlexibleVertexFormat
 	public bool HasSpecular { get; }
 	/// <summary>Gets the number of texture coordinate sets.</summary>
 	public int TextureCoordinateCount { get; }
-	/// <summary>Gets the number of floats in the first texture coordinate set.</summary>
-	public int TextureCoordinateSize { get; }
 	/// <summary>Gets the number of bytes the format declares.</summary>
 	public int Size { get; }
 
 	/// <summary>Gets whether the position is already in screen space.</summary>
 	public bool IsPreTransformed => Position == VertexPositionFormat.XyzRhw;
+
+	/// <summary>Gets the number of floats in a declared texture coordinate set.</summary>
+	/// <param name="index">The coordinate set.</param>
+	/// <returns>The number of floats, from one through four.</returns>
+	public int GetTextureCoordinateSize(int index) => DecodeTextureCoordinateSize((Code >> (16 + index * 2)) & 0x3);
 
 	/// <summary>
 	/// Parses a flexible vertex format code and checks it against the vertex stride.
@@ -100,7 +107,7 @@ internal readonly struct FlexibleVertexFormat
 		};
 		if (position == VertexPositionFormat.None)
 			throw new ArgumentException($"The vertex format 0x{code:X} does not declare a supported position.", nameof(code));
-		int blendWeightCount = position switch
+		int blendValueCount = position switch
 		{
 			VertexPositionFormat.XyzBlend1 => 1,
 			VertexPositionFormat.XyzBlend2 => 2,
@@ -112,13 +119,13 @@ internal readonly struct FlexibleVertexFormat
 		int textureCoordinateCount = (int)((code & TextureCountMask) >> 8);
 		if (textureCoordinateCount > 8)
 			throw new ArgumentException($"The vertex format 0x{code:X} declares more than eight texture coordinate sets.", nameof(code));
-		int textureCoordinateSize = textureCoordinateCount == 0 ? 0 : DecodeTextureCoordinateSize((code >> 16) & 0x3);
 		bool hasNormal = (code & Normal) != 0;
 		bool hasPointSize = (code & PointSize) != 0;
 		bool hasDiffuse = (code & Diffuse) != 0;
 		bool hasSpecular = (code & Specular) != 0;
+		bool packedIndices = blendValueCount > 0 && (code & (LastBetaUByte4 | LastBetaUByte4Direct3D9 | LastBetaColor)) != 0;
 		int size = position == VertexPositionFormat.XyzRhw ? 16 : 12;
-		size += blendWeightCount * 4;
+		size += blendValueCount * 4;
 		if (hasNormal)
 			size += 12;
 		if (hasPointSize)
@@ -131,8 +138,7 @@ internal readonly struct FlexibleVertexFormat
 			size += DecodeTextureCoordinateSize((code >> (16 + index * 2)) & 0x3) * 4;
 		if (size > stride)
 			throw new ArgumentException($"The vertex format 0x{code:X} needs {size} bytes but the stride is {stride}.", nameof(stride));
-		bool packedLastWeight = blendWeightCount > 0 && (code & (LastBetaUByte4 | LastBetaUByte4Direct3D9 | LastBetaColor)) != 0;
-		return new FlexibleVertexFormat(position, blendWeightCount, packedLastWeight, hasNormal, hasPointSize, hasDiffuse, hasSpecular, textureCoordinateCount, textureCoordinateSize, size);
+		return new FlexibleVertexFormat(code, position, blendValueCount, packedIndices, hasNormal, hasPointSize, hasDiffuse, hasSpecular, textureCoordinateCount, size);
 	}
 
 	private static int DecodeTextureCoordinateSize(uint encodedSize) => encodedSize switch

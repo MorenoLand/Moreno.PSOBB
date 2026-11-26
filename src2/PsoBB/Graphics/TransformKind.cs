@@ -5,8 +5,14 @@ namespace PsoBB.Graphics;
 /// </summary>
 public enum TransformKind
 {
-	/// <summary>The model transform.</summary>
+	/// <summary>The first model transform.</summary>
 	World,
+	/// <summary>The second model transform used by vertex blending.</summary>
+	World1,
+	/// <summary>The third model transform used by vertex blending.</summary>
+	World2,
+	/// <summary>The fourth model transform used by vertex blending.</summary>
+	World3,
 	/// <summary>The camera transform.</summary>
 	View,
 	/// <summary>The projection transform.</summary>

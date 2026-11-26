@@ -6,7 +6,7 @@ namespace PsoBB.Tests;
 /// <summary>
 /// A renderer that records the commands it receives, for contract tests without a graphics device.
 /// </summary>
-internal sealed class RecordingRenderer : IRenderer
+internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRenderer
 {
 	private readonly List<string> _commands = [];
 	private int _disposeCount;
@@ -30,7 +30,7 @@ internal sealed class RecordingRenderer : IRenderer
 	public bool IsDisposed => _disposeCount != 0;
 
 	/// <inheritdoc/>
-	public RenderSettings Settings { get; }
+	public RenderSettings Settings { get; private set; }
 
 	/// <inheritdoc/>
 	public void BeginFrame() => _commands.Add("BeginFrame");
@@ -45,10 +45,25 @@ internal sealed class RecordingRenderer : IRenderer
 	public void SetTransform(TransformKind kind, in Matrix4x4 transform) => _commands.Add($"Transform {kind}");
 
 	/// <inheritdoc/>
+	public void SetWorldMatrix(int index, in Matrix4x4 transform) => _commands.Add($"WorldMatrix {index}");
+
+	/// <inheritdoc/>
 	public void SetRenderState(uint state, uint value) => _commands.Add($"State {state}:{value}");
 
 	/// <inheritdoc/>
+	public void SetMaterial(in Material material) => _commands.Add("Material");
+
+	/// <inheritdoc/>
+	public void SetLight(int index, in Light light) => _commands.Add($"Light {index}:{light.Type}");
+
+	/// <inheritdoc/>
+	public void SetLightEnabled(int index, bool enabled) => _commands.Add($"LightEnabled {index}:{enabled}");
+
+	/// <inheritdoc/>
 	public void SetTexture(int stage, ITexture? texture) => _commands.Add($"Texture {stage}:{texture?.Width ?? 0}x{texture?.Height ?? 0}");
+
+	/// <inheritdoc/>
+	public void SetTextureStageState(int stage, uint state, uint value) => _commands.Add($"TextureStage {stage}:{state}:{value}");
 
 	/// <inheritdoc/>
 	public void Draw(PrimitiveType primitive, int primitiveCount, ReadOnlySpan<byte> vertices, int stride, uint vertexFormat)
@@ -56,6 +71,13 @@ internal sealed class RecordingRenderer : IRenderer
 
 	/// <inheritdoc/>
 	public void EndFrame() => _commands.Add("EndFrame");
+
+	/// <inheritdoc/>
+	public void Resize(int width, int height)
+	{
+		_commands.Add($"Resize {width}x{height}");
+		Settings = new RenderSettings(width, height, Settings.Windowed, Settings.MultisampleCount, Settings.VSync);
+	}
 
 	/// <inheritdoc/>
 	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride) => new RecordingTexture(width, height);

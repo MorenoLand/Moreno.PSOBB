@@ -1,3 +1,4 @@
+using System.Numerics;
 using PsoBB.Graphics;
 using Vortice.Direct3D11;
 
@@ -20,6 +21,29 @@ internal sealed class RenderStateValues
 	/// <param name="state">The render-state identifier.</param>
 	/// <param name="value">The new value.</param>
 	public void Set(uint state, uint value) => _values[state] = value;
+
+	/// <summary>Gets a state value read as a packed 0xAARRGGBB color.</summary>
+	/// <param name="state">The render-state identifier.</param>
+	/// <param name="fallback">The original default color.</param>
+	/// <returns>The color with components in the range zero to one.</returns>
+	public Vector4 GetColor(uint state, Vector4 fallback)
+	{
+		if (!_values.TryGetValue(state, out uint value))
+			return fallback;
+		return new Vector4(((value >> 16) & 0xFF) / 255.0f, ((value >> 8) & 0xFF) / 255.0f, (value & 0xFF) / 255.0f, ((value >> 24) & 0xFF) / 255.0f);
+	}
+
+	/// <summary>Gets a state value read as a single-precision float.</summary>
+	/// <param name="state">The render-state identifier.</param>
+	/// <param name="fallback">The original default.</param>
+	/// <returns>The stored float.</returns>
+	public float GetSingle(uint state, float fallback) => _values.TryGetValue(state, out uint value) ? BitConverter.Int32BitsToSingle((int)value) : fallback;
+
+	/// <summary>Gets a state value read as a boolean.</summary>
+	/// <param name="state">The render-state identifier.</param>
+	/// <param name="fallback">The original default.</param>
+	/// <returns><see langword="true"/> when the value is nonzero.</returns>
+	public bool GetBool(uint state, bool fallback) => _values.TryGetValue(state, out uint value) ? value != 0 : fallback;
 
 	/// <summary>Builds the Direct3D 11 blend state for the current values.</summary>
 	/// <returns>The blend description.</returns>
@@ -74,7 +98,7 @@ internal sealed class RenderStateValues
 			DepthBiasClamp = 0,
 			SlopeScaledDepthBias = 0,
 			DepthClipEnable = true,
-			ScissorEnable = Get(174, 0) != 0,
+			ScissorEnable = Get(RenderStateId.ScissorTestEnable, 0) != 0,
 			MultisampleEnable = multisampled,
 			AntialiasedLineEnable = false,
 		};
