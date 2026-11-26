@@ -135,6 +135,29 @@ public sealed class TextRenderer
 		}
 	}
 
+	/// <summary>
+	/// Draws a layout that has already been measured.
+	/// </summary>
+	/// <param name="drawList">The list that receives the glyph quads.</param>
+	/// <param name="layout">The measured layout.</param>
+	/// <param name="position">The top-left position in client pixels.</param>
+	/// <param name="clip">The optional left, top, right and bottom clipping rectangle.</param>
+	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
+	public void DrawLayout(UiDrawList drawList, TextLayout layout, Vector2 position, Vector4? clip = null)
+	{
+		ArgumentNullException.ThrowIfNull(drawList);
+		ArgumentNullException.ThrowIfNull(layout);
+		foreach (PlacedGlyph placed in layout.Glyphs)
+		{
+			if (placed.Glyph.Width == 0)
+				continue;
+			UiQuad quad = CreateQuad(placed, position);
+			if (clip is not null)
+				quad = quad.Clip(clip);
+			drawList.Add(quad);
+		}
+	}
+
 	[Original(0x007AC200, "unknown_set_text_primitive_values")]
 	private UiQuad CreateQuad(PlacedGlyph placed, Vector2 origin)
 	{
