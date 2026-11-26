@@ -33,7 +33,11 @@ public sealed class LoginDialogTests
 		Assert.False(dialog.Menu.Items[4].Enabled);
 		Assert.Equal(LoginDialog.HintColor, dialog.Menu.Items[4].Color);
 		Assert.Equal(0, dialog.Menu.SelectedIndex);
-		Assert.Equal(new Vector2(120f, 100f), dialog.Menu.Size);
+		Assert.Equal("Login", dialog.Header.Text);
+		Assert.Equal(LoginDialog.HeaderPosition, dialog.Header.Position);
+		Assert.Equal(new Vector2(220f, 20f), dialog.Header.Size);
+		Assert.Equal(LoginDialog.RowAreaPosition, dialog.Menu.Position);
+		Assert.Equal(new Vector2(220f, 100f), dialog.Menu.Size);
 	}
 
 	[Fact]
@@ -115,24 +119,26 @@ public sealed class LoginDialogTests
 		dialog.Draw(drawList);
 
 		UiQuad selection = Assert.Single(drawList.Quads);
-		Assert.Equal(Vector2.Zero, selection.Position);
-		Assert.Equal(new Vector2(120f, 20f), selection.Size);
+		Assert.Equal(LoginDialog.RowAreaPosition, selection.Position);
+		Assert.Equal(new Vector2(220f, 20f), selection.Size);
 		Assert.Equal(dialog.Menu.SelectionColor, selection.Color);
-		Assert.Equal(5, text.Draws.Count);
-		Assert.Equal("Start Game", text.Draws[0].Text);
-		Assert.Equal(new Vector2(0f, 0f), text.Draws[0].Position);
-		Assert.Equal(0xFFFFFFFFu, text.Draws[0].Color);
-		Assert.Equal("[d]", text.Draws[4].Text);
-		Assert.Equal(new Vector2(0f, 80f), text.Draws[4].Position);
-		Assert.Equal(LoginDialog.HintColor, text.Draws[4].Color);
+		Assert.Equal(6, text.Draws.Count);
+		Assert.Equal("Login", text.Draws[0].Text);
+		Assert.Equal(LoginDialog.HeaderPosition, text.Draws[0].Position);
+		Assert.Equal("Start Game", text.Draws[1].Text);
+		Assert.Equal(LoginDialog.RowAreaPosition, text.Draws[1].Position);
+		Assert.Equal(0xFFFFFFFFu, text.Draws[1].Color);
+		Assert.Equal("[d]", text.Draws[5].Text);
+		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X, LoginDialog.RowAreaPosition.Y + 80f), text.Draws[5].Position);
+		Assert.Equal(LoginDialog.HintColor, text.Draws[5].Color);
 
 		dialog.Menu.SelectedIndex = 3;
 		drawList.Clear();
 		text.Draws.Clear();
 		dialog.Draw(drawList);
 		selection = Assert.Single(drawList.Quads);
-		Assert.Equal(new Vector2(0f, 60f), selection.Position);
-		Assert.Equal("Register UserID", text.Draws[3].Text);
+		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X, LoginDialog.RowAreaPosition.Y + 60f), selection.Position);
+		Assert.Equal("Register UserID", text.Draws[4].Text);
 	}
 
 	[Fact]
@@ -147,10 +153,11 @@ public sealed class LoginDialogTests
 
 		dialog.Draw(drawList);
 
-		Assert.Equal(48, drawList.Quads.Count);
-		Assert.Equal(dialog.Menu.SelectionColor, drawList.Quads[0].Color);
-		Assert.Same(font.Pages[0], drawList.Quads[1].Texture);
-		Assert.Equal(0xFFFFFFFFu, drawList.Quads[1].Color);
+		Assert.Equal(53, drawList.Quads.Count);
+		Assert.Same(font.Pages[0], drawList.Quads[0].Texture);
+		Assert.Equal(0xFFFFFFFFu, drawList.Quads[0].Color);
+		UiQuad selection = Assert.Single(drawList.Quads, quad => quad.Color == dialog.Menu.SelectionColor);
+		Assert.Equal(LoginDialog.RowAreaPosition, selection.Position);
 		Assert.Equal(LoginDialog.HintColor, drawList.Quads[^1].Color);
 	}
 
@@ -170,11 +177,45 @@ public sealed class LoginDialogTests
 	}
 
 	[Fact]
-	public void DefaultHintUsesTheDataImageLiteral()
+	public void DefaultHintMatchesTheOracleAndFormatsTheDataImageLiteral()
 	{
 		using LoginDialog dialog = new(CreateText());
-		Assert.Equal("[%s]", dialog.Menu.Items[4].Text);
-		Assert.Equal(LoginDialog.HintFormat, dialog.Menu.Items[4].Text);
+		Assert.Equal("[d]", dialog.Menu.Items[4].Text);
+		Assert.Equal(LoginDialog.DefaultHint, dialog.Menu.Items[4].Text);
+		Assert.Equal(LoginDialog.DefaultHint, LoginDialog.FormatHint(LoginDialog.DefaultHintKey));
+	}
+
+	[Fact]
+	public void ProvenPanelAndSelectorPositionsAreExposedForTheOracleFrame()
+	{
+		Assert.Equal(new Vector2(210f, 340f), LoginDialog.PanelPosition);
+		Assert.Equal(new Vector2(220f, 120f), LoginDialog.PanelSize);
+		Assert.Equal(new Vector2(192f, 308f), LoginDialog.SelectorHeaderPosition);
+		Assert.Equal(new Vector2(193f, 338f), LoginDialog.SelectorSelectionPosition);
+		Assert.Equal(new[] { new Vector2(193f, 300f), new Vector2(193f, 332f), new Vector2(193f, 364f), new Vector2(193f, 396f) }, LoginDialog.SelectorRowPositions);
+		Assert.Equal(new[] { 11, 12, 13, 14 }, LoginDialog.SelectorRowElements);
+		Assert.Equal(15, LoginDialog.SelectorHeaderElement);
+		Assert.Equal(10, LoginDialog.SelectorSelectionElement);
+	}
+
+	[Fact]
+	public void SelectorFrameHookRunsBeforeTheHeaderAndRows()
+	{
+		using LoginDialog dialog = new(CreateText(), "[d]", new RecordingTextSurface());
+		UiDrawList drawList = new();
+		bool called = false;
+		dialog.SelectorFrameDraw = list =>
+		{
+			called = true;
+			list.Add(new UiQuad(Vector2.Zero, new Vector2(1f, 1f), new Vector4(0f, 0f, 1f, 1f), null, 0xFF000000));
+		};
+
+		dialog.Draw(drawList);
+
+		Assert.True(called);
+		Assert.Equal(2, drawList.Quads.Count);
+		Assert.Equal(0xFF000000u, drawList.Quads[0].Color);
+		Assert.Equal(dialog.Menu.SelectionColor, drawList.Quads[1].Color);
 	}
 
 	[Fact]
