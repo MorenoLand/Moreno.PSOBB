@@ -2,6 +2,7 @@ using PsoBB.Client;
 using PsoBB.Configuration;
 using PsoBB.Core;
 using PsoBB.Graphics;
+using PsoBB.Gui;
 using PsoBB.Input;
 using PsoBB.Platform;
 
@@ -133,6 +134,32 @@ public sealed class ClientHostTests : IDisposable
 		settings.SetInt32(LegacyOptionNames.WordWrap, 0);
 		using ClientHost host = CreateHost(renderer, settings: settings);
 		Assert.False(host.GameOptions.ChatWordWrap);
+	}
+
+	[Fact]
+	public void AnAttachedDirectorIsOwnedByTheHost()
+	{
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using ClientHost host = CreateHost(renderer);
+		EmptyScreenFactory factory = new();
+		SceneDirector director = new(host.Input, factory);
+		host.AttachDirector(director);
+		Assert.Same(director, host.Director);
+		Assert.Throws<InvalidOperationException>(() => host.AttachDirector(director));
+
+		host.Dispose();
+
+		Assert.True(factory.IsDisposed);
+		Assert.Null(host.Director);
+	}
+
+	private sealed class EmptyScreenFactory : ISceneScreenFactory
+	{
+		public bool IsDisposed { get; private set; }
+
+		public ISceneScreen? Create(uint scene) => null;
+
+		public void Dispose() => IsDisposed = true;
 	}
 
 	private static ClientHost CreateHost(

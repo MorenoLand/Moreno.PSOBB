@@ -48,7 +48,8 @@ merged `TextRenderer` through `DrawStatus`. `Cancel` closes the connection and r
 The network exchange is the merged `PsoBB.Net.LoginFlow` over `GameSession`. The scene exposes the
 flow, pumps it during `Update`, maps its states, delegates the 0xE3 character preview request to
 `RequestCharacterSelection`, and records the 0xE4 approval and the 0x19 redirect. It does not send
-a packet itself and does not duplicate the session.
+a packet itself and does not duplicate the session. `SceneDirector` supplies the flow and the
+selected login endpoint when `SceneNetworkOptions` carries a host table; see `scene-director.md`.
 
 ## Unported boundary
 
