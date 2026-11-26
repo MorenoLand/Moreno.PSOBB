@@ -1,7 +1,7 @@
 namespace PsoBB.Platform;
 
 /// <summary>
-/// Keyboard and mouse state read once per frame.
+/// Keyboard, mouse and gamepad state read once per frame.
 /// </summary>
 /// <remarks>
 /// The host replaces the DirectInput device creation, acquisition and state calls plus <c>GetCursorPos</c>, <c>SetCursorPos</c> and <c>ShowCursor</c>; a single-threaded browser host fills the same state from its event queue.
@@ -17,6 +17,22 @@ public interface IGameInput
 	/// Gets the mouse state from the last poll.
 	/// </summary>
 	MouseState Mouse { get; }
+
+	/// <summary>
+	/// Gets the gamepad state from the last poll.
+	/// </summary>
+	/// <remarks>
+	/// A host without a gamepad leaves this at <see cref="GamepadState.Empty"/>; a host with one fills the standard layout.
+	/// </remarks>
+	GamepadState Gamepad => GamepadState.Empty;
+
+	/// <summary>
+	/// Gets a value indicating whether the client window owns keyboard and pointer input.
+	/// </summary>
+	/// <remarks>
+	/// Hosts without a focus concept leave this true. The portable layer releases held controls when it turns false and resynchronises them when it returns.
+	/// </remarks>
+	bool IsFocused => true;
 
 	/// <summary>
 	/// Reads the devices and applies input that arrived since the previous poll.
