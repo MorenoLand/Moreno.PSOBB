@@ -5,7 +5,7 @@ using PsoBB.Platform;
 namespace PsoBB.Client;
 
 /// <summary>
-/// Owns the title music stream and the common sound-effect bank for the title preview.
+/// Owns the title music stream and the common and city sound-effect banks for the title preview.
 /// </summary>
 internal sealed class TitleAudio : IDisposable
 {
@@ -34,7 +34,7 @@ internal sealed class TitleAudio : IDisposable
 	}
 
 	/// <summary>
-	/// Opens the title theme and the common bank, or returns null when the host has no usable output.
+	/// Opens the title theme, the common bank and the title map's bank, or returns null when the host has no usable output.
 	/// </summary>
 	/// <param name="host">The host that supplies the audio device.</param>
 	/// <param name="files">The data files that resolve the theme and the banks.</param>
@@ -59,6 +59,14 @@ internal sealed class TitleAudio : IDisposable
 			catch (Exception exception) when (exception is AudioFormatException or FileNotFoundException or InvalidOperationException)
 			{
 			}
+			try
+			{
+				pipeline.LoadMapSounds(effects, 0);
+			}
+			catch (Exception exception) when (exception is AudioFormatException or FileNotFoundException or InvalidOperationException or ArgumentException)
+			{
+			}
+			ReportResolvedSounds(effects);
 			music.IsLooping = true;
 			pipeline.Music = music;
 			pipeline.Play();
@@ -66,6 +74,7 @@ internal sealed class TitleAudio : IDisposable
 		}
 		catch (Exception exception) when (exception is FileNotFoundException or InvalidOperationException or NotSupportedException or AudioFormatException or ArgumentException)
 		{
+			ReportDiagnostic($"title audio unavailable: {exception.Message}");
 			pipeline?.Dispose();
 			music?.Source.Dispose();
 			return null;
@@ -114,5 +123,25 @@ internal sealed class TitleAudio : IDisposable
 		_disposed = true;
 		_pipeline.Dispose();
 		_music.Source.Dispose();
+	}
+
+	private static void ReportResolvedSounds(SoundEffectLibrary effects)
+	{
+		if (Environment.GetEnvironmentVariable("PSOBB_AUDIODBG") is null)
+			return;
+		foreach (int soundEffectId in (ReadOnlySpan<int>)[SelectionSound, ConfirmSound, CancelSound])
+		{
+			SoundEffectMapping? mapping = effects.Resolve(soundEffectId);
+			ReportDiagnostic(mapping is { } value
+				? $"sound {soundEffectId}: slot {value.Slot}, gain {value.Gain:0.###}"
+				: $"sound {soundEffectId}: missing");
+		}
+	}
+
+	private static void ReportDiagnostic(string line)
+	{
+		if (Environment.GetEnvironmentVariable("PSOBB_AUDIODBG") is null)
+			return;
+		Console.Error.WriteLine(line);
 	}
 }

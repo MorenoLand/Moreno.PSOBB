@@ -3,7 +3,7 @@ using PsoBB.Data;
 namespace PsoBB.Audio;
 
 /// <summary>
-/// Loads the common bank and the bank that serves the current map, and resolves sound-effect identifiers to samples.
+/// Loads the common bank and the bank that serves the current map, and resolves global sound-effect identifiers to samples.
 /// </summary>
 /// <remarks>
 /// The client keeps one 0x700-slot table of loaded samples. Loading a map clears that table and rebinds the common bank; unloading a map does the same and leaves the common bank available. The library reads files through <see cref="IDataFiles"/> and never opens them directly. It is not thread-safe, matching the single-threaded client.
@@ -125,12 +125,32 @@ public sealed class SoundEffectLibrary
 	}
 
 	/// <summary>
-	/// Finds the sample bound to a sound-effect identifier.
+	/// Finds the sample bound to a loaded slot.
 	/// </summary>
-	/// <param name="soundEffectId">The identifier.</param>
+	/// <param name="slot">The slot identifier.</param>
 	/// <returns>The sample, or <see langword="null"/> when no loaded bank supplies it.</returns>
 	[Original(0x00829110)]
-	public PacSoundSample? Find(int soundEffectId) => (uint)soundEffectId < (uint)_slots.Length ? _slots[soundEffectId] : null;
+	public PacSoundSample? FindSlot(int slot) => (uint)slot < (uint)_slots.Length ? _slots[slot] : null;
+
+	/// <summary>
+	/// Resolves a global sound-effect identifier through the client remap and attenuation tables.
+	/// </summary>
+	/// <param name="soundEffectId">The identifier the game passes.</param>
+	/// <param name="area">The client's current area, or -1 when it is unknown.</param>
+	/// <returns>The mapping, or <see langword="null"/> when no loaded bank supplies the selected slot.</returns>
+	public SoundEffectMapping? Resolve(int soundEffectId, int area = -1)
+	{
+		int slot = SoundEffectIds.SlotFor(soundEffectId, area);
+		PacSoundSample? sample = FindSlot(slot);
+		return sample is null ? null : new SoundEffectMapping(soundEffectId, slot, sample, SoundEffectIds.VolumeIndex(slot));
+	}
+
+	/// <summary>
+	/// Finds the sample the client plays for a global sound-effect identifier.
+	/// </summary>
+	/// <param name="soundEffectId">The identifier the game passes.</param>
+	/// <returns>The sample, or <see langword="null"/> when no loaded bank supplies it.</returns>
+	public PacSoundSample? Find(int soundEffectId) => Resolve(soundEffectId)?.Sample;
 
 	private void Bind(PacSoundBank bank)
 	{
