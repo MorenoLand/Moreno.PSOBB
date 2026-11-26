@@ -50,7 +50,7 @@ The vlist is a chain of 8-byte vertex chunks: format word, size word, index offs
 
 The plist is a chain of chunks with a 2-byte head and 2-byte payload size in 16-bit words; `0xFF` ends it. Type 4 caches a chunk, type 5 draws a cached chunk, type 8 selects a texture-list index, and types `0x10`-`0x3F` are material commands. Type `0x41` is a triangle-strip chunk. Its payload starts with `userOffset(2)|stripCount(14)`, followed by that many strips. Each strip starts with a signed 16-bit count; the absolute value is the vertex count. Each vertex record is `3 + userOffset` words: index, U and V. U and V are 8-bit fixed point scaled by 1/255. The strip is drawn with `DrawPrimitiveUP(D3DPT_TRIANGLESTRIP)` by `0x00847E00`; the plist dispatcher is `ProcessVertexDrawList_008370E4`. The port expands each strip into layout-7 vertices so the existing scene renderer and texture binding apply unchanged.
 
-The parser bakes each strip vertex through its owner node's world matrix and attaches one mesh to a synthetic identity node, matching the original upload-time transform. Static chunk models render through the existing `ModelRenderer`; animated chunk-model skinning is not ported.
+The parser bakes each strip vertex through its owner node's world matrix and attaches one mesh to a synthetic identity node, matching the original upload-time transform. Static chunk models build surfaces through the existing `ModelRenderer`; the material and lighting commands and the texture binding are not ported yet, so their fixed-function appearance remains a boundary. Animated chunk-model skinning is not ported. `RetailModelRenderTests` checks the retail strip geometry when `PSOBB_RETAIL_DATA` is set.
 
 ## NJTL texture list
 
