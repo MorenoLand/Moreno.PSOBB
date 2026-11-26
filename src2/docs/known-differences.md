@@ -22,9 +22,12 @@ The original accepts resolution preset five although its table has five entries,
 
 The scene at `0x004E9C74` is the character-making screen, not the options menu. It loads
 `charamakingmot.bml`, `CHARA.adx`, the `f256_ad_pic_2` and `f256_backtext` surfaces, creates the
-thirteen-screen preview container and activates screen 8. Its controls and 3D preview are not
-ported; the scene exposes the loaded assets and transitions only. The options controls are the
-pause-menu panel at `0x007538EC`/`0x00753D84`. See `scene-5-character-making.md`.
+thirteen-screen preview container and activates screen 8. The port adds the thirteen constructor
+records, the three-row class selection with its original sound identifiers, the twelve-character
+name rules and a preview model/motion renderer. Per-screen controls, the class row table, the
+class-model archive table, camera modes and IME conversion remain at the documented boundary; see
+`scene-5-character-making.md`. The options controls are the pause-menu panel at
+`0x007538EC`/`0x00753D84`.
 
 ## Archive readers
 
