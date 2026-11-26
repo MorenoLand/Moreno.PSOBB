@@ -74,6 +74,10 @@ public static class Scene2TitlePreview
 		draw.Render(renderer);
 		if (dialog is not null)
 		{
+			renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
+			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
+			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
+			renderer.SetRenderState(RenderStateId.Lighting, 0);
 			UiDrawList ui = new();
 			dialog.Draw(ui);
 			ui.Render(renderer);

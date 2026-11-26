@@ -8,6 +8,7 @@ using PsoBB.Gui;
 using PsoBB.Imaging;
 using PsoBB.Platform.Windows;
 using PsoBB.Rendering.Direct3D11;
+using PsoBB.Text;
 
 namespace PsoBB.Windows;
 
@@ -88,7 +89,8 @@ internal static class Program
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
 		Scene1Preview.Run(host, window.Pump);
-		Scene2TitlePreview.Run(host, window.Pump);
+		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text));
 		host.RequestStop();
 	}
 
@@ -102,7 +104,8 @@ internal static class Program
 		WindowsAudioDevice audio = new();
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
-		Scene2TitlePreview.Run(host, window.Pump);
+		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text));
 		host.RequestStop();
 	}
 
