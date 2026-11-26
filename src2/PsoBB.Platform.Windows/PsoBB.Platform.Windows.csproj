@@ -10,4 +10,12 @@
     <ProjectReference Include="..\PsoBB\PsoBB.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Vortice.DirectInput" Version="3.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PsoBB.Platform.Windows.Tests" />
+  </ItemGroup>
+
 </Project>
