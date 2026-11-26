@@ -126,7 +126,7 @@ public sealed class LoginDialogTests
 		Assert.Equal("Login", text.Draws[0].Text);
 		Assert.Equal(LoginDialog.HeaderPosition + dialog.Header.TextOffset, text.Draws[0].Position);
 		Assert.Equal("Start Game", text.Draws[1].Text);
-		Assert.Equal(LoginDialog.RowAreaPosition, text.Draws[1].Position);
+		Assert.Equal(LoginDialog.RowAreaPosition + dialog.Menu.TextOffset, text.Draws[1].Position);
 		Assert.Equal(0xFFFFFFFFu, text.Draws[1].Color);
 		Assert.Equal("[d]", text.Draws[5].Text);
 		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X + (220f - text.Measure("[d]")) * 0.5f, LoginDialog.RowAreaPosition.Y + 80f), text.Draws[5].Position);
@@ -152,7 +152,7 @@ public sealed class LoginDialogTests
 
 		Assert.Equal(16, drawList.Quads.Count);
 		Assert.Equal(LoginDialogFrame.TitlePanelPosition + new Vector2(LoginDialogFrame.PanelInset), drawList.Quads[0].Position);
-		Assert.Equal(new Vector2(224f, 308f), drawList.Quads[14].Position);
+		Assert.Equal(new Vector2(224f, 320f), drawList.Quads[14].Position);
 		Assert.Equal(LoginDialog.RowAreaPosition, drawList.Quads[15].Position);
 		Assert.Equal(6, text.Draws.Count);
 		Assert.Equal("Login", text.Draws[0].Text);
@@ -209,10 +209,10 @@ public sealed class LoginDialogTests
 		Assert.Equal(new Vector2(210f, 300f), LoginDialog.PanelPosition);
 		Assert.Equal(new Vector2(210f, 340f), LoginDialog.NetworkPanelPosition);
 		Assert.Equal(new Vector2(210f, 330f), LoginDialog.AlternatePanelPosition);
-		Assert.Equal(new Vector2(210f, 288f), LoginDialog.TitlePanelPosition);
+		Assert.Equal(new Vector2(210f, 300f), LoginDialog.TitlePanelPosition);
 		Assert.Equal(new Vector2(220f, 120f), LoginDialog.PanelSize);
-		Assert.Equal(new Vector2(210f, 288f), LoginDialog.HeaderPosition);
-		Assert.Equal(new Vector2(210f, 308f), LoginDialog.RowAreaPosition);
+		Assert.Equal(new Vector2(210f, 300f), LoginDialog.HeaderPosition);
+		Assert.Equal(new Vector2(210f, 320f), LoginDialog.RowAreaPosition);
 		Assert.Equal(new Vector2(192f, 308f), LoginDialog.SelectorHeaderPosition);
 		Assert.Equal(new Vector2(193f, 338f), LoginDialog.SelectorSelectionPosition);
 		Assert.Equal(new[] { new Vector2(193f, 300f), new Vector2(193f, 332f), new Vector2(193f, 364f), new Vector2(193f, 396f) }, LoginDialog.SelectorRowPositions);
