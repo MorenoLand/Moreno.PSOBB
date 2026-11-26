@@ -27,7 +27,7 @@ it stores scene parameter 2; it does not set the root scene.
   (`324,374`), adds unitxt group 12 strings 13 and 14, and applies the scroll target 288.0. Retail
   `unitxt_e.prs` resolves those strings to `Save.` and `Exit without Saving.`. The row step is 20
   pixels (`0x00735C90` stores 20 times the row index).
-- The state table at `0x009CEBE0` has 18 entries. States 3 and 5 through 11 are the file-save
+- The state table at `0x009CEBE0` has 18 entries. States 3 through 11 are the file-save
   state machine: `0x006C7CD0` allocates the 0xBAA4-byte save image, builds four 0x2EA4-byte
   records, writes through `0x0086B324`, and checks the save result; `0x006C7E98` starts the
   “Saving Game Data.” status row; `0x006C7E58` rebuilds a one-row “Exit without Saving.” list after
@@ -56,7 +56,8 @@ selection with wrapping; Return on the first row enters `SaveRequested`; Return 
 requests the root scene; Escape requests the restart scene, matching `0x007BFEDC`/`0x007A6174`.
 `Draw` submits the advertisement surface, then the background surface with `0x3B280A81`, then the
 menu through `UiListWindow` and the merged text surface. `Dispose` detaches and disposes the music,
-the two textures and the menu.
+the two textures and the menu. The scene establishes no network calls; the `0x006C38BC` update on
+its state machine is local save and character data work, and it stays at the unported boundary.
 
 ## Unported boundary
 
