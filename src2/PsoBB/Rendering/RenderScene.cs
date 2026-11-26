@@ -3,7 +3,7 @@ namespace PsoBB.Rendering;
 /// <summary>
 /// A 3D scene's camera and its opaque, alpha-tested and blended surface lists in the original draw-pass order.
 /// </summary>
-public sealed class Scene
+public sealed class RenderScene
 {
 	/// <summary>Gets the camera that supplies the view and projection transforms.</summary>
 	public SceneCamera Camera { get; init; } = SceneCamera.Default;
