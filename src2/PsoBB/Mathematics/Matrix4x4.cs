@@ -27,6 +27,11 @@ public readonly record struct Matrix4x4(
 	float M41, float M42, float M43, float M44)
 {
 	/// <summary>
+	/// Gets the identity transform, which leaves every row vector unchanged.
+	/// </summary>
+	public static Matrix4x4 Identity => new(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+	/// <summary>
 	/// Returns the product of two matrices, applying the left operand before the right.
 	/// </summary>
 	/// <param name="left">The matrix applied first.</param>

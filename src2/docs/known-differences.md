@@ -63,6 +63,17 @@ The browser WebGL 2 renderer preserves the Direct3D 11 renderer's visible output
 - A lost WebGL context is not restored in place. The next renderer call reports the loss, and the host must dispose and recreate the renderer.
 - Multisample counts are reduced to the browser's `MAX_SAMPLES`; the resolved count is reported in `RenderSettings.MultisampleCount`.
 
+## 3D scene renderer
+
+`PsoBB.Rendering.SceneRenderer` ports the camera, view and projection composition, the model transformation stack and the opaque, alpha-tested and blended pass state from `0x0082EDC8`, `0x0082EEA0`, `0x00892565`, `0x0089241D`, `0x00830DF8` and `0x008362F0`. Its differences are:
+
+- The scene and model loaders supply flat `SceneSurface` lists. NJ/NJCM hierarchy traversal, bone animation, mesh upload and map streaming stay in those loaders; the renderer receives one world matrix and vertex bytes per surface.
+- `IRenderer.Draw` has no index buffer, so indexed surfaces are expanded into the vertex order the 16-bit indices name. Draw counts and triangle order match; the index buffer upload has no portable counterpart.
+- The original fast arc-tangent at `0x0084D1FC` is reproduced by its small-angle polynomials through absolute values of 1.25 and by the runtime arc-tangent beyond that. The result still passes through the original 16-bit turn rounding.
+- The original folds `inverse(view)` into the world upload so the fixed-function view cancels it. The port uploads the model matrix as `World` and the verified view as `View`, which composes to the same transform.
+- Fixed-function lighting, materials, fog, shadow projection and texture-stage combine state are not ported. The renderer sets culling, depth, alpha and texture bindings only, and lighting and shadows stop at this boundary.
+- Blended surfaces are sorted back to front by camera distance; the original orders its per-mesh alpha geometry by the same distance.
+
 ## Start-up runs the hook registrations before the engine chain
 
 `GameStartup.Start` runs `0x0082CB00` and `0x0082D330` directly. The original reaches them near
