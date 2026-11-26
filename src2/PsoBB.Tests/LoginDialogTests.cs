@@ -188,7 +188,7 @@ public sealed class LoginDialogTests
 	[Fact]
 	public void ProvenPanelAndSelectorPositionsAreExposedForTheOracleFrame()
 	{
-		Assert.Equal(new Vector2(210f, 340f), LoginDialog.PanelPosition);
+		Assert.Equal(new Vector2(210f, 300f), LoginDialog.PanelPosition);
 		Assert.Equal(new Vector2(220f, 120f), LoginDialog.PanelSize);
 		Assert.Equal(new Vector2(192f, 308f), LoginDialog.SelectorHeaderPosition);
 		Assert.Equal(new Vector2(193f, 338f), LoginDialog.SelectorSelectionPosition);

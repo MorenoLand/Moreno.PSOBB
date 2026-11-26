@@ -29,10 +29,13 @@ public sealed class LoginDialog : IDisposable
 	/// <summary>The row step used by the list.</summary>
 	public const float RowHeight = 20f;
 
-	/// <summary>The account panel position from the data image at <c>0x00974E08</c>.</summary>
-	public static readonly Vector2 PanelPosition = new(210f, 340f);
+	/// <summary>The account panel position the mode-zero branch writes at <c>0x00761C48</c>.</summary>
+	public static readonly Vector2 PanelPosition = new(210f, 300f);
 
-	/// <summary>The account panel size from the data image at <c>0x00974E08</c>.</summary>
+	/// <summary>The account panel position the Episode 4 branch writes at <c>0x00761C48</c>.</summary>
+	public static readonly Vector2 Episode4PanelPosition = new(210f, 336f);
+
+	/// <summary>The account panel size from the data image at <c>0x00974E10</c>.</summary>
 	public static readonly Vector2 PanelSize = new(220f, 120f);
 
 	/// <summary>The header height taken from the panel's first row.</summary>
@@ -105,19 +108,21 @@ public sealed class LoginDialog : IDisposable
 	/// <param name="text">The locale text surface.</param>
 	/// <param name="hintText">The hint row text; the data-image literal is used by default.</param>
 	/// <param name="textSurface">The optional text surface used to measure and draw the rows.</param>
+	/// <param name="panelPosition">The panel origin; the mode-zero position is used by default.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
-	public LoginDialog(GameText text, string hintText = DefaultHint, IUiTextSurface? textSurface = null)
+	public LoginDialog(GameText text, string hintText = DefaultHint, IUiTextSurface? textSurface = null, Vector2? panelPosition = null)
 	{
 		ArgumentNullException.ThrowIfNull(text);
+		Vector2 position = panelPosition ?? PanelPosition;
 		_header = new UiLabel
 		{
-			Position = HeaderPosition,
+			Position = position,
 			Size = new Vector2(PanelSize.X, HeaderHeight),
 		};
 		_header.SetText(text.GetLoginScreenText(LoginScreenText.Login));
 		_menu = new UiListWindow
 		{
-			Position = RowAreaPosition,
+			Position = new Vector2(position.X, position.Y + HeaderHeight),
 			Size = RowAreaSize,
 			ItemHeight = RowHeight,
 			ScrollBarWidth = 0f,
