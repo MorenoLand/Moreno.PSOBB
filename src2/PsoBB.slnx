@@ -1,0 +1,4 @@
+<Solution>
+	<Project Path="PsoBB/PsoBB.csproj" />
+	<Project Path="PsoBB.Tests/PsoBB.Tests.csproj" />
+</Solution>
