@@ -1,7 +1,7 @@
 namespace PsoBB.Platform;
 
 /// <summary>
-/// An input device for tests and headless hosts, driven by explicit key, mouse and cursor calls.
+/// An input device for tests and headless hosts, driven by explicit key, mouse, gamepad and cursor calls.
 /// </summary>
 /// <remarks>
 /// Changes become visible on the next <see cref="Poll"/>; movement and wheel values accumulate until that poll and then clear.
@@ -11,6 +11,8 @@ public sealed class MemoryGameInput : IGameInput
 	private readonly KeyboardState _keyboard = new();
 	private readonly Dictionary<int, bool> _pendingKeys = [];
 	private MouseState _mouse = MouseState.Empty;
+	private GamepadState _gamepad = GamepadState.Empty;
+	private GamepadState _pendingGamepad = GamepadState.Empty;
 	private MouseButtons _buttons;
 	private int _positionX;
 	private int _positionY;
@@ -18,12 +20,19 @@ public sealed class MemoryGameInput : IGameInput
 	private int _deltaY;
 	private int _wheelDelta;
 	private bool _hasPosition;
+	private bool _hasGamepad;
 
 	/// <inheritdoc/>
 	public KeyboardState Keyboard => _keyboard;
 
 	/// <inheritdoc/>
 	public MouseState Mouse => _mouse;
+
+	/// <inheritdoc/>
+	public GamepadState Gamepad => _gamepad;
+
+	/// <inheritdoc/>
+	public bool IsFocused { get; private set; } = true;
 
 	/// <summary>
 	/// Gets a value indicating whether the host currently shows the pointer.
@@ -43,6 +52,11 @@ public sealed class MemoryGameInput : IGameInput
 		_deltaX = 0;
 		_deltaY = 0;
 		_wheelDelta = 0;
+		if (_hasGamepad)
+		{
+			_gamepad = _pendingGamepad;
+			_hasGamepad = false;
+		}
 	}
 
 	/// <inheritdoc/>
@@ -55,6 +69,22 @@ public sealed class MemoryGameInput : IGameInput
 
 	/// <inheritdoc/>
 	public void SetCursorVisible(bool visible) => CursorVisible = visible;
+
+	/// <summary>
+	/// Sets the gamepad state reported by the next poll.
+	/// </summary>
+	/// <param name="state">The state to report.</param>
+	public void SetGamepad(GamepadState state)
+	{
+		_pendingGamepad = state;
+		_hasGamepad = true;
+	}
+
+	/// <summary>
+	/// Sets whether the client window owns keyboard and pointer input.
+	/// </summary>
+	/// <param name="focused">Whether input is focused.</param>
+	public void SetFocused(bool focused) => IsFocused = focused;
 
 	/// <summary>
 	/// Sets a named key for the next poll.
