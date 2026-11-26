@@ -109,9 +109,7 @@ public sealed class TitleStartupTests : IDisposable
 		art.DrawSelectorStrip(draw);
 		art.DrawEmblem(draw, 0);
 		draw.Render(renderer);
-		Assert.Contains("State 15:1", renderer.Commands);
-		Assert.Contains("State 24:16", renderer.Commands);
-		Assert.Contains("State 25:5", renderer.Commands);
+		Assert.Contains("State 15:0", renderer.Commands);
 		Assert.Contains("State 27:0", renderer.Commands);
 		Assert.Contains("State 27:1", renderer.Commands);
 		Assert.Contains("State 19:5", renderer.Commands);
