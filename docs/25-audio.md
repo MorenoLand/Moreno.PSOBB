@@ -25,55 +25,62 @@ Facts observed with `RECOMP_COMLOG=1` on the native host.
 8. The stream is filled with `Lock`/`Unlock` in `0xAC44` byte chunks, sixteen
    chunks per buffer. Returned pointers advance by `0xAC44` inside the buffer,
    so the out-parameter translation is correct.
-9. Unlocked chunks contain non-zero PCM samples; the data path is live.
+9. The music stream comes from `data/ogg/*.ogg`; the streamer calls
+   libvorbisfile `ov_read` (guest `0x873508`) with 16-bit signed
+   little-endian output.
 
-All calls in the sequence return `S_OK`.
+All DirectSound calls in the sequence return `S_OK`, and the bytes written to
+the streaming buffer are exactly the bytes returned by `ov_read`.
 
-## Measured output
+## Lifted decoder defect
 
-An 18.4 second capture (3,252,224 bytes) was taken across the title screen and
-the intro transition.
+The lifted libvorbis decoder parses the headers and produces plausible-looking
+float PCM, but the waveform is wrong. A generated 440 Hz OGG decoded by the
+lifted code contains the 440 Hz tone plus strong images at 11464 Hz, 5909 Hz and
+21610 Hz; the reference decoder returns a clean tone. The defect is inside
+Vorbis synthesis, before `ov_read` converts float samples to int16.
 
-- RMS is about 0.21 of full scale; peaks reach full scale from the fourth
-  second onwards.
-- Zero-crossing rate is about 0.29 and spectral flatness stays between 0.6 and
-  0.8. Music normally has a much lower flatness; this is noise-like.
-- The byte order is correct: aligning the stream as signed 16-bit little-endian
-  gives a smoother waveform than a one-byte shift.
-- The native host presents at 29.9 to 30.0 frames per second during the capture.
+Because the float output is already corrupted, changing the DirectSound buffer,
+the primary format or the resampler cannot fix it.
 
-The DirectSound setup is therefore not the cause. The guest is writing
-noise-like PCM into a correctly created buffer.
+## Native host backend
 
-## Open questions
+`runtime/audio_host.c` decodes the same OGG files with the vendored
+`stb_vorbis` decoder for the native host.
 
-- The stream is generated at 44100 Hz while the primary buffer runs at 48000 Hz.
-  DirectSound resamples the secondary buffer; this should not turn music into
-  noise.
-- The lifted mixer or decoder may be producing incorrect samples (fixed point,
-  MMX/SSE, x87 rounding).
-- The retail Patch client expects `patch.dll`; that DLL bundles SDL2 and may
-  provide the audio decoder or the sample data path. The host currently does not
-  load it.
-- The stream buffer uses position notifications. If the guest consumes the
-  notifications at the wrong rate, it can underrun or overwrite unplayed data.
-- The client may call `IDirectSoundBuffer::SetFrequency`; the current log does
-  not show it.
+- On the first `ov_read` for an `OggVorbis_File`, the wrapper finds the Win32
+  file handle in the OGG datasource, looks up the path recorded by
+  `CreateFileA`, and opens a host decoder.
+- The lifted `ov_read` still runs first. Its output is discarded; it advances
+  the guest decoder's sample position and bitstream fields so `ov_pcm_tell`,
+  stream switching and the streamer's own bookkeeping stay consistent.
+- The host decoder then fills the same buffer and returns its byte count.
+
+This keeps the guest streamer state intact while replacing only the corrupted
+sample data.
+
+## Verification
+
+- The 440 Hz test file decodes to the exact reference samples.
+- The first two seconds of the real `title.ogg` stream correlate with the
+  reference decode at 0.999999996 for the left channel.
+- A 40 second run streamed 34.5 seconds of music (6,082,560 bytes) without a
+  crash and kept the native host at 29.9 to 30.0 frames per second.
+
+## Remaining work
+
+- The host decoder does not yet follow guest `ov_pcm_seek` calls; a seek or loop
+  can move the guest position without moving the host decoder. Loops that seek
+  inside the track need a seek wrapper keyed by the same `OggVorbis_File`.
+- The wasm host still uses the lifted decoder.
+- Sound effects use DirectSound buffers filled from `data/sound/*.pac`, not
+  `ov_read`; their content is not covered by this backend.
 
 ## Instrumentation
 
 - `RECOMP_AUDIODUMP=<path>` appends every unlocked region to a raw PCM file.
   The stream is 44100 Hz, stereo, signed 16-bit little-endian.
+- `RECOMP_AUDIODBG=1` prints host decoder selection and failures.
 - `RECOMP_FPS=1` prints the `IDirect3DDevice8::Present` rate every five seconds.
 - `RECOMP_COMLOG=1` prints the COM method, host function offset, proxy and real
   pointers, arguments and result.
-
-## Next checks
-
-1. Capture ten seconds of the stream, wrap it as a WAV and compare pitch and
-   duration with a reference recording of the same screen.
-2. Log `SetFrequency` and the first `GetCurrentPosition` values.
-3. Locate the guest mixer's output-rate constant and compare it with the
-   `WAVEFORMATEX` rate.
-4. Check whether the stream is underrun: count `Lock` calls per second against
-   the 0.25 s each chunk represents.

@@ -26,6 +26,14 @@
 ApiEnt api_tab[MAX_API];
 int api_count;
 
+static struct { u32 handle; char path[260]; } ogg_files[32];
+const char *rt_ogg_path(u32 handle)
+{
+    for (int i = 0; i < 32; ++i)
+        if (ogg_files[i].handle && ogg_files[i].handle == handle) return ogg_files[i].path;
+    return NULL;
+}
+
 
 #if defined(_WIN32)
 static CRITICAL_SECTION gil;
@@ -562,11 +570,15 @@ void api_dispatch(u32 sentinel)
         }
     }
     if (e->module && !strcmp(e->module, "com") && !strcmp(e->name, "IDirectSoundBuffer#19") && a[0] && a[1] && rt_readable(a[0], a[1])) {
+        extern int rt_audio_music;
         const char *dump = getenv("RECOMP_AUDIODUMP");
         static FILE *af;
-        if (dump && !af) af = fopen(dump, "wb");
-        if (af) fwrite((void *)(uintptr_t)a[0], 1, a[1], af);
+        if (dump && rt_audio_music && !af) af = fopen(dump, "wb");
+        if (af && rt_audio_music) fwrite((void *)(uintptr_t)a[0], 1, a[1], af);
     }
+    if (e->module && !strcmp(e->module, "com") && getenv("RECOMP_AUDIOTRACE") &&
+        (!strcmp(e->name, "IDirectSoundBuffer#19") || !strcmp(e->name, "IDirectSoundBuffer#11") || !strcmp(e->name, "IDirectSoundBuffer#12")))
+        fprintf(stderr, "[audiotrace] %s ret=%08x esp=%08x tid=%lu\n", e->name, R32(r_esp), r_esp, (unsigned long)GetCurrentThreadId());
 #if defined(_WIN32)
     if (special) {
         r = api_special(special, e, a);
@@ -614,6 +626,17 @@ void api_dispatch(u32 sentinel)
         gil_enter();
         ts->in_api--;
         cpu_load(&keep);
+    }
+    if (e->module && !strcmp(e->module, "kernel32") && !strcmp(e->name, "CreateFileA") &&
+        (u32)r != 0xFFFFFFFFu && a[0] && rt_readable(a[0], 5) && strstr((const char *)(uintptr_t)a[0], ".ogg")) {
+        for (int i = 0; i < 32; ++i) {
+            if (!ogg_files[i].handle || ogg_files[i].handle == (u32)r) {
+                ogg_files[i].handle = (u32)r;
+                strncpy(ogg_files[i].path, (const char *)(uintptr_t)a[0], sizeof ogg_files[i].path - 1);
+                ogg_files[i].path[sizeof ogg_files[i].path - 1] = 0;
+                break;
+            }
+        }
     }
     {   /* RECOMP_LOGAPI=Name,module,...: show those calls and their results (for a Shell_NotifyIconA call also its NOTIFYICONDATA) */
         static const char *logapi = (const char *)1;
