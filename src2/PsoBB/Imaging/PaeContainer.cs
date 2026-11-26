@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using PsoBB.Compression;
+using PsoBB.Models;
 
 namespace PsoBB.Imaging;
 
@@ -12,6 +13,7 @@ public sealed class PaeContainer
 	private readonly byte[] _textureListData;
 	private readonly byte[] _textureData;
 	private readonly XvmTexture[] _textures;
+	private PaeModel? _model;
 
 	private PaeContainer(
 		ushort flags,
@@ -75,6 +77,10 @@ public sealed class PaeContainer
 	/// <summary>Gets the decoded textures in archive order.</summary>
 	public IReadOnlyList<XvmTexture> Textures => _textures;
 
+	/// <summary>Gets the parsed model and its texture references.</summary>
+	/// <exception cref="ModelFormatException">The model or texture-list section is malformed.</exception>
+	public PaeModel Model => _model ??= PaeModel.Parse(this);
+
 	/// <summary>
 	/// Parses a PAE archive, decompressing its payload when the header says it is compressed.
 	/// </summary>
@@ -82,7 +88,6 @@ public sealed class PaeContainer
 	/// <returns>The section ranges and decoded textures.</returns>
 	/// <exception cref="TextureFormatException">A header, section range or texture is invalid.</exception>
 	/// <exception cref="PrsFormatException">The compressed payload is malformed.</exception>
-	[Original(0x0070E864)]
 	public static PaeContainer Parse(ReadOnlySpan<byte> data)
 	{
 		if (data.Length < 0x20)
