@@ -178,9 +178,14 @@ window object and keeps the panels visible through the connection phase.
 
 `PsoBB.Scenes.OfflineScene` is the scene-10 shell. It loads the `PSO_CHARACTER` save and
 `lightentry.bin`, keeps the 47 initialiser and release addresses, and reproduces the flag and
-restart transitions. The save decoder, field map, game object, player and field renderer are not
-ported; the scene has no draw entry, so it submits no interface geometry. See
-`scene-10-offline.md`.
+restart transitions. The save decoder, field map, game object and field renderer are not ported;
+the scene has no draw entry, so it submits no interface geometry. See `scene-10-offline.md`.
+
+`PsoBB.Scenes.FieldScene` composes the shell with an optional `LobbyWorld`, `PlayerCharacter`, a
+loaded `MapScene` and host-supplied NJCM models. It draws placed object models, the local player and
+the other player slots in that order. The field camera is passed in, map render geometry is not
+submitted, entity walk and run targets do not move a view, and a despawn record removes the view
+immediately; the camera controller, map draw manager, entity animation and HUD stay unported.
 
 ## The scene table is baked from the shipped image
 
