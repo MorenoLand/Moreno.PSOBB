@@ -98,6 +98,7 @@ public sealed class OfflineScene : IDisposable
 	]);
 
 	private ReadOnlyMemory<byte> _characterSave;
+	private PsoBB.Save.CharacterSave? _parsedCharacterSave;
 	private MapLightTable? _lightTable;
 	private bool _disposed;
 
@@ -123,6 +124,9 @@ public sealed class OfflineScene : IDisposable
 
 	/// <summary>Gets the character save bytes, or empty when the save is absent or the scene is released.</summary>
 	public ReadOnlyMemory<byte> CharacterSave => _characterSave;
+
+	/// <summary>Gets the parsed 0xBAA4-byte container, or <see langword="null"/> when no complete save is loaded.</summary>
+	public PsoBB.Save.CharacterSave? ParsedCharacterSave => _parsedCharacterSave;
 
 	/// <summary>Gets a value indicating whether a complete character save is loaded.</summary>
 	public bool HasCharacterSave => _characterSave.Length == CharacterFileLength;
@@ -173,6 +177,7 @@ public sealed class OfflineScene : IDisposable
 		ResetGame();
 		_lightTable = null;
 		_characterSave = default;
+		_parsedCharacterSave = null;
 		_disposed = true;
 	}
 
@@ -242,6 +247,7 @@ public sealed class OfflineScene : IDisposable
 		if (!files.TryRead(CharacterFileName, out ReadOnlyMemory<byte> data) || data.Length < CharacterFileLength)
 			return false;
 		_characterSave = data[..CharacterFileLength];
+		_parsedCharacterSave = PsoBB.Save.CharacterSaveCodec.Parse(_characterSave.Span);
 		return true;
 	}
 

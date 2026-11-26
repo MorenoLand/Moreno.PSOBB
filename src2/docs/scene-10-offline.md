@@ -33,9 +33,10 @@ Scene 10 is the offline game scene, not a menu. The baked table row is `0x007BC2
 
 `PsoBB.Scenes.OfflineScene` stores scene parameter 2 and root 10, resolves `lightentry.bin`
 through `IDataFiles` and `MapLightTable`, and reads `PSO_CHARACTER` through `IDataFiles`. A save
-shorter than `0xBAA4` is rejected, matching the fixed read size. A missing save enters the same
-startup cancel path and requests the restart before the scene parameter and root are stored. A
-missing light table is tolerated; a malformed one is rejected by the shared parser.
+shorter than `0xBAA4` is rejected, matching the fixed read size, and the complete image is parsed
+into `PsoBB.Save.CharacterSave`. A missing save enters the same startup cancel path and requests the
+restart before the scene parameter and root are stored. A missing light table is tolerated; a
+malformed one is rejected by the shared parser.
 
 The 47 initialiser and release pairs are exposed as `OfflineScene.InitTable` with both original
 addresses. `Update` dispatches on `GameState.GameStarted`; the map-ready and scene-event flags are
@@ -47,9 +48,10 @@ restart and clears the flags. Release resets the game and drops the loaded save 
 - The 46 initialisers and releases other than the light-table pair are not reproduced; their
   addresses and order stay in `InitTable` so the boundary is explicit. The initialisation cancel
   gate `0x005BA1F0` is not reproduced, so the port always stores scene parameter 2 and root 10.
-- The four-character save decoder, the 408-byte game object, the map and object streaming behind
-  `0x0080C79C`, `0x0080FAB8`, `0x0080D578` and `0x0077B1A0`, the player entity and the field
-  renderer are not ported.
+- The scene does not consume individual save fields; the container decoder lives in
+  `PsoBB.Save.CharacterSave` and keeps unproven regions opaque. The 408-byte game object, the map and
+  object streaming behind `0x0080C79C`, `0x0080FAB8`, `0x0080D578` and `0x0077B1A0`, the player
+  entity and the field renderer are not ported.
 - The scene-event and map-ready paths set and clear the same flags as the original but do not run
   the unported UI, camera, map and object work behind them.
 - `0x007C04EC`, the audio, task-tree and camera releases inside `0x007BBFB0`, and the globals

@@ -17,8 +17,8 @@ namespace PsoBB.Scenes;
 /// <c>title.adx</c> track is the title theme. It loads the same advertisement and background
 /// surfaces as scene 5, applies the preset-9 NPC camera, and creates a 0x14000-byte menu buffer.
 /// The port keeps the scene initialisation, the menu layout and the cancel, save-request and exit
-/// transitions. The save-file state machine and serializer are not ported because the session and
-/// character data they write are not ported.
+/// transitions. The 0xBAA4-byte save container codec is ported in <c>PsoBB.Save</c>; the save-file
+/// state machine and the session and character data it would write are not ported.
 /// </remarks>
 public sealed class SaveGameScene : IDisposable
 {
