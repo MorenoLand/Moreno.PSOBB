@@ -120,12 +120,50 @@ public sealed class GameServerFlowTests
 	{
 		using Fixture fixture = new();
 		GameServerFlow flow = fixture.StartGameServer();
-		PushEncrypted(fixture.Connection, Packet.Create((PacketCommand)0x81, 0, new byte[0x128]));
+		PushEncrypted(fixture.Connection, Packet.Create((PacketCommand)0x1A, 0, new byte[0]));
 		flow.Pump();
 		Assert.Equal(GameServerFlowState.Unsupported, flow.State);
-		Assert.Contains("0x81", flow.Diagnostic!);
+		Assert.Contains("0x1A", flow.Diagnostic!);
 		Assert.Contains("no record codec", flow.Diagnostic!);
 		Assert.Equal(GameSessionState.Disconnected, fixture.Session.State);
+	}
+
+	/// <summary>
+	/// A 0x83 reply stores its header-counted menu records instead of stopping the flow, and a zero-count or later reply replaces them.
+	/// </summary>
+	[Fact]
+	public void LobbyMenuRepliesReplaceTheMenuAndZeroEntriesClearIt()
+	{
+		using Fixture fixture = new();
+		GameServerFlow flow = fixture.StartGameServer();
+		PushEncrypted(fixture.Connection, LobbyMenu((0x11, 0x22, 3), (0x33, 0x44, 7)));
+		flow.Pump();
+		Assert.Equal(GameServerFlowState.Authenticating, flow.State);
+		Assert.NotNull(flow.World.LobbyMenu);
+		Assert.Equal(2, flow.World.LobbyMenu.Count);
+		Assert.Equal(new LobbyMenuRecord(0x11, 0x22, 3), flow.World.LobbyMenu.Records[0]);
+		PushEncrypted(fixture.Connection, LobbyMenu());
+		flow.Pump();
+		Assert.Equal(0, flow.World.LobbyMenu!.Count);
+		PushEncrypted(fixture.Connection, LobbyMenu((0x55, 0x66, 1)));
+		flow.Pump();
+		Assert.Equal(1, flow.World.LobbyMenu!.Count);
+		Assert.Equal(new LobbyMenuRecord(0x55, 0x66, 1), flow.World.LobbyMenu.Records[0]);
+	}
+
+	/// <summary>
+	/// Repeated 0x81 replies are decoded and added to the mail list instead of stopping the flow.
+	/// </summary>
+	[Fact]
+	public void SimpleMailRepliesAccumulate()
+	{
+		using Fixture fixture = new();
+		GameServerFlow flow = fixture.StartGameServer();
+		PushEncrypted(fixture.Connection, SimpleMail(), SimpleMail());
+		flow.Pump();
+		Assert.Equal(GameServerFlowState.Authenticating, flow.State);
+		Assert.Equal(2, flow.World.SimpleMails.Count);
+		Assert.Equal(string.Empty, flow.World.SimpleMails[0].Text);
 	}
 
 	/// <summary>
@@ -243,6 +281,21 @@ public sealed class GameServerFlowTests
 			LobbyEntry(players[index].ClientId, players[index].Name).CopyTo(body, LobbyWorld.LobbyJoinEntryOffset + (index * LobbyWorld.LobbyJoinEntryLength));
 		return Packet.Create(PacketCommand.JoinLobby, (uint)players.Length, body);
 	}
+
+	private static Packet LobbyMenu(params (uint MenuId, uint ItemId, uint PlayerCount)[] records)
+	{
+		byte[] body = new byte[records.Length * LobbyMenuPacket.RecordLength];
+		for (int index = 0; index < records.Length; index++)
+		{
+			Span<byte> record = body.AsSpan(index * LobbyMenuPacket.RecordLength, LobbyMenuPacket.RecordLength);
+			BinaryPrimitives.WriteUInt32LittleEndian(record, records[index].MenuId);
+			BinaryPrimitives.WriteUInt32LittleEndian(record[0x04..], records[index].ItemId);
+			BinaryPrimitives.WriteUInt32LittleEndian(record[0x08..], records[index].PlayerCount);
+		}
+		return Packet.Create(PacketCommand.LobbyMenu, (uint)records.Length, body);
+	}
+
+	private static Packet SimpleMail() => Packet.Create(PacketCommand.SimpleMail, 0, new byte[SimpleMailPacket.PayloadLength]);
 
 	private static byte[] LobbyData(int clientId, string name)
 	{
