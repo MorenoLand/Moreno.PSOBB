@@ -1,6 +1,7 @@
 using PsoBB.Configuration;
 using PsoBB.Core;
 using PsoBB.Graphics;
+using PsoBB.Gui;
 using PsoBB.Input;
 using PsoBB.Platform;
 
@@ -22,6 +23,7 @@ public sealed class ClientHost : IDisposable
 	/// </summary>
 	public const uint EmptyFrameColor = 0xFF000000;
 	private readonly ClientOptions _options;
+	private SceneDirector? _director;
 	private bool _stopRequested;
 	private bool _disposed;
 	private long _frameCount;
@@ -122,6 +124,49 @@ public sealed class ClientHost : IDisposable
 	public IRenderer Renderer { get; }
 
 	/// <summary>
+	/// Gets the attached scene director, or <see langword="null"/> when the host presents empty frames.
+	/// </summary>
+	public SceneDirector? Director => _director;
+
+	/// <summary>
+	/// Gets the director's unsupported-scene diagnostic, or <see langword="null"/>.
+	/// </summary>
+	public string? DirectorDiagnostic => _director?.Diagnostic;
+
+	/// <summary>
+	/// Creates and attaches a director over the host's file system, renderer and input layer.
+	/// </summary>
+	/// <param name="options">The scene directory options, or the defaults.</param>
+	/// <returns>The attached director; the host disposes it.</returns>
+	/// <exception cref="InvalidOperationException">A director is already attached.</exception>
+	/// <exception cref="ObjectDisposedException">The host is disposed.</exception>
+	/// <exception cref="FileNotFoundException">The data archive required by the scene directory is absent.</exception>
+	public SceneDirector StartSceneDirector(SceneDirectorOptions? options = null)
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		if (_director is not null)
+			throw new InvalidOperationException("A scene director is already attached.");
+		_director = SceneDirector.Create(this, options);
+		return _director;
+	}
+
+	/// <summary>
+	/// Attaches a supplied director; the host drives and disposes it.
+	/// </summary>
+	/// <param name="director">The director to attach.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="director"/> is null.</exception>
+	/// <exception cref="InvalidOperationException">A director is already attached.</exception>
+	/// <exception cref="ObjectDisposedException">The host is disposed.</exception>
+	public void AttachDirector(SceneDirector director)
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		ArgumentNullException.ThrowIfNull(director);
+		if (_director is not null)
+			throw new InvalidOperationException("A scene director is already attached.");
+		_director = director;
+	}
+
+	/// <summary>
 	/// Gets the number of frames presented since the host was created.
 	/// </summary>
 	public long FrameCount => _frameCount;
@@ -166,7 +211,7 @@ public sealed class ClientHost : IDisposable
 	public void RequestStop() => _stopRequested = true;
 
 	/// <summary>
-	/// Stops the loop and disposes the renderer. Repeated calls do nothing.
+	/// Stops the loop, releases the director and disposes the renderer. Repeated calls do nothing.
 	/// </summary>
 	public void Dispose()
 	{
@@ -174,7 +219,15 @@ public sealed class ClientHost : IDisposable
 			return;
 		_disposed = true;
 		_stopRequested = true;
-		Renderer.Dispose();
+		try
+		{
+			_director?.Dispose();
+		}
+		finally
+		{
+			_director = null;
+			Renderer.Dispose();
+		}
 	}
 
 	private bool RunFrame()
@@ -187,10 +240,41 @@ public sealed class ClientHost : IDisposable
 		Dispatcher.Pump();
 		if (_stopRequested)
 			return false;
+		_director?.Update();
+		if (_stopRequested)
+			return false;
+		if (_director is { IsStopped: true })
+		{
+			_stopRequested = true;
+			return false;
+		}
 		Renderer.BeginFrame();
-		Renderer.Clear(EmptyFrameColor);
+		if (_director is null)
+		{
+			Renderer.Clear(EmptyFrameColor);
+		}
+		else
+		{
+			ApplyUiState();
+			Renderer.Clear(EmptyFrameColor);
+			UiDrawList draw = new();
+			_director.Draw(draw);
+			draw.Render(Renderer);
+		}
 		Renderer.EndFrame();
 		_frameCount++;
 		return true;
+	}
+
+	private void ApplyUiState()
+	{
+		Renderer.SetViewport(0, 0, Renderer.Settings.Width, Renderer.Settings.Height);
+		Renderer.SetRenderState(RenderStateId.ZEnable, 0);
+		Renderer.SetRenderState(RenderStateId.ZWriteEnable, 0);
+		Renderer.SetRenderState(RenderStateId.CullMode, RenderStateId.CullNone);
+		Renderer.SetRenderState(RenderStateId.Lighting, 0);
+		Renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
+		Renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
+		Renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
 	}
 }
