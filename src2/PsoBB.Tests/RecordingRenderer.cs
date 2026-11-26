@@ -9,7 +9,9 @@ namespace PsoBB.Tests;
 internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRenderer
 {
 	private readonly List<string> _commands = [];
+	private readonly List<TextureUpload> _textureUploads = [];
 	private int _disposeCount;
+	private int _disposedTextureCount;
 
 	/// <summary>
 	/// Creates a recording renderer with the given settings.
@@ -22,6 +24,12 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 
 	/// <summary>Gets the commands recorded so far.</summary>
 	public IReadOnlyList<string> Commands => _commands;
+
+	/// <summary>Gets the texture uploads recorded so far.</summary>
+	public IReadOnlyList<TextureUpload> TextureUploads => _textureUploads;
+
+	/// <summary>Gets the number of texture dispose calls received.</summary>
+	public int DisposedTextureCount => _disposedTextureCount;
 
 	/// <summary>Gets the number of times the renderer was disposed.</summary>
 	public int DisposeCount => _disposeCount;
@@ -80,25 +88,65 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 	}
 
 	/// <inheritdoc/>
-	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride) => new RecordingTexture(width, height);
+	public ITexture CreateTexture(int width, int height, ReadOnlySpan<byte> pixels, int stride)
+	{
+		RecordingTexture texture = new(this, width, height, stride, pixels.ToArray());
+		_textureUploads.Add(new TextureUpload(texture));
+		return texture;
+	}
 
 	/// <inheritdoc/>
 	public void Dispose() => _disposeCount++;
 
 	/// <summary>
+	/// One recorded texture upload.
+	/// </summary>
+	internal sealed class TextureUpload
+	{
+		internal TextureUpload(RecordingTexture texture)
+		{
+			Texture = texture;
+		}
+
+		/// <summary>Gets the uploaded texture handle.</summary>
+		public RecordingTexture Texture { get; }
+
+		/// <summary>Gets the texture width in pixels.</summary>
+		public int Width => Texture.Width;
+
+		/// <summary>Gets the texture height in pixels.</summary>
+		public int Height => Texture.Height;
+
+		/// <summary>Gets the number of bytes per row.</summary>
+		public int Stride => Texture.Stride;
+
+		/// <summary>Gets the pixel bytes passed to the renderer.</summary>
+		public ReadOnlyMemory<byte> Pixels => Texture.Pixels;
+	}
+
+	/// <summary>
 	/// A texture handle for the recording renderer.
 	/// </summary>
-	private sealed class RecordingTexture : ITexture
+	internal sealed class RecordingTexture : ITexture
 	{
+		private readonly RecordingRenderer _owner;
+		private readonly byte[] _pixels;
+
 		/// <summary>
-		/// Creates the texture with its dimensions.
+		/// Creates the texture with its dimensions and uploaded pixels.
 		/// </summary>
+		/// <param name="owner">The recording renderer.</param>
 		/// <param name="width">Texture width.</param>
 		/// <param name="height">Texture height.</param>
-		public RecordingTexture(int width, int height)
+		/// <param name="stride">The number of bytes per row.</param>
+		/// <param name="pixels">The uploaded pixel bytes.</param>
+		public RecordingTexture(RecordingRenderer owner, int width, int height, int stride, byte[] pixels)
 		{
+			_owner = owner;
 			Width = width;
 			Height = height;
+			Stride = stride;
+			_pixels = pixels;
 		}
 
 		/// <inheritdoc/>
@@ -106,6 +154,15 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 
 		/// <inheritdoc/>
 		public int Height { get; }
+
+		/// <summary>Gets the number of bytes per row.</summary>
+		public int Stride { get; }
+
+		/// <summary>Gets the uploaded pixel bytes.</summary>
+		public ReadOnlyMemory<byte> Pixels => _pixels;
+
+		/// <summary>Gets the number of dispose calls received.</summary>
+		public int DisposeCount { get; private set; }
 
 		/// <inheritdoc/>
 		public void Update(ReadOnlySpan<byte> pixels, int stride)
@@ -115,6 +172,8 @@ internal sealed class RecordingRenderer : IFixedFunctionRenderer, IResizableRend
 		/// <inheritdoc/>
 		public void Dispose()
 		{
+			DisposeCount++;
+			_owner._disposedTextureCount++;
 		}
 	}
 }

@@ -54,6 +54,14 @@ The portable loader reads the client's fixed bank table, not a directory from th
 - `SoundEffectPlayer` loops a clip over its metadata loop region. The original arms a DirectSound position notification at the loop end; the audible region is the same, but the host notification mechanism has no portable counterpart.
 
 
+## Texture cache
+
+`PsoBB.Graphics.Textures.TextureCache` keeps the original fixed 1024-entry request table and the
+global-index key. The original frees a request slot when its reference count reaches zero and later
+reloads from the model's source descriptor. The port retains the decoded `TextureImage` in the
+cache instead, so a released GPU texture can be uploaded again; the renderer seam creates it from
+decoded BGRA pixels rather than the original's Direct3D 8 formats and pitch calculation.
+
 ## WebGL renderer
 
 The browser WebGL 2 renderer preserves the Direct3D 11 renderer's visible output for solid geometry, textures, blending, depth, stencil, alpha test and fog. The remaining differences come from the browser graphics API.
