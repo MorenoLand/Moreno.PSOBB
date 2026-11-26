@@ -148,6 +148,12 @@ public static class GameState
     public static uint SceneFadeState { get; set; } = InitialValue;
 
     /// <summary>
+    /// Gets or sets the flag that selects the callback run after the scene selects shared screen state zero.
+    /// </summary>
+    [OriginalGlobal(0x00ACBEF0)]
+    public static uint SharedScreenCallbackFlag { get; set; } = InitialValue;
+
+    /// <summary>
     /// Gets or sets the flag that tells the offline scene whether its game has started.
     /// </summary>
     [OriginalGlobal(0x00A95624)]
@@ -191,6 +197,7 @@ public static class GameState
         SceneScreenState = SceneScreenInitialValue;
         PreviousSceneScreenState = SceneScreenInitialValue;
         SceneFadeState = InitialValue;
+        SharedScreenCallbackFlag = InitialValue;
         GameStarted = InitialValue;
         MapLoaded = InitialValue;
         SceneEvent = InitialValue;

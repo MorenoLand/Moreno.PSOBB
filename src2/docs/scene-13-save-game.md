@@ -57,14 +57,16 @@ requests the root scene; Escape requests the restart scene, matching `0x007BFEDC
 `Draw` submits the advertisement surface, then the background surface with `0x3B280A81`, then the
 menu through `UiListWindow` and the merged text surface. `Dispose` detaches and disposes the music,
 the two textures and the menu. The scene establishes no network calls; the `0x006C38BC` update on
-its state machine is local save and character data work, and it stays at the unported boundary.
+its state machine is local save and character data work. The 0xBAA4-byte save container codec is
+ported under `PsoBB.Save`, but the scene still stops before requesting a save.
 
 ## Unported boundary
 
-- The save-file state machine and serializer (`0x006C7CD0`, `0x006C7E98`, `0x006C7EE4`,
-  `0x006C7F7C`, `0x006C7FF0`, `0x006C8024`, `0x006C80A0`, `0x006C80D4`, `0x006C80FC`,
-  `0x006C2608`, `0x0086B324`) are not ported: the session and character records they write are
-  not ported. Selecting Save stops at `SaveRequested`; no save is performed.
+- The save-file state machine (`0x006C7CD0`, `0x006C7E98`, `0x006C7EE4`, `0x006C7F7C`, `0x006C7FF0`,
+  `0x006C8024`, `0x006C80A0`, `0x006C80D4`, `0x006C80FC`, `0x0086B324`) is not ported: the session
+  and character data it writes are not ported. The 0xBAA4-byte container codec, checksum,
+  signature check and record fields are ported under `PsoBB.Save`. Selecting Save stops at
+  `SaveRequested`; no save is performed.
 - The status list in the menu entity (`0x006C7BE0`, `0x006C7CD0`, `0x006C7E58`) and its unitxt
   strings 9 through 12 are not submitted. The port does not display save progress or failure text.
 - The generic menu globals, NPC camera UI, rendering system, dressing-room UI and the remaining

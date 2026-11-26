@@ -118,6 +118,7 @@ public sealed class GameStartupTests : IDisposable
             ["SceneScreenState"] = 0x00A165F0,
             ["PreviousSceneScreenState"] = 0x00A165F8,
             ["SceneFadeState"] = 0x00ACA4E4,
+            ["SharedScreenCallbackFlag"] = 0x00ACBEF0,
             ["GameStarted"] = 0x00A95624,
             ["MapLoaded"] = 0x00AAB378,
             ["SceneEvent"] = 0x00AAB380,
