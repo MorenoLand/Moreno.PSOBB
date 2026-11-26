@@ -37,6 +37,14 @@ internal static class Program
 			else if (!args[index].StartsWith("--", StringComparison.Ordinal))
 				dataFolder = args[index];
 		}
+		dataFolder = dataFolder.Trim().Trim('"');
+		if (dataFolder.Length == 0)
+			dataFolder = AppContext.BaseDirectory;
+		if (!Directory.Exists(dataFolder))
+		{
+			MessageBox(0, $"The game folder does not exist:\n{dataFolder}\n\nPass the folder that contains data\\data.gsl as the first argument, or set PSOBB_DATA.", "Phantasy Star Online Blue Burst", 0x10);
+			return 1;
+		}
 		GameWindow? window = null;
 		try
 		{
@@ -69,7 +77,8 @@ internal static class Program
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
-
+		while (window.Pump())
+			host.RunFrames(1);
 		host.RequestStop();
 	}
 
