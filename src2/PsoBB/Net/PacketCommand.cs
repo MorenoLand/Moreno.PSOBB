@@ -47,6 +47,12 @@ public enum PacketCommand : ushort
 	/// <summary>Large directed wrapper for one or more subcommand records.</summary>
 	LargeTargeted = 0x006D,
 
+	/// <summary>Server simple-mail entry with sender, date and message text.</summary>
+	SimpleMail = 0x0081,
+
+	/// <summary>Server lobby-menu list with menu, item and player-count values.</summary>
+	LobbyMenu = 0x0083,
+
 	/// <summary>Client login with account, character slot and connection phase.</summary>
 	ClientLogin = 0x0093,
 
