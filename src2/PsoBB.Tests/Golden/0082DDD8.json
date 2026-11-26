@@ -1,0 +1,286 @@
+[
+	{
+		"angle": 0,
+		"result": "3ff0000000000000"
+	},
+	{
+		"angle": 1,
+		"result": "3fefffffde000000"
+	},
+	{
+		"angle": 2,
+		"result": "3fefffffbc000000"
+	},
+	{
+		"angle": 15,
+		"result": "3feffffe02000000"
+	},
+	{
+		"angle": 16,
+		"result": "3feffffde0000000"
+	},
+	{
+		"angle": 1023,
+		"result": "3fefd8a1c8000000"
+	},
+	{
+		"angle": 1024,
+		"result": "3fefd88e40000000"
+	},
+	{
+		"angle": 2047,
+		"result": "3fef62be4e000000"
+	},
+	{
+		"angle": 2048,
+		"result": "3fef629740000000"
+	},
+	{
+		"angle": 3071,
+		"result": "3fee9f7af4000000"
+	},
+	{
+		"angle": 3072,
+		"result": "3fee9f40a0000000"
+	},
+	{
+		"angle": 4095,
+		"result": "3fed90b96e000000"
+	},
+	{
+		"angle": 4096,
+		"result": "3fed906cc0000000"
+	},
+	{
+		"angle": 4660,
+		"result": "3fecdbeca8000000"
+	},
+	{
+		"angle": 16384,
+		"result": "8000000000000000"
+	},
+	{
+		"angle": 32767,
+		"result": "bfefffffde000000"
+	},
+	{
+		"angle": 32768,
+		"result": "bff0000000000000"
+	},
+	{
+		"angle": 49152,
+		"result": "0000000000000000"
+	},
+	{
+		"angle": 65535,
+		"result": "3fefffffde000000"
+	},
+	{
+		"angle": 4294967295,
+		"result": "3fefffffde000000"
+	},
+	{
+		"angle": 4294967280,
+		"result": "3feffffde0000000"
+	},
+	{
+		"angle": 65536,
+		"result": "3ff0000000000000"
+	},
+	{
+		"angle": 305419896,
+		"result": "bfe0c41680000000"
+	},
+	{
+		"angle": 64448,
+		"result": "3fefd37a00000000"
+	},
+	{
+		"angle": 1880,
+		"result": "3fef7b4920000000"
+	},
+	{
+		"angle": 31044,
+		"result": "bfef9059e0000000"
+	},
+	{
+		"angle": 23059,
+		"result": "bfe31bf2a8000000"
+	},
+	{
+		"angle": 45454,
+		"result": "bfd637de14000000"
+	},
+	{
+		"angle": 59331,
+		"result": "3fea80aa02000000"
+	},
+	{
+		"angle": 34741,
+		"result": "bfef6de076000000"
+	},
+	{
+		"angle": 55475,
+		"result": "3fe23b7392000000"
+	},
+	{
+		"angle": 22169,
+		"result": "bfe0da23fa000000"
+	},
+	{
+		"angle": 14075,
+		"result": "3fcc1ad4ac000000"
+	},
+	{
+		"angle": 23809,
+		"result": "bfe4e7634c000000"
+	},
+	{
+		"angle": 51015,
+		"result": "3fc6bdb6e2000000"
+	},
+	{
+		"angle": 26919,
+		"result": "bfeb1960fa000000"
+	},
+	{
+		"angle": 46083,
+		"result": "bfd28f843e000000"
+	},
+	{
+		"angle": 16386,
+		"result": "bf29221000000000"
+	},
+	{
+		"angle": 26043,
+		"result": "bfe993725e000000"
+	},
+	{
+		"angle": 62620,
+		"result": "3feec1f078000000"
+	},
+	{
+		"angle": 54868,
+		"result": "3fe0abfa08000000"
+	},
+	{
+		"angle": 33338,
+		"result": "bfeff3c540000000"
+	},
+	{
+		"angle": 2208,
+		"result": "3fef492140000000"
+	},
+	{
+		"angle": 25414,
+		"result": "bfe85ed1fc000000"
+	},
+	{
+		"angle": 32761,
+		"result": "bfefffff12000000"
+	},
+	{
+		"angle": 10676,
+		"result": "3fe0a69cf0000000"
+	},
+	{
+		"angle": 63042,
+		"result": "3fef16ee68000000"
+	},
+	{
+		"angle": 52586,
+		"result": "3fd4b130e0000000"
+	},
+	{
+		"angle": 59070,
+		"result": "3fea0bab6c000000"
+	},
+	{
+		"angle": 28942,
+		"result": "bfeddf0730000000"
+	},
+	{
+		"angle": 54231,
+		"result": "3fddf280e8000000"
+	},
+	{
+		"angle": 54941,
+		"result": "3fe0dccfa2000000"
+	},
+	{
+		"angle": 35213,
+		"result": "bfef1ff47e000000"
+	},
+	{
+		"angle": 20131,
+		"result": "bfd67ffef0000000"
+	},
+	{
+		"angle": 31881,
+		"result": "bfefe2651a000000"
+	},
+	{
+		"angle": 60119,
+		"result": "3febc7d280000000"
+	},
+	{
+		"angle": 59223,
+		"result": "3fea50c3b4000000"
+	},
+	{
+		"angle": 42039,
+		"result": "bfe42b7b8a000000"
+	},
+	{
+		"angle": 5563,
+		"result": "3feb8e3782000000"
+	},
+	{
+		"angle": 37774,
+		"result": "bfec6278d8000000"
+	},
+	{
+		"angle": 12967,
+		"result": "3fd497eae4000000"
+	},
+	{
+		"angle": 62909,
+		"result": "3feefd8b44000000"
+	},
+	{
+		"angle": 6911,
+		"result": "3fe93a9cfa000000"
+	},
+	{
+		"angle": 39403,
+		"result": "bfe9bdaee8000000"
+	},
+	{
+		"angle": 43829,
+		"result": "bfdf431a0c000000"
+	},
+	{
+		"angle": 43581,
+		"result": "bfe04a5cec000000"
+	},
+	{
+		"angle": 9865,
+		"result": "3fe2b92002000000"
+	},
+	{
+		"angle": 3239,
+		"result": "3fee782cd8000000"
+	},
+	{
+		"angle": 3540,
+		"result": "3fee2cb298000000"
+	},
+	{
+		"angle": 43127,
+		"result": "bfe179393e000000"
+	},
+	{
+		"angle": 31503,
+		"result": "bfefc3d31e000000"
+	}
+]

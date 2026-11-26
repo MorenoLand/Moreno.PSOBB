@@ -84,3 +84,24 @@ sample data.
 - `RECOMP_FPS=1` prints the `IDirect3DDevice8::Present` rate every five seconds.
 - `RECOMP_COMLOG=1` prints the COM method, host function offset, proxy and real
   pointers, arguments and result.
+
+## Portable client
+
+`src2/PsoBB/Audio` reproduces the streaming path without DirectSound:
+
+- `AudioPipeline` mixes music and sound-effect voices, converts the result to
+  the output PCM format and writes it to an `AudioRingBuffer`. The streaming
+  thread calls `Fill`; `Drain` moves buffered bytes into `IAudioOutput`.
+  `StreamChunkBytes` is `0xAC44` and `StreamCapacityBytes` is `0xAC440`, the
+  original chunk and sixteen-chunk buffer sizes.
+- `PcmConverter` handles signed 8, 16, 24 and 32-bit PCM and channel remapping.
+  It does not change the sample rate; the output uses the music source rate, as
+  the original 44100 Hz streaming buffer did.
+- `MusicStream` keeps the loop start and exclusive loop end and performs the
+  same decoder seek the original used when a track ended. Seeking clears
+  queued decoded audio but cannot recall audio already handed to the host.
+- `SoundEffectPlayer` mixes up to 64 one-shot or looping voices at the output
+  rate, leaving the mixing bus gains to `AudioMixer`.
+- OGG decoding uses NVorbis 0.10.5 through `NVorbisOggDecoder` over a seekable
+  stream. Tests use a generated 440 Hz tone and synthetic PCM; no game audio is
+  committed.

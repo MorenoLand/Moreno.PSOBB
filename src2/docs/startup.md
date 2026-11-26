@@ -7,8 +7,8 @@ Evidence: `src/unnamed/unnamed_085a.c` (`f_0085ab43`), `src/unnamed/unnamed_082c
 (`f_0082cb18`, `f_0082c49c`), `src/unnamed/unnamed_082d.c` (`f_0082d050`, `f_0082d2cc`,
 `f_0082d384`, `f_0082d20c`), `src/unnamed/unnamed_07a5.c` (`f_007a5e84`),
 `src/unnamed/unnamed_07a6.c` (`f_007a6080`, `f_007a60dc` through `f_007a6454`),
-`src/unnamed/unnamed_083f.c` (`f_0083fea8`), `analysis/entry.md`, and the Win32 import table in
-`recomp/data/api_table.json`.
+`src/unnamed/unnamed_083f.c` (`f_0083fea8`), `analysis/entry.md`, the Win32 import table in
+`recomp/data/api_table.json`, and the shipped data image `src/image.bin` (piece at `0x009A2000`).
 
 ## 1. C runtime to WinMain
 
@@ -84,8 +84,8 @@ The first engine step is called only after `0x86B768` verifies and configures th
 
 ## 5. Scene loop (`0x007A5E84`)
 
-`0x007A5E84` reads `0xAAB384` (current scene). While it is nonzero it indexes the 24-byte
-descriptor at `0x9FF7C0 + scene * 24` and calls the three function pointers at offsets 0, 4 and 8 in
+`0x007A5E84` reads `0xAAB384` (current scene). While it is nonzero it indexes the 12-byte
+descriptor at `0x9FF7C0 + scene * 12` and calls the three function pointers at offsets 0, 4 and 8 in
 order. After each pass it reads `0xAAB394`: a value in 1 through 3 copies the current scene to
 `0xAAB398` and switches to `0xAAB388`, any other value repeats the current scene. The request
 functions use 1 for a scene change, 2 for a root-scene return and 3 for a restart. When `0xAAB384`
@@ -95,21 +95,31 @@ scene managers.
 ## 6. Ported start-up
 
 `PsoBB.Client.ClientStartup` is the entry point the Windows program calls after constructing its
-services. It passes `ClientHost.DataImage` and `ClientHost.Renderer.Settings` to
+services. It takes the host renderer and passes `IRenderer.Settings` to
 `PsoBB.Game.GameStartup`, which runs these stages in this order and reports the first unported
 engine step:
 
 | Stage | Original | Result |
 |---|---|---|
-| Scene selection flag | `0x00ACBEC0` | Read from the data image |
+| Scene selection flag | `0x00ACBEC0` | Baked shipped value zero; the WinMain override is not ported |
 | Display mode | `0x0082CADC` | `0x00ACBE78`, `0x00ACBE7C`, `0x00ACBE80` from the renderer settings |
-| Initial scene | `0x007A6454` | Scene 1, or scene 18 when the flag is nonzero; clears the four arguments |
-| Scene library | `0x009FF7C0` | 19 descriptors of 24 bytes read from the data image |
+| Initial scene | `0x007A6454` | Scene 1, or scene 18 when `GameState.SceneSelection` is nonzero; clears the four arguments |
+| Scene library | `0x009FF7C0` | 19 baked descriptors of 12 bytes |
 | Window message handler | `0x0082CB00` | `0x007A0334` split into `0x00ACBEB0` and `0x00ACBEB8` |
 | Exit handler | `0x0082D330` | `0x007A6358` stored in `0x00ACBEE0` |
 
 The boundary is `0x0082E940`, the allocator thunk that starts the unported chain above.
 `GameStartupResult.IsComplete` is therefore false and `BoundaryAddress` is `0x0082E940`.
+
+### Baked data
+
+The scene descriptors are the 228 bytes at `0x009FF7C0` in the mapped shipped-image piece at
+`0x009A2000` (`src/image.bin`), 19 rows of three function pointers with a 12-byte stride. The
+scene-selection flag `0x00ACBEC0` and the writable globals at `0x00AAB378`-`0x00AAB3A8` and
+`0x00ACBE78`-`0x00ACBEE0` are not present in a shipped-image piece; they lie in the zero-filled
+uninitialised-data gap, so `GameState.InitialValue` is zero and every member starts there. `WinMain`
+overrides `0x00ACBEC0` at run time from the command line; that override is not ported.
+
 
 Functions ported by this change:
 
@@ -129,16 +139,16 @@ Functions ported by this change:
 | `SceneManager.GetPreviousScene` | `0x007A61AC` | Reads the previous scene |
 | `SceneManager.RequestExit` | `0x007A62DC` | Transition 1 to scene zero |
 
-`SceneLibrary.Load` reads the table the scene loop accesses directly; it has no function address.
+`SceneLibrary.Load` exposes the baked table the scene loop accesses directly; it has no function
+address.
 
 ## 7. Verification
 
-`GameStartupTests` checks the stage order and addresses, the display and hook globals, the scene
-descriptor values, the engine boundary, and the clean failure when the image does not map the
-selection flag or the scene table. `SceneManagerTests` checks every ported transition and accessor.
-`ClientStartupTests` runs the whole start-up from a `ClientHost` built with the memory file system,
-memory input, silent audio and the recording renderer. All tests share the `Game state` collection
-so the process-wide globals are never observed from two tests at once.
+`GameStartupTests` checks the stage order and addresses, the display and hook globals, the baked
+scene descriptor values and the engine boundary. `SceneManagerTests` checks every ported transition
+and accessor. `ClientStartupTests` runs the whole start-up from the recording renderer, without a
+host or a data image. All tests share the `Game state` collection so the process-wide globals are
+never observed from two tests at once.
 
 ## 8. Open limitations
 
@@ -150,5 +160,5 @@ so the process-wide globals are never observed from two tests at once.
   address-to-delegate registry, which is not ported.
 - `0x007A6454` has no call site in the lift; the port invokes it during start-up because the loop at
   `0x007A5E84` reads `0xAAB384` before any visible initialiser.
-- The retail image's writable-data initial values are not checked in; `GameState.Reset` uses zero,
-  which matches the linker's zero-fill only for the uninitialised part of the range.
+- The `WinMain` command-line override of `0x00ACBEC0` is not ported; the baked zero selects scene 1
+  unless the host sets the flag first.
