@@ -11,8 +11,8 @@ namespace PsoBB.Linux;
 /// </summary>
 internal static class Program
 {
-	private const int WindowWidth = 1024;
-	private const int WindowHeight = 768;
+	private const int WindowWidth = 640;
+	private const int WindowHeight = 480;
 
 	/// <summary>
 	/// Runs the Linux client until the window closes.
@@ -38,11 +38,10 @@ internal static class Program
 			using LinuxGameInput input = new(window.Handle);
 			LinuxGameDispatcher dispatcher = new(clock);
 			using OpenAlAudioDevice audio = new();
-			renderer = new OpenGLRenderer(window.Handle, RenderSettings.Default);
+			renderer = new OpenGLRenderer(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			_ = new ClientStartup(renderer).Start();
-			while (window.Pump())
-				host.RunFrames(1);
+			TitlePreview.Run(host, window.Pump);
 			host.RequestStop();
 			return 0;
 		}
