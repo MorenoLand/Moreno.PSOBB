@@ -51,17 +51,20 @@ scene's `PlayerCharacter`, and spawns one `FieldEntityView` for every player slo
 packet-supplied position and a host-registered model, except the bound local player. `SetMap` binds
 the loaded `MapScene`; its object placement records are drawn at their stored position and rotations
 through the shared Euler transform stack when the host registers a model for the object id. The
-object entity manager that consumes the table is unported. The draw path collects placed object
-models, the local player and the player views in that order through `ModelRenderer`; `SceneRenderer`
-then submits its opaque, alpha-tested and blended passes. The camera is supplied to `Draw`, as for
+object entity manager that consumes the table is unported. The draw path submits the bound map
+through `MapSceneRenderer.Render` with the supplied camera, then collects placed object models, the
+local player and the player views through `ModelRenderer`; `SceneRenderer` supplies the opaque,
+alpha-tested and blended passes. Scene 10 has no draw entry that fixes the order between the map and
+the object systems, so `DrawMap` and `DrawModels` are separate stages and `Draw` composes the map
+stage first. Map texture-list entries bind only when a host-supplied `TextureCache` holds their
+resolved global index; zero or missing indices stay unbound. The camera is supplied to `Draw`, as for
 the character preview, so the unported field camera controller is not reconstructed.
 
 A stop or joiner-sync packet supplies the view position and heading; walk and run records only set
 the network target coordinates and do not move the view because the entity animation layer is not
 ported. A root-object-despawn record removes the view immediately because its transition is not
-ported. Map render geometry, object model selection, the camera controller and the HUD remain with
-their unported managers; the host supplies the NJCM models and textures stay unbound on the
-surfaces.
+ported. Object model selection, the camera controller and the HUD remain with their unported
+managers; the host supplies the NJCM models and the map texture cache.
 
 ## Unported boundary
 
@@ -87,7 +90,8 @@ completion, both flag paths, cancel in both phases, empty drawing, idempotent re
 guards and the retail `lightentry.bin` table when the data folder is present.
 
 `FieldSceneTests` uses loose synthetic save, light, render, collision, room and object files, a
-synthetic lobby packet stream and the NJCM test model. It covers map-load start, local-player
-binding, object then player then entity draw order, entity spawn, stop update and removal, local
-movement from a stop packet, the supplied camera view and projection, empty and missing data, null
-arguments, slot range checks and idempotent release.
+synthetic lobby packet stream, the NJCM test model and an XVM texture. It covers map-load start,
+local-player binding, map then object then player then entity draw order, map opaque and alpha
+passes, map texture binds and release, unresolved texture indices, the supplied camera view and
+projection, empty and missing data, local-slot suppression, null arguments, slot range checks and
+idempotent release. The retail map test runs when `PSOBB_RETAIL_DATA` is configured.
