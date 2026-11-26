@@ -5,9 +5,9 @@ import random
 import struct
 from pathlib import Path
 
-from unicorn import UC_ARCH_X86, UC_MODE_32, Uc
+from unicorn import UC_ARCH_X86, UC_MODE_32, Uc, UcError
 from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX
-from unicorn.x86_const import UC_X86_REG_EBP, UC_X86_REG_EDI, UC_X86_REG_ESI, UC_X86_REG_ESP
+from unicorn.x86_const import UC_X86_REG_EBP, UC_X86_REG_EDI, UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP
 
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = ROOT / "src" / "image.bin"
@@ -57,7 +57,11 @@ def run(read, address, size, stack=(), registers=None, memory=(), capture=()):
                            ("edx", UC_X86_REG_EDX), ("ebp", UC_X86_REG_EBP), ("esi", UC_X86_REG_ESI), ("edi", UC_X86_REG_EDI)):
         machine.reg_write(register, (registers or {}).get(name, 0))
     machine.reg_write(UC_X86_REG_ESP, esp)
-    machine.emu_start(address, address + size - 1)
+    try:
+        machine.emu_start(address, address + size - 1)
+    except UcError:
+        if machine.reg_read(UC_X86_REG_EIP) != 0xFFFFFFFF:
+            raise
     captured = {}
     for target, length in capture:
         captured[target] = machine.mem_read(target, length)
@@ -151,6 +155,15 @@ def set_low_bit_vectors(read):
     write("005CEA60.json", vectors)
 
 
+def validate_index_vectors(read):
+    """0x0068C45C: returns the signed byte when it is 0..11, otherwise zero."""
+    vectors = []
+    for value in (-128, -1, 0, 1, 11, 12, 127):
+        eax, _, _ = run(read, 0x0068C45C, 18, [value & 0xFFFFFFFF])
+        vectors.append({"value": value, "result": eax})
+    write("0068C45C.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -159,6 +172,7 @@ def main():
     divide_vectors(read)
     clear_pair_vectors(read)
     set_low_bit_vectors(read)
+    validate_index_vectors(read)
 
 
 if __name__ == "__main__":
