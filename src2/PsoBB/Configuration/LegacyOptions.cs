@@ -117,7 +117,6 @@ internal static class LegacyOptions
 	}
 
 	/// <summary>Reads the original <c>CLIENT_CODE</c> text.</summary>
-	[Original(0x00482490)]
 	internal static string ReadClientCode(IGameSettings settings)
 	{
 		ArgumentNullException.ThrowIfNull(settings);
