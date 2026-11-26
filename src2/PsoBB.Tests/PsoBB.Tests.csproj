@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PsoBB\PsoBB.csproj" />
+    <ProjectReference Include="..\PsoBB.Client\PsoBB.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>
