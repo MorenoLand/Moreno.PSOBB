@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using PsoBB.Graphics;
-using static PsoBB.Rendering.OpenGL.Direct3D8RenderState;
+using static PsoBB.Graphics.RenderStateId;
 
 namespace PsoBB.Rendering.OpenGL.Tests;
 

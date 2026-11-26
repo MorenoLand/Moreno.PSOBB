@@ -347,7 +347,7 @@ public sealed class Direct3D11Renderer : IRenderer
 		_rasterizerState = _device.CreateRasterizerState(_states.CreateRasterizerDescription(Settings.MultisampleCount > 0));
 		_depthStencilState = _device.CreateDepthStencilState(_states.CreateDepthStencilDescription());
 		_context.OMSetBlendState(_blendState, new Color4(1, 1, 1, 1), uint.MaxValue);
-		_context.OMSetDepthStencilState(_depthStencilState, _states.Get(Direct3D8RenderState.StencilReference, 0));
+		_context.OMSetDepthStencilState(_depthStencilState, _states.Get(RenderStateId.StencilReference, 0));
 		_context.RSSetState(_rasterizerState);
 	}
 
@@ -356,7 +356,7 @@ public sealed class Direct3D11Renderer : IRenderer
 		if (!_constantsDirty)
 			return;
 		_constantsDirty = false;
-		uint fogColor = _states.Get(Direct3D8RenderState.FogColor, 0);
+		uint fogColor = _states.Get(RenderStateId.FogColor, 0);
 		Vector3 color = new(((fogColor >> 16) & 0xFF) / 255.0f, ((fogColor >> 8) & 0xFF) / 255.0f, (fogColor & 0xFF) / 255.0f);
 		SceneConstants constants = new()
 		{
@@ -369,13 +369,13 @@ public sealed class Direct3D11Renderer : IRenderer
 			TextureTransform3 = _textureTransforms[3],
 			FogColor = new Vector4(color, 1),
 			FogParameters = new Vector4(
-				BitConverter.Int32BitsToSingle((int)_states.Get(Direct3D8RenderState.FogStart, 0)),
-				BitConverter.Int32BitsToSingle((int)_states.Get(Direct3D8RenderState.FogEnd, 0x3F800000)),
-				BitConverter.Int32BitsToSingle((int)_states.Get(Direct3D8RenderState.FogDensity, 0x3F800000)),
+				BitConverter.Int32BitsToSingle((int)_states.Get(RenderStateId.FogStart, 0)),
+				BitConverter.Int32BitsToSingle((int)_states.Get(RenderStateId.FogEnd, 0x3F800000)),
+				BitConverter.Int32BitsToSingle((int)_states.Get(RenderStateId.FogDensity, 0x3F800000)),
 				_states.GetFogMode()),
 			AlphaTest = new Vector4(_states.GetAlphaReference(), _states.GetAlphaFunction(), _states.IsAlphaTestEnabled() ? 1 : 0, 0),
 			ScreenSize = new Vector4(Settings.Width, Settings.Height, 1.0f / Settings.Width, 1.0f / Settings.Height),
-			FogRange = new Vector4(_states.Get(Direct3D8RenderState.RangeFogEnable, 0) != 0 ? 1 : 0, 0, 0, 0),
+			FogRange = new Vector4(_states.Get(RenderStateId.RangeFogEnable, 0) != 0 ? 1 : 0, 0, 0, 0),
 		};
 		_context.UpdateSubresource(in constants, _constantBuffer, 0, 0, 0, null);
 	}
