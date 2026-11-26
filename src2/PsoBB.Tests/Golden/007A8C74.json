@@ -1,0 +1,302 @@
+[
+	{
+		"current": 0,
+		"target": 0,
+		"step": 0,
+		"result": 0
+	},
+	{
+		"current": 0,
+		"target": 100,
+		"step": 10,
+		"result": 10
+	},
+	{
+		"current": 0,
+		"target": 100,
+		"step": 200,
+		"result": 100
+	},
+	{
+		"current": 100,
+		"target": 0,
+		"step": 10,
+		"result": 90
+	},
+	{
+		"current": 0,
+		"target": 32768,
+		"step": 100,
+		"result": 65436
+	},
+	{
+		"current": 32768,
+		"target": 0,
+		"step": 100,
+		"result": 32668
+	},
+	{
+		"current": 65535,
+		"target": 0,
+		"step": 1,
+		"result": 0
+	},
+	{
+		"current": 0,
+		"target": 65535,
+		"step": 1,
+		"result": 65535
+	},
+	{
+		"current": 0,
+		"target": 12288,
+		"step": 12288,
+		"result": 12288
+	},
+	{
+		"current": 0,
+		"target": 12288,
+		"step": 12287,
+		"result": 12287
+	},
+	{
+		"current": 12841,
+		"target": 59066,
+		"step": 43986,
+		"result": 59066
+	},
+	{
+		"current": 47900,
+		"target": 15809,
+		"step": 6360,
+		"result": 41540
+	},
+	{
+		"current": 23301,
+		"target": 29316,
+		"step": 45221,
+		"result": 29316
+	},
+	{
+		"current": 20357,
+		"target": 40609,
+		"step": 54246,
+		"result": 40609
+	},
+	{
+		"current": 25535,
+		"target": 51558,
+		"step": 41766,
+		"result": 51558
+	},
+	{
+		"current": 15319,
+		"target": 15432,
+		"step": 46345,
+		"result": 15432
+	},
+	{
+		"current": 14983,
+		"target": 19324,
+		"step": 25047,
+		"result": 19324
+	},
+	{
+		"current": 41062,
+		"target": 46200,
+		"step": 10581,
+		"result": 46200
+	},
+	{
+		"current": 69,
+		"target": 47150,
+		"step": 49607,
+		"result": 47150
+	},
+	{
+		"current": 53054,
+		"target": 58246,
+		"step": 20285,
+		"result": 58246
+	},
+	{
+		"current": 64565,
+		"target": 45405,
+		"step": 49906,
+		"result": 45405
+	},
+	{
+		"current": 17521,
+		"target": 26729,
+		"step": 46850,
+		"result": 26729
+	},
+	{
+		"current": 46008,
+		"target": 46009,
+		"step": 48420,
+		"result": 46009
+	},
+	{
+		"current": 25932,
+		"target": 41051,
+		"step": 40683,
+		"result": 41051
+	},
+	{
+		"current": 19591,
+		"target": 3384,
+		"step": 22787,
+		"result": 3384
+	},
+	{
+		"current": 35609,
+		"target": 12294,
+		"step": 34660,
+		"result": 12294
+	},
+	{
+		"current": 38767,
+		"target": 56459,
+		"step": 53961,
+		"result": 56459
+	},
+	{
+		"current": 20192,
+		"target": 65504,
+		"step": 59292,
+		"result": 65504
+	},
+	{
+		"current": 4229,
+		"target": 27208,
+		"step": 13323,
+		"result": 17552
+	},
+	{
+		"current": 7859,
+		"target": 18970,
+		"step": 36237,
+		"result": 18970
+	},
+	{
+		"current": 13772,
+		"target": 51634,
+		"step": 15284,
+		"result": 64024
+	},
+	{
+		"current": 51749,
+		"target": 32825,
+		"step": 28332,
+		"result": 32825
+	},
+	{
+		"current": 39080,
+		"target": 32806,
+		"step": 56073,
+		"result": 32806
+	},
+	{
+		"current": 24602,
+		"target": 20776,
+		"step": 46543,
+		"result": 20776
+	},
+	{
+		"current": 20081,
+		"target": 28930,
+		"step": 27862,
+		"result": 28930
+	},
+	{
+		"current": 21974,
+		"target": 14561,
+		"step": 51159,
+		"result": 14561
+	},
+	{
+		"current": 21495,
+		"target": 20390,
+		"step": 19869,
+		"result": 20390
+	},
+	{
+		"current": 56469,
+		"target": 11467,
+		"step": 429,
+		"result": 56898
+	},
+	{
+		"current": 24851,
+		"target": 13577,
+		"step": 25273,
+		"result": 13577
+	},
+	{
+		"current": 42427,
+		"target": 45499,
+		"step": 40011,
+		"result": 45499
+	},
+	{
+		"current": 37855,
+		"target": 57561,
+		"step": 21505,
+		"result": 57561
+	},
+	{
+		"current": 11333,
+		"target": 41644,
+		"step": 54965,
+		"result": 41644
+	},
+	{
+		"current": 20952,
+		"target": 59816,
+		"step": 53499,
+		"result": 59816
+	},
+	{
+		"current": 37039,
+		"target": 1983,
+		"step": 18874,
+		"result": 55913
+	},
+	{
+		"current": 34291,
+		"target": 39755,
+		"step": 29480,
+		"result": 39755
+	},
+	{
+		"current": 37808,
+		"target": 52262,
+		"step": 12686,
+		"result": 50494
+	},
+	{
+		"current": 46622,
+		"target": 14532,
+		"step": 21950,
+		"result": 24672
+	},
+	{
+		"current": 24765,
+		"target": 64847,
+		"step": 14448,
+		"result": 10317
+	},
+	{
+		"current": 59202,
+		"target": 9378,
+		"step": 64252,
+		"result": 9378
+	},
+	{
+		"current": 18038,
+		"target": 34771,
+		"step": 62190,
+		"result": 34771
+	}
+]

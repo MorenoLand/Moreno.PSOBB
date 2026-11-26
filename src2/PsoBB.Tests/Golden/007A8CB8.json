@@ -1,0 +1,197 @@
+[
+	{
+		"first": 0,
+		"second": 0,
+		"result": 0
+	},
+	{
+		"first": 0,
+		"second": 100,
+		"result": 50
+	},
+	{
+		"first": 100,
+		"second": 0,
+		"result": 50
+	},
+	{
+		"first": 65535,
+		"second": 1,
+		"result": 0
+	},
+	{
+		"first": 1,
+		"second": 65535,
+		"result": 0
+	},
+	{
+		"first": 32768,
+		"second": 0,
+		"result": 16384
+	},
+	{
+		"first": 16384,
+		"second": 49152,
+		"result": 0
+	},
+	{
+		"first": 53288,
+		"second": 49114,
+		"result": 51201
+	},
+	{
+		"first": 35994,
+		"second": 17786,
+		"result": 26890
+	},
+	{
+		"first": 26529,
+		"second": 23107,
+		"result": 24818
+	},
+	{
+		"first": 9925,
+		"second": 11719,
+		"result": 10822
+	},
+	{
+		"first": 44124,
+		"second": 30328,
+		"result": 37226
+	},
+	{
+		"first": 6905,
+		"second": 47530,
+		"result": 59985
+	},
+	{
+		"first": 29354,
+		"second": 29092,
+		"result": 29223
+	},
+	{
+		"first": 39857,
+		"second": 48198,
+		"result": 44027
+	},
+	{
+		"first": 60275,
+		"second": 34158,
+		"result": 47216
+	},
+	{
+		"first": 5798,
+		"second": 21203,
+		"result": 13500
+	},
+	{
+		"first": 33451,
+		"second": 33568,
+		"result": 33509
+	},
+	{
+		"first": 60191,
+		"second": 16195,
+		"result": 5425
+	},
+	{
+		"first": 27711,
+		"second": 5333,
+		"result": 16522
+	},
+	{
+		"first": 46564,
+		"second": 18872,
+		"result": 32718
+	},
+	{
+		"first": 53584,
+		"second": 37406,
+		"result": 45495
+	},
+	{
+		"first": 63406,
+		"second": 41871,
+		"result": 52638
+	},
+	{
+		"first": 45930,
+		"second": 14041,
+		"result": 29985
+	},
+	{
+		"first": 16464,
+		"second": 8622,
+		"result": 12543
+	},
+	{
+		"first": 16582,
+		"second": 26331,
+		"result": 21456
+	},
+	{
+		"first": 44098,
+		"second": 63681,
+		"result": 53889
+	},
+	{
+		"first": 47091,
+		"second": 56503,
+		"result": 51797
+	},
+	{
+		"first": 13171,
+		"second": 6588,
+		"result": 9879
+	},
+	{
+		"first": 58977,
+		"second": 36682,
+		"result": 47829
+	},
+	{
+		"first": 39045,
+		"second": 46205,
+		"result": 42625
+	},
+	{
+		"first": 60553,
+		"second": 58499,
+		"result": 59526
+	},
+	{
+		"first": 55275,
+		"second": 63914,
+		"result": 59594
+	},
+	{
+		"first": 53190,
+		"second": 65452,
+		"result": 59321
+	},
+	{
+		"first": 44139,
+		"second": 48022,
+		"result": 46080
+	},
+	{
+		"first": 63270,
+		"second": 3792,
+		"result": 763
+	},
+	{
+		"first": 52841,
+		"second": 23079,
+		"result": 37960
+	},
+	{
+		"first": 17644,
+		"second": 45487,
+		"result": 31565
+	},
+	{
+		"first": 41198,
+		"second": 26651,
+		"result": 33924
+	}
+]

@@ -61,6 +61,24 @@ public sealed class FloatingPointMathTests
 		Assert.False(float.IsNegative(value));
 	}
 
+	[Theory]
+	[InlineData(0.0, 0)]
+	[InlineData(1.9, 1)]
+	[InlineData(-1.9, -1)]
+	[InlineData(2147483647.9, 2147483647)]
+	[InlineData(-2147483648.9, -2147483648)]
+	public void TruncateToInt32RoundsTowardZero(double value, int expected) =>
+		Assert.Equal(expected, FloatingPointMath.TruncateToInt32(value));
+
+	[Theory]
+	[InlineData(double.NaN)]
+	[InlineData(double.PositiveInfinity)]
+	[InlineData(double.NegativeInfinity)]
+	[InlineData(2147483648.0)]
+	[InlineData(-2147483649.0)]
+	public void TruncateToInt32ReturnsTheIndefiniteValueOutsideTheRange(double value) =>
+		Assert.Equal(int.MinValue, FloatingPointMath.TruncateToInt32(value));
+
 	[Fact]
 	public void MembersDeclareTheirOriginalAddresses()
 	{
