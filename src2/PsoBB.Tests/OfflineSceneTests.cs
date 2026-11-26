@@ -95,11 +95,11 @@ public sealed class OfflineSceneTests : IDisposable
 		SceneManager.SetSceneEvent();
 		scene.Update(Input());
 		Assert.False(scene.IsGameStarted);
-		Assert.True(SceneManager.SceneEvent);
+		Assert.False(SceneManager.SceneEvent);
 	}
 
 	[Fact]
-	public void FieldUpdateConsumesTheSceneEventBeforeTheMapFlag()
+	public void FieldUpdateConsumesTheSceneEventAndTheMapFlag()
 	{
 		using DataFileRegistry files = Registry();
 		using OfflineScene scene = new(files);
@@ -108,7 +108,16 @@ public sealed class OfflineSceneTests : IDisposable
 		SceneManager.SetMapLoaded();
 		scene.Update(Input());
 		Assert.False(SceneManager.SceneEvent);
-		Assert.True(SceneManager.MapLoaded);
+		Assert.False(SceneManager.MapLoaded);
+	}
+
+	[Fact]
+	public void FieldUpdateConsumesAMapCompletionWithoutASceneEvent()
+	{
+		using DataFileRegistry files = Registry();
+		using OfflineScene scene = new(files);
+		GameState.GameStarted = 1;
+		SceneManager.SetMapLoaded();
 		scene.Update(Input());
 		Assert.False(SceneManager.MapLoaded);
 	}
