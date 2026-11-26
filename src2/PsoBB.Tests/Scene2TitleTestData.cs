@@ -49,7 +49,7 @@ internal static class Scene2TitleTestData
 	/// Builds the twenty-one title textures with the retail dimensions.
 	/// </summary>
 	/// <returns>The complete title archive.</returns>
-	internal static byte[] TitleXvm() => TitleTestData.Xvm(
+	internal static byte[] TitleXvm() => Xvm(
 		(256, 256), (256, 256), (256, 256),
 		(256, 256), (256, 256), (256, 256), (256, 256),
 		(128, 128), (128, 128), (128, 128), (128, 128),
@@ -61,7 +61,7 @@ internal static class Scene2TitleTestData
 	/// Builds a distinguishable twenty-one-texture Episode 4 title archive.
 	/// </summary>
 	/// <returns>The complete title archive.</returns>
-	internal static byte[] TitleEp4Xvm() => TitleTestData.Xvm(
+	internal static byte[] TitleEp4Xvm() => Xvm(
 		(128, 128), (256, 256), (256, 256),
 		(256, 256), (256, 256), (256, 256), (256, 256),
 		(128, 128), (128, 128), (128, 128), (128, 128),
@@ -107,6 +107,18 @@ internal static class Scene2TitleTestData
 				height = 128;
 			}
 			chunks[index] = TextureTestData.Xvr(XvmTextureFormat.Dxt1, id, width, height, new byte[width * height / 2]);
+		}
+		return TextureTestData.Xvm(chunks);
+	}
+
+	private static byte[] Xvm(params (int Width, int Height)[] sizes)
+	{
+		byte[][] chunks = new byte[sizes.Length][];
+		for (int index = 0; index < sizes.Length; index++)
+		{
+			int width = sizes[index].Width;
+			int height = sizes[index].Height;
+			chunks[index] = TextureTestData.Xvr(XvmTextureFormat.Dxt1, (uint)(900 + index), width, height, new byte[width * height / 2]);
 		}
 		return TextureTestData.Xvm(chunks);
 	}
