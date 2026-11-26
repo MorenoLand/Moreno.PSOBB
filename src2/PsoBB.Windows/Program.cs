@@ -104,7 +104,7 @@ internal static class Program
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		_ = new ClientStartup(renderer).Start();
 		Scene1Preview.Run(host, window.Pump);
-		NowLoadingPreview.Run(host, window.Pump, 1);
+		NowLoadingPreview.Run(host, window.Pump, 60);
 		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
 		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text));
 		host.RequestStop();

@@ -53,7 +53,10 @@ internal static class Program
 			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			_ = new ClientStartup(renderer).Start();
 			if (!scene2)
+			{
 				Scene1Preview.Run(host, window.Pump);
+				NowLoadingPreview.Run(host, window.Pump, 60);
+			}
 			Scene2TitlePreview.Run(host, window.Pump);
 			host.RequestStop();
 			return 0;
