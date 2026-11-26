@@ -76,6 +76,11 @@ run.cmd
 It defaults `PSOBB_DIR` to `bin`, so a client whose `data` directory is copied
 under `bin` runs without further configuration.
 
+`RECOMP_PSO_HOST` replaces the client's Patch endpoint in the loaded image
+(five string sites) before the CRT runs. For Server, set it to
+`psobb.dyndns.org`; the client then resolves the alternative host through its
+normal Winsock path.
+
 Regenerating the analysis and the lift requires IDA and the original client:
 
 ```sh

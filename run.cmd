@@ -2,6 +2,7 @@
 rem Run the lifted client. Set PSOBB_DIR to the directory that contains the retail data.
 setlocal
 if "%PSOBB_DIR%"=="" set "PSOBB_DIR=%~dp0bin"
+if not defined RECOMP_LOGFILE set "RECOMP_LOGFILE=%~dp0bin\recomp.log"
 set "PATH=%~dp0bin;%PSOBB_DIR%;%PATH%"
 set RECOMP_BOOT_LOG=1
 cd /d "%~dp0bin"

@@ -175,6 +175,27 @@ int main(int argc, char **argv)
         }
         return 3;
     }
+    /* RECOMP_PSO_HOST=<host>: replace every copy of the Patch endpoint in the loaded image before the CRT
+     * runs, so the client resolves the alternative server for patch, login and game connections. */
+    {
+        const char *host = getenv("RECOMP_PSO_HOST");
+        if (host && *host) {
+            const char old[] = "patch1.pioneer2.net";
+            size_t ol = sizeof old - 1, nl = strlen(host);
+            if (nl > ol) fprintf(stderr, "host override: %s is too long (max %u)\n", host, (unsigned)ol);
+            else {
+                int sites = 0;
+                for (u32 a = SS_IMAGE_BASE; a + ol <= SS_IMAGE_BASE + SS_DATA_SIZE; ++a) {
+                    if (!memcmp((void *)(uintptr_t)a, old, ol)) {
+                        memset((void *)(uintptr_t)a, 0, ol);
+                        memcpy((void *)(uintptr_t)a, host, nl);
+                        ++sites;
+                    }
+                }
+                fprintf(stderr, "host override: %s (%d sites)\n", host, sites);
+            }
+        }
+    }
     /* The Patch loader installs patch.dll's exports into fixed slots at startup. Loading the DLL here
      * would let its DllMain hook the client's own function tables, which a static lift cannot follow, so the
      * one gate the client needs before its own code takes over is answered by a real image function that
