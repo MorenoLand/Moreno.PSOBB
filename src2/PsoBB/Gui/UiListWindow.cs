@@ -72,6 +72,12 @@ public class UiListWindow : UiControl
 	}
 
 	/// <summary>
+	/// Gets the data value stored beside the selected row, or minus one when no row is selected.
+	/// </summary>
+	[Original(0x007365F4)]
+	public int SelectedData => _selectedIndex >= 0 && _selectedIndex < _items.Count ? _items[_selectedIndex].Data : -1;
+
+	/// <summary>
 	/// Replaces the rows and selects the first enabled row when the old selection no longer fits.
 	/// </summary>
 	/// <param name="items">The new rows.</param>
@@ -215,7 +221,9 @@ public class UiListWindow : UiControl
 					null,
 					SelectionColor).Clip(clip));
 			UiListItem item = _items[index];
-			uint color = index == _selectedIndex ? SelectedTextColor : item.Enabled ? TextColor : DisabledTextColor;
+			uint color = index == _selectedIndex
+				? SelectedTextColor
+				: item.Color ?? (item.Enabled ? TextColor : DisabledTextColor);
 			TextSurface?.Draw(drawList, item.Text, new Vector2(Position.X + TextOffset.X, top + TextOffset.Y), color, width);
 		}
 		_scrollBar.Draw(drawList);
@@ -229,17 +237,13 @@ public class UiListWindow : UiControl
 		for (int distance = 1; distance <= _items.Count; distance++)
 		{
 			int index = current + (step * distance);
-			if (index < 0)
+			if (index < 0 || index >= _items.Count)
 			{
 				if (!WrapSelection)
 					return false;
-				index = _items.Count - 1;
-			}
-			else if (index >= _items.Count)
-			{
-				if (!WrapSelection)
-					return false;
-				index = 0;
+				index %= _items.Count;
+				if (index < 0)
+					index += _items.Count;
 			}
 			if (index == current)
 				return false;
