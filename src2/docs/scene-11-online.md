@@ -32,6 +32,7 @@ Scene 11 is the online-mode entry screen. The baked table row is `0x007BD97C` (i
   character load at `0x006C324C`, sets `0x00A95624` and dispatches `0x007BB6D8` to
   `0x007BB6F0` or `0x007BBBA8`; `0x007BBFB0` is its release. Scene 11 replaces that game start
   with the network-manager initialisation and keeps the same scene parameter and transition shape.
+  The scene-10 port is described in `scene-10-offline.md`.
 
 ## Ported surface
 
