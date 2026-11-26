@@ -2,6 +2,7 @@ using PsoBB.Client;
 using PsoBB.Configuration;
 using PsoBB.Core;
 using PsoBB.Graphics;
+using PsoBB.Input;
 using PsoBB.Platform;
 
 namespace PsoBB.Tests;
@@ -59,6 +60,19 @@ public sealed class ClientHostTests : IDisposable
 			"Clear FF000000",
 			"EndFrame",
 		], renderer.Commands);
+	}
+
+	[Fact]
+	public void InputEdgesFollowThePolledDevices()
+	{
+		MemoryGameInput input = new();
+		input.SetKey(GameKey.Escape, true);
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using ClientHost host = CreateHost(renderer, input);
+		host.RunFrames(1);
+		Assert.True(host.Input.WasActionPressed(InputAction.Menu));
+		host.RunFrames(1);
+		Assert.False(host.Input.WasActionPressed(InputAction.Menu));
 	}
 
 	[Fact]
