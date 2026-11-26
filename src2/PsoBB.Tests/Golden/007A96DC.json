@@ -1,0 +1,206 @@
+[
+	{
+		"value": "0000000000000000",
+		"result": 1
+	},
+	{
+		"value": "3eb0c6f7a0b5ed8d",
+		"result": 1
+	},
+	{
+		"value": "beb0c6f7a0b5ed8d",
+		"result": 1
+	},
+	{
+		"value": "3ee4f8b588e368f1",
+		"result": 0
+	},
+	{
+		"value": "bee4f8b588e368f1",
+		"result": 0
+	},
+	{
+		"value": "3f1a36e2eb1c432d",
+		"result": 0
+	},
+	{
+		"value": "bf1a36e2eb1c432d",
+		"result": 0
+	},
+	{
+		"value": "7ff8000000000000",
+		"result": 0
+	},
+	{
+		"value": "7ff0000000000000",
+		"result": 0
+	},
+	{
+		"value": "fff0000000000000",
+		"result": 0
+	},
+	{
+		"value": "8000000000000000",
+		"result": 1
+	},
+	{
+		"value": "bf16838539736aeb",
+		"result": 0
+	},
+	{
+		"value": "3efc4e1fa4cc003c",
+		"result": 0
+	},
+	{
+		"value": "bf1a03610c2dd6af",
+		"result": 0
+	},
+	{
+		"value": "bf0092e64903a6e0",
+		"result": 0
+	},
+	{
+		"value": "3ef230b59b059f00",
+		"result": 0
+	},
+	{
+		"value": "3f0eb27ad2a8b3fa",
+		"result": 0
+	},
+	{
+		"value": "bf142efe9424e1b6",
+		"result": 0
+	},
+	{
+		"value": "bef8dce9ea716930",
+		"result": 0
+	},
+	{
+		"value": "3efd502d23f5b1b4",
+		"result": 0
+	},
+	{
+		"value": "3edfaf23b2780640",
+		"result": 1
+	},
+	{
+		"value": "3ec5905c3194d940",
+		"result": 1
+	},
+	{
+		"value": "3ee234de082d2808",
+		"result": 1
+	},
+	{
+		"value": "3f0c68a0cfd8b5aa",
+		"result": 0
+	},
+	{
+		"value": "bf14bd8629bdf688",
+		"result": 0
+	},
+	{
+		"value": "bf16079f7a164d9d",
+		"result": 0
+	},
+	{
+		"value": "3f1585ef7959a297",
+		"result": 0
+	},
+	{
+		"value": "bef18304da9b6150",
+		"result": 0
+	},
+	{
+		"value": "3f164c846dbb3aeb",
+		"result": 0
+	},
+	{
+		"value": "3f1664d81008d931",
+		"result": 0
+	},
+	{
+		"value": "befa5fb80749e25c",
+		"result": 0
+	},
+	{
+		"value": "befe39089fd7b0f8",
+		"result": 0
+	},
+	{
+		"value": "3f0eb4a3831cd34e",
+		"result": 0
+	},
+	{
+		"value": "bf17067c1aafe753",
+		"result": 0
+	},
+	{
+		"value": "bf1a32e526aa7573",
+		"result": 0
+	},
+	{
+		"value": "bf163baebdabb8bd",
+		"result": 0
+	},
+	{
+		"value": "bf142cc1ed2fd601",
+		"result": 0
+	},
+	{
+		"value": "3f1151177829e625",
+		"result": 0
+	},
+	{
+		"value": "3f110f9f94c36619",
+		"result": 0
+	},
+	{
+		"value": "3efa262c673b73bc",
+		"result": 0
+	},
+	{
+		"value": "3f100a8bfdea0dcf",
+		"result": 0
+	},
+	{
+		"value": "3f1910b4a22dc8c9",
+		"result": 0
+	},
+	{
+		"value": "bf088c79c8b9516c",
+		"result": 0
+	},
+	{
+		"value": "bf133e2556427fe8",
+		"result": 0
+	},
+	{
+		"value": "3f106b4c36ccb999",
+		"result": 0
+	},
+	{
+		"value": "bf17fdd87709d27f",
+		"result": 0
+	},
+	{
+		"value": "3f19c1cbe28b8a97",
+		"result": 0
+	},
+	{
+		"value": "3f0b10098869a332",
+		"result": 0
+	},
+	{
+		"value": "3ef1a5ad087c6fc0",
+		"result": 0
+	},
+	{
+		"value": "3f0b4924db9897ba",
+		"result": 0
+	},
+	{
+		"value": "3ef4cac00f8ba25c",
+		"result": 0
+	}
+]

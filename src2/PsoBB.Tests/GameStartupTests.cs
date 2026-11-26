@@ -1,12 +1,11 @@
 using System.Reflection;
-using PsoBB.Core;
 using PsoBB.Game;
 using PsoBB.Graphics;
 
 namespace PsoBB.Tests;
 
 /// <summary>
-/// Checks the ported game start-up stages, their order, the boundary and the prerequisite failures.
+/// Checks the ported game start-up stages, the baked scene table, their order and the boundary.
 /// </summary>
 [Collection("Game state")]
 public sealed class GameStartupTests : IDisposable
@@ -18,8 +17,8 @@ public sealed class GameStartupTests : IDisposable
     [Fact]
     public void StartInitialisesThePortedStateInOrder()
     {
-        GuestImage image = GuestImage.Parse(TestGameImage.Create(sceneSelection: 1));
-        GameStartupResult result = new GameStartup(image, new RenderSettings(800, 600, true, 0, true)).Start();
+        GameState.SceneSelection = 1;
+        GameStartupResult result = new GameStartup(new RenderSettings(800, 600, true, 0, true)).Start();
         Assert.Equal(
             ["Scene selection flag", "Display mode", "Initial scene", "Scene library", "Window message handler", "Exit handler"],
             result.Stages.Select(stage => stage.Name));
@@ -35,9 +34,9 @@ public sealed class GameStartupTests : IDisposable
         Assert.Equal(0x007Au, GameState.WindowMessageHandlerHigh);
         Assert.Equal(0x0334u, GameState.WindowMessageHandlerLow);
         Assert.Equal(0x007A6358u, GameState.ExitHandler);
-        Assert.Equal(TestGameImage.SceneCount, result.Scenes.Scenes.Count);
-        Assert.Equal(0x00100000u, result.Scenes.Scenes[0].Callback0);
-        Assert.Equal(0x00100037u, result.Scenes.Scenes[^1].Callback1);
+        Assert.Equal(SceneLibrary.SceneCount, result.Scenes.Scenes.Count);
+        Assert.Equal(0x007A45D0u, result.Scenes.Scenes[1].Callback0);
+        Assert.Equal(0x0070ADE8u, result.Scenes.Scenes[^1].Callback2);
         Assert.False(result.IsComplete);
         Assert.Equal(0x0082E940, result.BoundaryAddress);
     }
@@ -45,39 +44,40 @@ public sealed class GameStartupTests : IDisposable
     [Fact]
     public void FullscreenSettingsStoreTheFullscreenFlag()
     {
-        GuestImage image = GuestImage.Parse(TestGameImage.Create());
-        GameStartupResult result = new GameStartup(image, new RenderSettings(1024, 768, false, 4, true)).Start();
+        GameStartupResult result = new GameStartup(new RenderSettings(1024, 768, false, 4, true)).Start();
         Assert.Equal(1u, GameState.Fullscreen);
         Assert.Equal(1024u, GameState.DisplayWidth);
         Assert.Equal(768u, GameState.DisplayHeight);
+        Assert.Equal(1u, GameState.CurrentScene);
         Assert.Equal(6, result.Stages.Count);
     }
 
     [Fact]
-    public void AnImageWithoutTheSceneSelectionFlagFailsCleanly()
+    public void TheBakedSceneTableMatchesTheShippedImage()
     {
-        GuestImage image = GuestImage.Parse(TestGameImage.Create(includeFlag: false));
-        GameStartupPrerequisiteException error = Assert.Throws<GameStartupPrerequisiteException>(
-            () => new GameStartup(image, RenderSettings.Default).Start());
-        Assert.Equal(0x00ACBEC0, error.Address);
-        Assert.Contains("0x00ACBEC0", error.Message, StringComparison.Ordinal);
+        Assert.Equal(0x009FF7C0u, SceneLibrary.TableAddress);
+        Assert.Equal(12, SceneLibrary.DescriptorSize);
+        Assert.Equal(0x13, SceneLibrary.SceneCount);
+        Assert.Equal(0xE4, SceneLibrary.TableLength);
+        IReadOnlyList<SceneLibrary.SceneDescriptor> scenes = SceneLibrary.Table;
+        Assert.Equal(0x13, scenes.Count);
+        Assert.Equal(new SceneLibrary.SceneDescriptor(0, 0, 0, 0), scenes[0]);
+        Assert.Equal(new SceneLibrary.SceneDescriptor(1, 0x007A45D0, 0x007A4418, 0x007A44D0), scenes[1]);
+        Assert.Equal(new SceneLibrary.SceneDescriptor(14, 0, 0, 0), scenes[14]);
+        Assert.Equal(new SceneLibrary.SceneDescriptor(18, 0x0070AE9C, 0x0070AD94, 0x0070ADE8), scenes[18]);
     }
 
     [Fact]
-    public void AnImageWithoutTheSceneTableFailsCleanly()
+    public void ResetRestoresTheBakedValues()
     {
-        GuestImage image = GuestImage.Parse(TestGameImage.Create(includeTable: false));
-        GameStartupPrerequisiteException error = Assert.Throws<GameStartupPrerequisiteException>(
-            () => new GameStartup(image, RenderSettings.Default).Start());
-        Assert.Equal(0x009FF7C0, error.Address);
-        Assert.Equal((uint)RenderSettings.Default.Width, GameState.DisplayWidth);
-        Assert.Equal((uint)RenderSettings.Default.Height, GameState.DisplayHeight);
-    }
-
-    [Fact]
-    public void ANullImageIsRejected()
-    {
-        Assert.Throws<ArgumentNullException>(() => new GameStartup(null!, RenderSettings.Default));
+        GameState.SceneSelection = 3;
+        GameState.CurrentScene = 4;
+        GameState.WindowMessageHandlerHigh = 5;
+        GameState.Reset();
+        Assert.Equal(GameState.InitialValue, GameState.SceneSelection);
+        Assert.Equal(GameState.InitialValue, GameState.CurrentScene);
+        Assert.Equal(GameState.InitialValue, GameState.WindowMessageHandlerHigh);
+        Assert.Equal(0u, GameState.InitialValue);
     }
 
     [Fact]

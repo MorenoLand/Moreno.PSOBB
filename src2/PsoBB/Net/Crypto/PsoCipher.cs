@@ -1,0 +1,358 @@
+using System.Buffers.Binary;
+
+namespace PsoBB.Net.Crypto;
+
+/// <summary>
+/// Encrypts and decrypts Blue Burst game traffic with the client's reduced-round Blowfish variant.
+/// </summary>
+/// <remarks>
+/// The subkeys and S-boxes are the tables shipped in the client's data image, but a data block
+/// uses four Feistel rounds instead of sixteen. The key schedule still expands the tables with
+/// sixteen rounds. The subkeys are assembled from 16-bit source halves with a byte swap and XOR.
+/// A context covers one direction, so the handshake creates a separate instance for each direction.
+/// </remarks>
+public sealed class PsoCipher
+{
+	/// <summary>Size of one encrypted block in bytes.</summary>
+	public const int BlockSize = 8;
+	/// <summary>Size of the serialized context in bytes.</summary>
+	internal const int ContextSize = (SubkeyCount + 4 * SBoxLength) * sizeof(uint);
+	private const int SubkeyCount = 18;
+	private const int SBoxLength = 256;
+	private static readonly ushort[] InitialSubkeyHalves = [
+		0xBC89, 0xDB37, 0x29F8, 0x5248, 0xF805, 0x82E5, 0x3936, 0x8269,
+		0x45C5, 0x57BE, 0x49BA, 0x4F77, 0x9B14, 0x0303, 0x3AB9, 0xEFCE,
+		0x9F60, 0xDA15, 0xACE8, 0x8214, 0x81AE, 0x7BFE, 0x733F, 0x2C67,
+		0xB105, 0x0731, 0x0983, 0x4EDB, 0x5EAC, 0xDC80, 0x884C, 0x5F76,
+		0x675E, 0x6FAF, 0x4786, 0x60D6,
+	];
+	private static readonly uint[] InitialSBox0 = [
+		0x0DA28C5C, 0xEFCA697E, 0x9AE87D7A, 0xA920A4D6, 0xD495CC9C, 0xFE234506, 0x65C2438D, 0xDAD6ECE7,
+		0x8DBF3078, 0xA062085E, 0xE19748C9, 0x6F6C7FD7, 0xE292ED9C, 0xD16BC2EB, 0xB4AA66AC, 0xDDAE104D,
+		0xE2ED2485, 0x517C36F1, 0x4B623409, 0x4CDB800B, 0xEE25A09D, 0x7F733144, 0x90CC2A5D, 0x1D1F0F64,
+		0x65555AEA, 0x288D6BB6, 0x87BC472A, 0xCD3B0E48, 0xCA99F4A3, 0xF24F632E, 0xDE7EE125, 0xE1C9DC2E,
+		0xCEDFC7B1, 0xFAC18E1A, 0xAC92CF79, 0xCCBB6B6F, 0xA91A2554, 0x5DD962A5, 0xC409EAAD, 0xBE6760F1,
+		0x9859110A, 0x9590100B, 0xB7E31707, 0x216B455C, 0x85D74B73, 0x140C31C0, 0x92D04389, 0xDE7106FD,
+		0x3793C630, 0x278EBCFD, 0x317B3DBA, 0xC1D02151, 0x03F64DB0, 0x4967B257, 0x48FDE129, 0xA8575EB2,
+		0x9DBE789F, 0xD259C007, 0xA0271A70, 0x933B45F5, 0x51CF24B5, 0x7A379C07, 0xD83C42A0, 0x61385691,
+		0x11AFEF1C, 0x91EED8D1, 0x41B09301, 0xC26E5841, 0xBB78098D, 0x69CFB004, 0x81708FA3, 0x28C121F3,
+		0x3EF9D5AB, 0xF0C88426, 0x62FD0112, 0xB5DA7FF0, 0xD96C7822, 0xF2FAC9F4, 0x7993C04A, 0xABB2BB1D,
+		0x8E022BD9, 0xEC6B0014, 0x17F7F92C, 0x87C6C057, 0x4C2BB136, 0x74736A8A, 0x13692E25, 0x883F663E,
+		0x00C2597B, 0x8F99F732, 0x9BE5D736, 0xF1E54B07, 0x364AA29F, 0xF34F8E14, 0x4A0F7F1F, 0x49BE75A8,
+		0xDD81977A, 0x55E68AFE, 0xBEA51DCC, 0xBEF7D96D, 0xFBC28F17, 0xA3A638BA, 0x6BC29FB8, 0x38F03AD6,
+		0x253FEC73, 0x1AFAAC67, 0x419E2B27, 0xBAABA4FB, 0xE9D856C0, 0x8D6D027B, 0xDDC251C7, 0x220C75D5,
+		0xDAFA6623, 0x7A4E4DC3, 0x6A172410, 0xC16D126E, 0x38C0F7BB, 0xA49E0F92, 0xD5AA0F8F, 0xBF313964,
+		0x3B61EF96, 0x4BBB9DF7, 0xCFE0099F, 0xD2D644E0, 0x2EC90BEA, 0xE0E16AA8, 0xC3537DFE, 0x80427363,
+		0xAB83ED3B, 0x230CE4DC, 0x0A97C4D2, 0x6CF09D22, 0x5D2F0D23, 0x844E184E, 0xACECF156, 0x5E932325,
+		0x0793C460, 0x3ED1E4C1, 0x3A46B6C0, 0x35E570E1, 0xBDBBDDDF, 0x3F44CD66, 0x987B1B8B, 0x495AB461,
+		0xF504C931, 0x799400A6, 0x21676AA0, 0x8A85FD29, 0xD9D4B453, 0x6FCD3203, 0xFB9B8C07, 0xFDFA52DC,
+		0x71A46C0F, 0x4CFE1E8F, 0xBE33F5F5, 0xE3BE9EC9, 0xA6FD054F, 0xA9C5D385, 0xD7F26BE8, 0x03B97C55,
+		0x38E183E3, 0xF19E8A68, 0xC3B1A96D, 0x35A4CCFF, 0x45026991, 0x41D0AB9F, 0x2E4C90F3, 0x2844F03E,
+		0x9FDA04C7, 0xC9960751, 0x6B48DF31, 0x107BA88E, 0x2C7C3728, 0x109257E3, 0xABEB4DD4, 0x4CA86125,
+		0xD67B5D48, 0x68B60428, 0x20CD9320, 0xD71641AB, 0xEEF9FEC3, 0xBCBBA277, 0xE8561284, 0xD7DA5492,
+		0x59DB61C9, 0x8BA7477A, 0x82443154, 0x1C1712C6, 0xE1578EC3, 0xBC20EB77, 0x8079D8D6, 0x07F54D60,
+		0xE637E24B, 0x60B8AAD6, 0xD8904B5B, 0x575F81FB, 0xFD001463, 0xC909B6B9, 0x0353B3AF, 0xCE22E8C5,
+		0x7E6DBA2E, 0x87AA66B1, 0x38BA389B, 0x32E7AE9A, 0x2DA8FC2F, 0x0EB8F2F5, 0x092E9A4A, 0x27D31208,
+		0xD264F1DD, 0x118673B4, 0x5DA789A2, 0xC6EE7A7B, 0x1CA5645A, 0x988BD18A, 0xC6209BAB, 0xF51BC5DA,
+		0xBE34FBC0, 0x212760D9, 0xD21A3993, 0x6DDAE93B, 0xB7F57B45, 0x3FB6D79A, 0x9A211F50, 0xDF50D26F,
+		0xC660D41D, 0xBCFC565B, 0x3EF4AE79, 0x9FA3DF6B, 0x38617F9B, 0x227CC93E, 0x7A51F11F, 0x46E7B867,
+		0x105FF804, 0x7777D073, 0x390BD8B8, 0x56A2BAA9, 0x08B65DEF, 0xC5F33B4A, 0xDF3CD940, 0x767B323E,
+		0x5112EFD9, 0x6AB1C3D7, 0xD48A44C7, 0x52B9820C, 0xF290BCF3, 0x1A4857F7, 0xF92E8E25, 0x9583001D,
+		0x0F21E367, 0x976B6A34, 0xFB652FD6, 0xE1CCECB3, 0x49526761, 0xACEE7F29, 0x56A248F0, 0xB7DE8E80,
+	];
+	private static readonly uint[] InitialSBox1 = [
+		0x7BCA974E, 0x2FD704ED, 0xAA01F1C7, 0xDCF4A846, 0xAA58249C, 0x568EBDB8, 0x19FAB928, 0xA0E0F0AF,
+		0xCF02F929, 0x516C50DF, 0xF9449D0A, 0x8452382D, 0x03F0A744, 0x4B9BACF0, 0x2A4DF6B1, 0xDF91BBDE,
+		0x131E4929, 0xD9299505, 0x4C5D499E, 0x99083484, 0x8604B30E, 0x35355C42, 0xC5E1A557, 0x4B2FFBE6,
+		0xBEE697CB, 0xBF188787, 0x9C584E18, 0xE07CD0C5, 0xE0EFBA2F, 0x95712F43, 0xF83CDAED, 0x13A05AF2,
+		0x9FBDE991, 0xF009A408, 0xCD552C0C, 0xB4DC2B76, 0xD9AA9DCF, 0x2111EB79, 0x23525733, 0xD05167C2,
+		0x0076534A, 0x8F979E7E, 0x8FE21DE4, 0xE06AD2EB, 0x41BEBC13, 0x2240E48A, 0x43FD2DB9, 0xB5FF00E9,
+		0x7F7920CE, 0x95CF0201, 0x0578229C, 0xA210CA85, 0x2CB449B0, 0x4D8C732A, 0xBE0B81DF, 0x3D9CD687,
+		0x09ED1CF4, 0xCDF13884, 0x5D4C991A, 0x7D39BA01, 0xDFC3C4B1, 0x9C45939F, 0x6BDBEEB0, 0x576F4FA1,
+		0xACD7E249, 0xED1E4134, 0xEB0F098B, 0x13FAAD3D, 0xF1BA95A9, 0x6207F965, 0x7B31D465, 0xF97B351C,
+		0x958A3F06, 0x3952F609, 0x0D56D4B6, 0x55ADE6FB, 0xC5BF75D0, 0x2E10F262, 0xF4B26CE1, 0xFFDC4E32,
+		0x3A5540B4, 0xB7F9498B, 0x875EE4B9, 0x33BDEA55, 0x80A1E840, 0xAB3F8E40, 0x25BC5865, 0x3A84ADA6,
+		0x1F9CA348, 0x57DA4495, 0xA90D74F5, 0x515B992F, 0x231671F2, 0x9AD1CF08, 0x331464C3, 0x549CDF7E,
+		0x5F0360C1, 0xE71EE5A9, 0xBEE7912D, 0x00737879, 0x39A08803, 0x5348E181, 0x1189FBDD, 0xA3307E83,
+		0x5528A75B, 0x7F3484DC, 0xDD913031, 0x3D5C3E2E, 0x35ADD417, 0x318C310A, 0xFBE54476, 0x24039F06,
+		0x2305F247, 0x638DDF6B, 0x596A3C8F, 0x1959A657, 0xAA7D4683, 0xD9079F80, 0xB2B8AC70, 0x89E08FFD,
+		0x5F9F11A6, 0xB39BFE19, 0x830367D6, 0x8045A73D, 0xFB612C78, 0x4AC69685, 0x7827E585, 0xED83D917,
+		0x86CCCFF2, 0xFC52403B, 0xB9E02376, 0xEF379204, 0xE5815BD7, 0x1D858C1C, 0xEA328BC5, 0x2AA43192,
+		0x763A6950, 0x444D0615, 0xF3004394, 0x2D2709CB, 0x646C7C92, 0x9C6FB282, 0x92448161, 0x110CCAD1,
+		0xEE728C74, 0xD6E3C525, 0xE0646F60, 0xA8B40BF5, 0x417B15CF, 0x3459B804, 0x58A34E63, 0xEBED46EB,
+		0x0F20DEB7, 0xEB4518EE, 0x9886EAB8, 0xBC411647, 0x9F0025D2, 0xE990352A, 0xF9F7EBAC, 0xEFC03BC8,
+		0x8D888CEA, 0xF4CE0721, 0x53B369DF, 0x54276D36, 0x2D82B993, 0xEB60507E, 0xFE4FB2F4, 0x36B20B24,
+		0x32494FC7, 0xA5C1C144, 0xD82452F2, 0x1A126FF7, 0x41EB44EE, 0x03AC4188, 0xD9E59EE5, 0x565AC5F4,
+		0x066BDF95, 0xF8E14762, 0x1863B957, 0x9AD00741, 0xD07BB3F6, 0xE82F55CC, 0x1BA126BC, 0x591AFC6D,
+		0x3422E9E4, 0xE34727F3, 0x36F0E322, 0x358F9617, 0x8D836147, 0xB7EAD615, 0xA1741440, 0x37AE3091,
+		0xF5AD947A, 0x84F04935, 0xA45F83BB, 0x367A3A30, 0x3DCD43C8, 0x78B8D90F, 0x88B46D85, 0x792DC60D,
+		0x12D409A3, 0xA717A707, 0x181F1ADE, 0xCC7CFDF9, 0x5B034422, 0x49F1FB2B, 0x922CE1D8, 0x064E216E,
+		0xE9E6F72D, 0xB2F6C185, 0x4CC6A925, 0xDA04A835, 0xCC0D5FEA, 0xB9175DED, 0xE7271CF1, 0x1E7B2EC2,
+		0x51DC8D43, 0x94B62CFC, 0xDFDD2E5E, 0x13C07039, 0x1BE57991, 0x94FF1454, 0xEA81A96B, 0x160501A2,
+		0x3A5B6B5C, 0x4C094A90, 0x55FDA155, 0x51EC775D, 0x84CD91FE, 0x977FBB62, 0x2E3BF688, 0x11E391D8,
+		0x3633830A, 0xAE50D6B1, 0x2A5ECA75, 0x9F7DD656, 0xA17DC1DB, 0x33481DD5, 0x4B02CB82, 0x8BA5E708,
+		0x5BF9327F, 0xCDBEBA53, 0x893A6E1F, 0xB1FC03E3, 0xCCD662A1, 0x72485A4A, 0xB1BEEA33, 0x2E87AC34,
+		0xEB4C0E1A, 0xF6087BCA, 0xAA17228D, 0x39CF06AB, 0x633D7633, 0x06B16F1B, 0x88169DD6, 0x9FEA878A,
+	];
+	private static readonly uint[] InitialSBox2 = [
+		0x08892594, 0xAB8CD4D0, 0x03C1AE39, 0x62D829E3, 0xA8FAEC97, 0x9857B6C1, 0x57131805, 0x7B1A7B02,
+		0x9518D9C3, 0xB360AFCD, 0x7E7A95BE, 0x4F7837D5, 0xF5D773A1, 0xED685CCB, 0x6D1237BD, 0xE0FD6841,
+		0x4076CA99, 0x1D83B6B3, 0xB2630B58, 0xA90431E4, 0x983FA03B, 0x2A3ABE0B, 0x24B99337, 0x18546DF5,
+		0x052CD220, 0xD2167E69, 0x97AA9A54, 0xF203B90C, 0xC9E12151, 0xB2687701, 0xFECDB9CF, 0x9EB6C25E,
+		0x8592140C, 0xA50E8728, 0x083B1A6E, 0xC3206514, 0x4312BF4F, 0x0E87A806, 0x4944294E, 0x4A0E371A,
+		0x7AB0E123, 0x6132DF80, 0x2CA87B07, 0xFAADAAFB, 0xADC92685, 0xF9665877, 0x2A70FC77, 0xB5465B4B,
+		0x7F27115B, 0x2EBABC42, 0x7B02AF94, 0x0A402C59, 0x8D50CFE4, 0x62002B50, 0x1A98C46E, 0x6DE98418,
+		0xDDDBECCC, 0x069885F2, 0x3049B2C5, 0xBAEA66E7, 0xB3A4444A, 0x4CBD267A, 0x0DAEB102, 0x67F26C00,
+		0x3E73EFCC, 0x3F100630, 0x2FC4B94E, 0x8C2FA0A1, 0x1C845E71, 0x343DBC39, 0x75C63728, 0x67E4C94C,
+		0x90AD7B3A, 0xC66551C9, 0x4D99EC4D, 0x44320784, 0xF68B5E7C, 0xE2901A18, 0xE8E7746D, 0x8CE52FD2,
+		0xBCF27640, 0x3D412526, 0x4789D712, 0x0A9EAAA4, 0x6EEB1D03, 0x4B92D107, 0xA58D3FE7, 0x235D4D4A,
+		0x7FE73B8B, 0x91FDEF8C, 0x5A82D183, 0x58BA8641, 0x97EB5417, 0xDCA47154, 0x9F2BE6D3, 0x578B1355,
+		0x9356907E, 0x0120DB51, 0xFC649CD4, 0x3EDA591D, 0x4FE2E9BB, 0x5C7642E8, 0x2506DFFE, 0x9857AA03,
+		0x076D3F35, 0x7EAA66C7, 0x26C9479A, 0xF0511D0C, 0xCF782F50, 0x32F715BA, 0x2BBA6B75, 0x398DB439,
+		0x3E239257, 0x9C8D0A7A, 0x17CBA9AF, 0x55B1C751, 0x2711659E, 0x883A4549, 0x89217A39, 0x9EEE1B28,
+		0xCE3E5277, 0x9A563AC1, 0xECDDA168, 0x89DDD994, 0x65F31912, 0xE538B194, 0x3B576D91, 0x3B318F41,
+		0x0D5734CC, 0xE07D3FAF, 0xF8109AE2, 0x242AFB41, 0xFF5E63C0, 0x429E7323, 0xDE7AE370, 0x51C29FD5,
+		0x161B9AAA, 0x7EA8B0EF, 0x037B0C1C, 0x7FBB4BB0, 0xED5931FC, 0x23DF2BD1, 0xD1546F41, 0xD1EA4E24,
+		0xF3948D53, 0xA69E131C, 0xE9857663, 0x89BF6A20, 0xDAE67483, 0x22A3C6B9, 0x6A71C4DD, 0x59CD9A5C,
+		0x3D21D6B1, 0x82B78046, 0xAA7C27B7, 0x7E124FEB, 0x78290B89, 0x969D95E7, 0xAAA7512D, 0x79C5CCBC,
+		0xCEC0D750, 0x9B78FB31, 0xA75F757F, 0x6342336E, 0x42357C4A, 0x91C3E79E, 0x45374039, 0x1FB418AE,
+		0xF51FD127, 0xA0AC17B6, 0xF1EBED28, 0x7BCABA07, 0x3043B65E, 0x7E7030D2, 0x0E082A82, 0x653BC3D7,
+		0xE05B52DD, 0xA3520038, 0x8C08D65B, 0xC00E9A3E, 0x6E79CB14, 0x2C39BB25, 0xAF0E7056, 0x6AC96B58,
+		0x5E543D37, 0xB17ACCF0, 0x107F2580, 0x4CFB443F, 0xB6ACDB16, 0xCD781929, 0x789D7E56, 0x527A5B9A,
+		0xDE09DAEE, 0x71E4659A, 0xEE2726F9, 0x53E3AD2C, 0x8EDDA46E, 0x1A263A1C, 0xF8E8060D, 0x90F91DDF,
+		0xE029AC94, 0xAF07AAA9, 0xB5D38BA2, 0xA93A4747, 0xECA1DBE7, 0x62FE0B93, 0x5C5384BE, 0xC0D90D3F,
+		0xFF7020D8, 0xEFDE978E, 0x45521BDD, 0x3C46FFEA, 0x2F266B55, 0xBFE4A445, 0x28FC0756, 0x20F4E637,
+		0x7FBB181A, 0xCB646C6C, 0x3E6C5966, 0x3A50F4CF, 0x33214759, 0xA69CCA7D, 0x2401BFBA, 0x63628E63,
+		0xAA9DECF1, 0x1B25F659, 0x64490538, 0x6ABB011D, 0x266EE9B2, 0xC4204EBA, 0x92EF63F3, 0x2EACB96C,
+		0x19343555, 0x9B2FDAB0, 0xD7F45D53, 0xE5EF849B, 0x93342A90, 0xFD095B77, 0xE5954817, 0x4BC2EB09,
+		0x21893C3C, 0xCB2B1581, 0x3B77CD65, 0x5FF48D04, 0xD6A438DD, 0x95A18397, 0x18ED879E, 0x05E0D1C7,
+		0xAAE2C38E, 0x97B302D4, 0x41177420, 0xD36512AA, 0x6676EAA3, 0x34306938, 0x4853E943, 0x645F6C06,
+	];
+	private static readonly uint[] InitialSBox3 = [
+		0xEA57ABE6, 0xC455CF1C, 0xFCFE5508, 0x84868993, 0x8A41B14A, 0x6776C08D, 0x7EA0C16C, 0xAA91A49C,
+		0xF4D12902, 0x4CF3F95F, 0x72306386, 0x956FA5E5, 0x7D488C2D, 0x02CE5A94, 0x0D90F0E0, 0x5FF78827,
+		0xF7C7F451, 0x463DBEAD, 0xB64E8B8B, 0x228FFB50, 0x2A18B85F, 0xD60E9167, 0x2996A532, 0xBC21BE60,
+		0xE9465E1B, 0xE9F317CC, 0x96D59DD6, 0x2D253661, 0x6420E57F, 0xF2FAAD37, 0xFB60BB0B, 0xB7E111F9,
+		0xFE7D2488, 0xD521FB21, 0x58A04063, 0xE2224726, 0x09FBB966, 0xD54997E5, 0xFDCC0022, 0x370B77C4,
+		0x9E1A60B9, 0xA1528EE6, 0x120F0E17, 0x69DBBBAC, 0x3B87E407, 0xE338DEC8, 0x90F791BB, 0x6F53E469,
+		0x79478CD8, 0xB6E82091, 0x0F7C196B, 0xA9200E65, 0x8681D56B, 0x75D47EF8, 0x972C912E, 0x40475C7B,
+		0x0F144202, 0x217508C3, 0x25D6B539, 0xE78DC23A, 0x9F523503, 0xDEA79CCA, 0x5F7BA206, 0xAD77BC5B,
+		0x75DA35A1, 0x14ADCEDE, 0xB4C1AB2E, 0x52D7B82E, 0x9C7ABA9A, 0x500ECA1F, 0x4AD09D51, 0x7046687D,
+		0x8243E52D, 0x6D9CAE12, 0xEB1BFEB6, 0x4AB3AB1E, 0xFB9E1671, 0x9FEF813F, 0x1C32CD40, 0xAAC6D0F4,
+		0x8A925E11, 0x11D1440D, 0xC719A254, 0xA2F4982A, 0x823CF00F, 0x52B90FF6, 0x6F82BDFB, 0xDF4F5409,
+		0x3AD533EC, 0x26F75378, 0x1C050C52, 0xE08706B8, 0xED68AF95, 0xB68F1432, 0xA5C5F80B, 0xDF7ADA77,
+		0x2A0E1224, 0x77AB1F1C, 0xFEA288BD, 0xC0FDA704, 0xC7506796, 0x8666C4C8, 0x31E9C486, 0xF7979865,
+		0x8F574B6F, 0x919919CF, 0xF824EFCC, 0x9837EEFB, 0xD19460E0, 0x6A23B9AF, 0x93A95CCF, 0xC8BCC412,
+		0x83BAC044, 0xBF37E8BA, 0xBE71B3F6, 0xF4FA8B0D, 0x802F6A7D, 0x129F428E, 0x089823E2, 0x0D62E91F,
+		0x1934CB1E, 0x60A7E305, 0x57ED2C41, 0x11C5E254, 0x160AAAAB, 0xB120D7F1, 0xAB2B6571, 0x1C454DE5,
+		0xE7E7FC97, 0x99B3F0EC, 0x13A73B8E, 0xDB8B9A85, 0xCD34F2AC, 0x94D69A4A, 0xBB7E98B7, 0x4BA83E94,
+		0x0D75A4D3, 0xE1401C23, 0xC45BBBF1, 0x2A5AF7B5, 0xC6D47BAE, 0xF62A7360, 0xD8D36C05, 0x1A759325,
+		0xBC8919A0, 0x2F230C6D, 0xE445D0E8, 0x0B9AA1F6, 0xF4685C61, 0xA052AB7E, 0x10437246, 0x438F9C02,
+		0x68A3E547, 0xB4786C85, 0x8D623B8A, 0x47B3A539, 0xEE2CA9A8, 0xC5C2DFCC, 0x006C7118, 0xB21E01B2,
+		0x0EC433B6, 0x1C510604, 0x25CDC27E, 0x4A66DBFB, 0xBFB58323, 0xF19DC379, 0x232FA5EF, 0x8F402A8E,
+		0xAE7F3BBF, 0xB3EBB6E0, 0x3783422F, 0xED602626, 0xAB7C5070, 0x7A5886AA, 0xCF5BEF62, 0x977D7CAE,
+		0xC0BF22FA, 0x0D54595B, 0xAEE61291, 0x0AF1CDD2, 0xC3CBC030, 0x004F32C7, 0xBB390B14, 0x94F784DA,
+		0x1D7510C6, 0xAD10C055, 0xDFB99165, 0xDB919E8F, 0xB927758F, 0x6F8434BA, 0x8A106434, 0xD296252D,
+		0x7B6D727B, 0xF5C865B6, 0xCE6FAFB4, 0x4E60FCB3, 0x507B3709, 0x06C7759E, 0xE41FC7BE, 0xB5E996C4,
+		0xC10D1F80, 0xC606F412, 0xC620ECFA, 0xF6705FDF, 0x54DFA5DB, 0x6CBA934A, 0xD28FD82F, 0xFCA23FFC,
+		0x2FE2CD33, 0x48E64C48, 0xB0E785FB, 0x08B698CF, 0xC4EB1818, 0xE5739DB2, 0x2BBA5FB9, 0x089BA753,
+		0x0A0D8DB4, 0xA6AF8BAD, 0x6F52AF97, 0xF394B124, 0x686F5BD7, 0x679EC105, 0x478DFD13, 0x3DBF2092,
+		0x9D6915E3, 0x2141F32D, 0x32CB89E3, 0x327E2EE2, 0xA2C38750, 0x0260CA09, 0xAD75946D, 0xD481C0D3,
+		0xB36E0134, 0x0DF43BB2, 0x2205D966, 0x0D51B632, 0x82A25098, 0x25A8EAA6, 0x09D49B79, 0x829321F2,
+		0x6EBBC297, 0x252BBDC9, 0xA379E6E9, 0x0D727667, 0xE1C02FAC, 0x5E784C2B, 0x9C8BA58C, 0xA8774262,
+		0x7FF6A453, 0x1B961651, 0x85D5C495, 0x9FDFE470, 0x7FDF6982, 0xFAEBA821, 0xE1ED469A, 0xF289E321,
+	];
+
+	private readonly uint[] _subkeys = new uint[SubkeyCount];
+	private readonly uint[] _sBox0 = new uint[SBoxLength];
+	private readonly uint[] _sBox1 = new uint[SBoxLength];
+	private readonly uint[] _sBox2 = new uint[SBoxLength];
+	private readonly uint[] _sBox3 = new uint[SBoxLength];
+
+	/// <summary>Gets the shipped encoded P table for the table regression test.</summary>
+	internal static ReadOnlySpan<ushort> ShippedSubkeyHalves => InitialSubkeyHalves;
+	/// <summary>Gets the shipped first S-box for the table regression test.</summary>
+	internal static ReadOnlySpan<uint> ShippedSBox0 => InitialSBox0;
+	/// <summary>Gets the shipped second S-box for the table regression test.</summary>
+	internal static ReadOnlySpan<uint> ShippedSBox1 => InitialSBox1;
+	/// <summary>Gets the shipped third S-box for the table regression test.</summary>
+	internal static ReadOnlySpan<uint> ShippedSBox2 => InitialSBox2;
+	/// <summary>Gets the shipped fourth S-box for the table regression test.</summary>
+	internal static ReadOnlySpan<uint> ShippedSBox3 => InitialSBox3;
+
+	/// <summary>
+	/// Rebuilds the subkeys and S-boxes for a key and leaves the cipher ready for one direction.
+	/// </summary>
+	/// <param name="key">The key bytes; the game handshake passes a 48-byte synthetic vector.</param>
+	/// <exception cref="ArgumentException"><paramref name="key"/> is empty.</exception>
+	[Original(0x00763FD0)]
+	public void Init(ReadOnlySpan<byte> key)
+	{
+		if (key.IsEmpty)
+			throw new ArgumentException("The cipher key must contain at least one byte.", nameof(key));
+		for (int index = 0; index < SubkeyCount; index++)
+		{
+			ushort first = InitialSubkeyHalves[index * 2];
+			ushort second = InitialSubkeyHalves[index * 2 + 1];
+			uint low = (uint)((first >> 8) | (first << 8)) & 0xFFFF;
+			_subkeys[index] = low | ((low ^ second) << 16);
+		}
+		InitialSBox0.CopyTo(_sBox0, 0);
+		InitialSBox1.CopyTo(_sBox1, 0);
+		InitialSBox2.CopyTo(_sBox2, 0);
+		InitialSBox3.CopyTo(_sBox3, 0);
+		int keyIndex = 0;
+		for (int index = 0; index < SubkeyCount; index++)
+		{
+			_subkeys[index] ^= (uint)key[keyIndex] << 24
+				| (uint)key[(keyIndex + 1) % key.Length] << 16
+				| (uint)key[(keyIndex + 2) % key.Length] << 8
+				| key[(keyIndex + 3) % key.Length];
+			keyIndex = (keyIndex + 4) % key.Length;
+		}
+		uint left = 0;
+		uint right = 0;
+		for (int index = 0; index < SubkeyCount; index += 2)
+		{
+			(left, right) = EncryptScheduleBlock(left, right);
+			_subkeys[index] = left;
+			_subkeys[index + 1] = right;
+		}
+		for (int box = 0; box < 4; box++)
+		{
+			uint[] sBox = GetSBox(box);
+			for (int index = 0; index < SBoxLength; index += 2)
+			{
+				(left, right) = EncryptScheduleBlock(left, right);
+				sBox[index] = left;
+				sBox[index + 1] = right;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Encrypts one eight-byte block in place.
+	/// </summary>
+	/// <param name="block">The block to encrypt; the first eight bytes are replaced.</param>
+	/// <exception cref="ArgumentException"><paramref name="block"/> is shorter than eight bytes.</exception>
+	public void EncryptBlock(Span<byte> block)
+	{
+		if (block.Length < BlockSize)
+			throw new ArgumentException("A cipher block must contain eight bytes.", nameof(block));
+		EncryptCore(block);
+	}
+
+	/// <summary>
+	/// Decrypts one eight-byte block in place.
+	/// </summary>
+	/// <param name="block">The block to decrypt; the first eight bytes are replaced.</param>
+	/// <exception cref="ArgumentException"><paramref name="block"/> is shorter than eight bytes.</exception>
+	public void DecryptBlock(Span<byte> block)
+	{
+		if (block.Length < BlockSize)
+			throw new ArgumentException("A cipher block must contain eight bytes.", nameof(block));
+		DecryptCore(block);
+	}
+
+	/// <summary>
+	/// Encrypts every complete eight-byte block in place and ignores a trailing partial block.
+	/// </summary>
+	/// <param name="buffer">The buffer to encrypt.</param>
+	/// <returns>The number of bytes processed, which is the length rounded down to a multiple of eight.</returns>
+	[Original(0x00763D08)]
+	public int EncryptBlocks(Span<byte> buffer)
+	{
+		int blocks = buffer.Length / BlockSize;
+		for (int index = 0; index < blocks; index++)
+			EncryptCore(buffer.Slice(index * BlockSize, BlockSize));
+		return blocks * BlockSize;
+	}
+
+	/// <summary>
+	/// Decrypts every complete eight-byte block in place and ignores a trailing partial block.
+	/// </summary>
+	/// <param name="buffer">The buffer to decrypt.</param>
+	/// <returns>The number of blocks processed, matching the original decrypt routine's count.</returns>
+	[Original(0x00763E70)]
+	public int DecryptBlocks(Span<byte> buffer)
+	{
+		int blocks = buffer.Length / BlockSize;
+		for (int index = 0; index < blocks; index++)
+			DecryptCore(buffer.Slice(index * BlockSize, BlockSize));
+		return blocks;
+	}
+
+	/// <summary>
+	/// Writes the complete subkeys and S-boxes in the original context order.
+	/// </summary>
+	/// <param name="destination">A buffer of at least <see cref="ContextSize"/> bytes.</param>
+	internal void CopyContext(Span<byte> destination)
+	{
+		int offset = 0;
+		foreach (uint value in _subkeys)
+			offset = Write(destination, offset, value);
+		foreach (uint value in _sBox0)
+			offset = Write(destination, offset, value);
+		foreach (uint value in _sBox1)
+			offset = Write(destination, offset, value);
+		foreach (uint value in _sBox2)
+			offset = Write(destination, offset, value);
+		foreach (uint value in _sBox3)
+			offset = Write(destination, offset, value);
+	}
+
+	private static int Write(Span<byte> destination, int offset, uint value)
+	{
+		BinaryPrimitives.WriteUInt32LittleEndian(destination[offset..], value);
+		return offset + sizeof(uint);
+	}
+
+	private uint[] GetSBox(int box) => box switch
+	{
+		0 => _sBox0,
+		1 => _sBox1,
+		2 => _sBox2,
+		_ => _sBox3,
+	};
+
+	private uint Mix(uint value) =>
+		((_sBox0[value >> 24] + _sBox1[(value >> 16) & 0xFF]) ^ _sBox2[(value >> 8) & 0xFF]) + _sBox3[value & 0xFF];
+
+	private (uint Left, uint Right) EncryptScheduleBlock(uint left, uint right)
+	{
+		left ^= _subkeys[0];
+		right ^= Mix(left) ^ _subkeys[1];
+		for (int round = 1; round < 8; round++)
+		{
+			left ^= Mix(right) ^ _subkeys[round * 2];
+			right ^= Mix(left) ^ _subkeys[round * 2 + 1];
+		}
+		return (right ^ _subkeys[17], left ^ Mix(right) ^ _subkeys[16]);
+	}
+
+	private void EncryptCore(Span<byte> block)
+	{
+		uint left = BinaryPrimitives.ReadUInt32LittleEndian(block);
+		uint right = BinaryPrimitives.ReadUInt32LittleEndian(block[4..]);
+		uint x = left ^ _subkeys[0];
+		uint y = right ^ _subkeys[1] ^ Mix(x);
+		uint z = x ^ _subkeys[2] ^ Mix(y);
+		uint w = y ^ _subkeys[3] ^ Mix(z);
+		uint finalRight = z ^ _subkeys[4] ^ Mix(w);
+		BinaryPrimitives.WriteUInt32LittleEndian(block, w ^ _subkeys[5]);
+		BinaryPrimitives.WriteUInt32LittleEndian(block[4..], finalRight);
+	}
+
+	private void DecryptCore(Span<byte> block)
+	{
+		uint left = BinaryPrimitives.ReadUInt32LittleEndian(block);
+		uint right = BinaryPrimitives.ReadUInt32LittleEndian(block[4..]);
+		uint x = left ^ _subkeys[5];
+		uint y = right ^ _subkeys[4] ^ Mix(x);
+		uint z = x ^ _subkeys[3] ^ Mix(y);
+		uint w = y ^ _subkeys[2] ^ Mix(z);
+		uint finalRight = z ^ _subkeys[1] ^ Mix(w);
+		BinaryPrimitives.WriteUInt32LittleEndian(block, w ^ _subkeys[0]);
+		BinaryPrimitives.WriteUInt32LittleEndian(block[4..], finalRight);
+	}
+}

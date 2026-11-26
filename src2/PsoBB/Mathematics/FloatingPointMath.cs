@@ -30,4 +30,18 @@ public static class FloatingPointMath
 			return -(float)Math.Sqrt(-value);
 		return (float)Math.Sqrt(value);
 	}
+
+	/// <summary>
+	/// Converts a double to a 32-bit integer by truncating toward zero, returning
+	/// <see cref="int.MinValue"/> for a NaN, an infinity or a value outside the integer range, as the x87
+	/// integer store does.
+	/// </summary>
+	/// <param name="value">The value to convert.</param>
+	/// <returns>The truncated integer or the integer indefinite value.</returns>
+	public static int TruncateToInt32(double value)
+	{
+		if (!(value > -2147483649.0 && value < 2147483648.0))
+			return int.MinValue;
+		return (int)value;
+	}
 }
