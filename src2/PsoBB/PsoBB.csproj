@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NVorbis" Version="0.10.5" />
+  </ItemGroup>
+
 </Project>
