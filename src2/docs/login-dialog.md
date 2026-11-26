@@ -23,8 +23,10 @@ rows have item flags `0x41` (enabled and coloured), so their text takes the bitm
 `0x0071D58C`; they do not use the texture-font atlas.
 
 The header label is created by the list base `0x0073566C` through `0x00761320` and `0x00760A28`
-with unitxt list 41 string 2. The panel rectangle passed in the online branch is the four floats
-at `0x00974E08` (210, 340, 220, 120); the first twenty pixels hold the header and the remaining
+with unitxt list 41 string 2. The two-row online branch passes the four floats at `0x00974E08`
+(210, 340, 220, 120). The five-row title branch, which this port implements, passes the pair
+`(210, 300)`, or `(210, 336)` when `dword_A96968` selects the Episode 4 layout, and then the
+size at `0x00974E10` (220, 120). The first twenty pixels hold the header and the remaining
 hundred hold the four rows and hint. The data-image hint is `[%s]`; the retail frame shows `[d]`,
 so `LoginDialog.DefaultHintKey` is `d` and `DefaultHint` is `[d]`.
 
