@@ -7,6 +7,10 @@
 0x0082E98C	The CLR allocator replaces the original reallocation wrapper.
 0x0082E9A0	The CLR allocator replaces the original zeroed allocation wrapper.
 0x0082E9C0	The CLR garbage collector replaces the original release.
+0x0085B199	The CLR garbage collector replaces the original aligned release.
+0x0085B1AE	.NET arrays replace the original aligned allocation.
+0x0085B312	.NET arrays replace the original aligned reallocation.
+0x0086B688	Span.Clear replaces the original memory fill.
 0x00819240	The CLR initializes its own CRT state; this stdout initializer has no counterpart.
 0x0081924C	The CLR initializes its own CRT state; this stdio table initializer has no counterpart.
 0x0081930C	The CLR initializes its own CRT state; this stdio table initializer has no counterpart.
