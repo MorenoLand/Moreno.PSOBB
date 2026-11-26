@@ -80,7 +80,7 @@ full-screen white 128x128 pieces therefore become fully transparent.
   z value is not represented by the port's two-dimensional quad list.
 - The press-start prompt accepts the confirm action; the original callback reacts to any window input.
 - The network-state check that requests scene zero is not ported.
-- Audio, network login, movie playback and the options pages behind the menu are not ported.
+- Audio, network login and the options pages behind the menu are not ported. The original scene 1 has no movie playback path; see [Scene 1 startup media boundary](intro-movie.md).
 - The select-game texture is loaded and validated but not drawn; the title atlas supplies the menu
   labels.
 
