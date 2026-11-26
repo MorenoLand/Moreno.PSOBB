@@ -117,6 +117,17 @@ initialiser. `SceneManager.SelectInitialScene` therefore runs during start-up. I
 shipped value of `0x00ACBEC0` (zero), which `WinMain` overrides at run time from the command line;
 that override is not ported.
 
+## Online scene
+
+`PsoBB.Scenes.OnlineScene` consumes the merged `LoginFlow` instead of reproducing the 123212-byte
+network manager at `0x00797908` and the download transport behind `0x007A0370`. The scene sends no
+packets itself; command 0x19 stops at `LoginFlowState.Redirected` because the client has no
+separate ship, block or lobby list command.
+
+The two download panels from `0x00407FB0` and `0x0040808C` are submitted while the scene is loading
+or connecting. The original gates both on the progress-window state bit; the port has no download
+window object and keeps the panels visible through the connection phase.
+
 ## The scene table is baked from the shipped image
 
 `SceneLibrary` contains the 19 rows of three function pointers at `0x009FF7C0`, copied from the
