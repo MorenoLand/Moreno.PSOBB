@@ -79,6 +79,18 @@ public sealed class FontTextTests
 	}
 
 	[Fact]
+	public void EmptyFaceNameBuildsTheDefaultFaceFont()
+	{
+		BitmapFontBuilder builder = new(new FontDescriptor(600, 0, 7, 0, 4, 2, string.Empty));
+		builder.AddGlyph('A', Coverage(0xFF), 8);
+		BitmapFont font = builder.Build();
+
+		Assert.Equal(string.Empty, font.Descriptor.FaceName);
+		Assert.Equal(8, font.GetAdvance('A'));
+		Assert.Equal(8, font.GetGlyph('A').Width);
+	}
+
+	[Fact]
 	public void MeasurementCapsEachGlyphAtFourteenPixels()
 	{
 		BitmapFont font = CreateFont();

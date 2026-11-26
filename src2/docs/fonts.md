@@ -56,16 +56,36 @@ would cross the line width, and after a space checks whether the following word 
 outlined helper subtracts the measured width from its horizontal parameter, draws eight black
 copies at the two-pixel offsets and then the visible pass.
 
+## Windows host
+
+`PsoBB.Platform.Windows.GdiBitmapFont.Create(renderer)` reads `FONT_JPN` from
+`HKCU\Software\SEGA\PHANTASY_STAR_ONLINE_Blue_Burst`, creates the five 14-pixel `CreateFontA`
+faces from the `0xA21CE0` records, and rasterises the requested code units. `GdiGlyphRasterizer`
+owns one compatible DC, one 32-bit 14-by-14 bottom-up DIB and the five fonts; it draws one
+character with `ExtTextOutW`, reverses the rows and quantises each 24-bit BGR pixel at
+`0x555555` and `0xAAAAAA` into the builder's four alpha levels. `GdiBitmapFont` uploads the
+pages through `FontTextures` and exposes the shared `TextRenderer`.
+
+The shipped registry helper at `0x0082D444` opens `Software\SonicTeam\PSOV2`; the configured
+SEGA path is the default. No key is present on the development machine, so the exact face used
+by `t09.png` is not recorded. The capture's advances and twenty-pixel rows match a Tahoma
+14-pixel face at the capture's 1.6 scale, while an empty name makes GDI choose its own default
+face (Arial on this machine). The port passes the configured name or the empty string through
+unchanged and does not substitute a face.
+
 ## Port boundary
 
-`BitmapFontBuilder` replaces the GDI rasteriser with caller-supplied 14-by-14 coverage
-bitmaps. `FontTextures` uploads the three `TextureImage` pages through `IRenderer`, and
-`TextRenderer` submits one `UiQuad` per glyph to `UiDrawList`. No operating-system font, device
-context or platform type is used by the portable library.
+`BitmapFontBuilder` accepts 14-by-14 coverage from the Windows rasteriser or from caller-supplied
+bitmaps and packs it into the three-page, four-level atlas. `FontTextures` uploads the three
+`TextureImage` pages through `IRenderer`, and `TextRenderer` submits one `UiQuad` per glyph to
+`UiDrawList`. No operating-system font, device context or platform type is used by the portable
+library.
 
-Limitations: the exact GDI face metrics, the five registry-provided face names and the game's
-colour-table contents are supplied by the host or remain outside this port. The XVM
-texture-font path (`unknown_render_texturejapanese_xvm_font2_0071D924`) is ported for the
-printable ASCII range in `TextureFontSurface`; wide glyphs and page selection above code unit
-`0x00FF` remain outside it. The atlas cache policy is represented by the fixed three-page
-layout; the runtime texture-update counter is not needed when a font is built once.
+Limitations: the exact GDI face selected by an empty name and the anti-aliasing produced by the
+installed TrueType rasteriser depend on the host; the port reports the atlas that GDI produced
+instead of replacing either. The five registry-provided face names and the game's colour-table
+contents are supplied by the host or remain outside this port. The XVM texture-font path
+(`unknown_render_texturejapanese_xvm_font2_0071D924`) is ported for the printable ASCII range in
+`TextureFontSurface`; wide glyphs and page selection above code unit `0x00FF` remain outside it.
+The atlas cache policy is represented by the fixed three-page layout; the runtime texture-update
+counter is not needed when a font is built once.
