@@ -217,6 +217,18 @@ def prs_vectors(read):
     write("00788154.json", vectors)
 
 
+def angle_vectors(read):
+    """0x007A9018: absolute difference of two 16-bit turn values."""
+    generator = random.Random(0x7A9018)
+    pairs = [(0, 0), (1, 0), (0, 1), (0xFFFF, 0), (0, 0xFFFF), (0x8000, 0), (0x7FFF, 0x8000)]
+    pairs += [(generator.randrange(0x10000), generator.randrange(0x10000)) for _ in range(24)]
+    vectors = []
+    for left, right in pairs:
+        eax, _, _ = run(read, 0x007A9018, 20, [left, right])
+        vectors.append({"left": left, "right": right, "result": eax})
+    write("007A9018.json", vectors)
+
+
 def clear_second_bit_vectors(read):
     """0x005DD34C: clears bit 1 of the 32-bit field at offset 0x64 of the pointed object."""
     target = 0x30004000
@@ -245,6 +257,7 @@ def main():
     set_low_bit_vectors(read)
     validate_index_vectors(read)
     clear_second_bit_vectors(read)
+    angle_vectors(read)
     prs_vectors(read)
 
 
