@@ -13,4 +13,7 @@ public readonly record struct MapRenderStateArgument(uint State, uint First, uin
 
 	/// <summary>The selector whose operands are the source and destination blend factors.</summary>
 	public const uint BlendState = 2;
+
+	/// <summary>The selector whose operands are the horizontal and vertical texture address modes.</summary>
+	public const uint AddressState = 4;
 }
