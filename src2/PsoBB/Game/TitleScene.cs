@@ -31,16 +31,30 @@ public sealed class TitleScene : IDisposable
 	/// <summary>The original viewport height.</summary>
 	public const float ViewportHeight = 480f;
 
-	/// <summary>The press-start label position derived from the 256x256 title atlas.</summary>
-	public static readonly Vector2 PressStartPosition = new(192f, 96f);
+	/// <summary>The press-start label position from the full-screen title atlas draw at 0x0040131C.</summary>
+	public static readonly Vector2 PressStartPosition = new(0f, 4f * ViewportHeight / 256f);
 
-	/// <summary>The press-start label size derived from the 256x256 title atlas.</summary>
-	public static readonly Vector2 PressStartSize = new(256f, 24f);
+	/// <summary>The press-start label size from the full-screen title atlas draw at 0x0040131C.</summary>
+	public static readonly Vector2 PressStartSize = new(ViewportWidth, 24f * ViewportHeight / 256f);
 
-	/// <summary>The logo origin the original start screen draws from.</summary>
-	public const float LogoOriginX = -150f;
+	/// <summary>The depth argument the original start screen passes to the logo draw.</summary>
+	public const float LogoDepthArgument = -150f;
 
-	private static readonly string[] TitleNames = ["title.prs", "title_eng.prs", "title2_eng.xvm", "title2.xvm"];
+	private const uint DiffuseMaterialSource = 145;
+	private const uint ColorVertex1 = 1;
+	private static readonly LogoPiece[] LogoPieces =
+	[
+		new(7, 512f, 384f, 128f, 128f),
+		new(6, 512f, 256f, 128f, 128f),
+		new(5, 512f, 128f, 128f, 128f),
+		new(4, 512f, 0f, 128f, 128f),
+		new(1, 0f, 256f, 256f, 256f),
+		new(0, 0f, 0f, 256f, 256f),
+		new(3, 256f, 256f, 256f, 256f),
+		new(2, 256f, 0f, 256f, 256f),
+	];
+
+	private static readonly string[] TitleNames = ["title2_eng.xvm", "title2.xvm", "title.prs", "title_eng.prs"];
 	private static readonly string[] SelectNames = ["f256_selectgamen_a_eng.prs", "f256_selectgamen_a.prs"];
 	private readonly TitleMenu _menu;
 	private readonly ITexture _pressStart;
@@ -72,7 +86,7 @@ public sealed class TitleScene : IDisposable
 		_selectLabels = select is null ? null : CreateTexture(renderer, select);
 		_menu = new TitleMenu(CreateTexture(renderer, title), CreateEntries(false));
 		foreach (XvmTexture logo in ReadTextures(files, "logo.prs"))
-			_logos.Add(CreateTexture(renderer, logo));
+			_logos.Add(CreateLogoTexture(renderer, logo));
 		SceneManager.SetSceneParameter(SceneNumber);
 	}
 
@@ -161,19 +175,54 @@ public sealed class TitleScene : IDisposable
 			DrawStartScreen(draw);
 	}
 
+	/// <summary>
+	/// Applies the render states the original uses for the current pass.
+	/// </summary>
+	/// <param name="renderer">The renderer that receives the states.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="renderer"/> is null.</exception>
+	[Original(0x00415AB0)]
+	public void ConfigureRenderState(IRenderer renderer)
+	{
+		ArgumentNullException.ThrowIfNull(renderer);
+		renderer.SetRenderState(RenderStateId.ZEnable, 0);
+		renderer.SetRenderState(RenderStateId.ZWriteEnable, 0);
+		renderer.SetRenderState(RenderStateId.CullMode, RenderStateId.CullNone);
+		renderer.SetRenderState(RenderStateId.Lighting, 0);
+		renderer.SetRenderState(DiffuseMaterialSource, ColorVertex1);
+		renderer.SetRenderState(RenderStateId.FogEnable, 0);
+		if (_menuVisible)
+		{
+			renderer.SetRenderState(RenderStateId.AlphaTestEnable, 0);
+			renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
+			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
+			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
+			return;
+		}
+		renderer.SetRenderState(RenderStateId.AlphaTestEnable, 1);
+		renderer.SetRenderState(RenderStateId.AlphaReference, 0);
+		renderer.SetRenderState(RenderStateId.AlphaFunction, RenderStateId.ComparisonGreater);
+		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 0);
+		renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendOne);
+		renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendZero);
+	}
+
 	[Original(0x00411E30)]
 	private void DrawStartScreen(UiDrawList draw)
 	{
-		for (int index = 0; index < _logos.Count; index++)
-		{
-			bool top = index < 4;
-			int piece = top ? index : index - 4;
-			float size = top ? 256f : 128f;
-			float x = LogoOriginX + piece * size;
-			float y = top ? 0f : 256f;
-			draw.Add(new UiQuad(new Vector2(x, y), new Vector2(size, size), new Vector4(0f, 0f, 1f, 1f), _logos[index], 0xFFFFFFFF));
-		}
+		foreach (LogoPiece piece in LogoPieces)
+			draw.Add(new UiQuad(new Vector2(piece.X, piece.Y), new Vector2(piece.Width, piece.Height), new Vector4(0f, 0f, 1f, 1f), _logos[piece.TextureIndex], 0xFFFFFFFF));
 		draw.Add(new UiQuad(PressStartPosition, PressStartSize, _pressStartCoordinates, _pressStart, 0xFFFFFFFF));
+	}
+
+	private static ITexture CreateLogoTexture(IRenderer renderer, XvmTexture texture)
+	{
+		byte[] pixels = texture.Image.Pixels.ToArray();
+		for (int index = 0; index + 3 < pixels.Length; index += 4)
+		{
+			if (pixels[index] == 255 && pixels[index + 1] == 255 && pixels[index + 2] == 255)
+				pixels[index + 3] = 0;
+		}
+		return renderer.CreateTexture(texture.Width, texture.Height, pixels, texture.Image.Stride);
 	}
 
 	/// <summary>
@@ -257,6 +306,8 @@ public sealed class TitleScene : IDisposable
 		}
 		throw new TextureFormatException($"The archive '{name}' is neither XVM nor a supported PRS stream.", 0);
 	}
+
+	private sealed record LogoPiece(int TextureIndex, float X, float Y, float Width, float Height);
 
 	private static TitleMenuEntry[] CreateEntries(bool fromSelect)
 	{

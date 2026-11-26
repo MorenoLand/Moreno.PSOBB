@@ -27,14 +27,41 @@ raw XVM archive or a PRS stream with a zero declared decompressed size, so the l
 
 | Name | Use |
 |---|---|
-| `title.prs` / `title_eng.prs` / `title2_eng.xvm` | 256x256 title atlas; rows 4, 36, 68, 100 and 132 hold `PRESS START BUTTON`, `ONLINE GAME`, `OFFLINE GAME`, `OPTIONS` and `HOME PAGES` |
+| `title2_eng.xvm` / `title2.xvm` / `title.prs` / `title_eng.prs` | 256x256 title atlas; rows 4, 36, 68, 100 and 132 hold `PRESS START BUTTON`, `ONLINE GAME`, `OFFLINE GAME`, `OPTIONS` and `HOME PAGES` |
 | `f256_selectgamen_a_eng.prs` / `f256_selectgamen_a.prs` | Optional select-game atlas; texture 2 holds the same four menu labels |
 | `logo.prs` | Eight logo pieces: four 256x256 textures and four 128x128 textures |
 
-The press-start quad uses the atlas row at `(0,4)-(256,28)` drawn at `(192,96)` with size `256x24`.
-The menu uses rows 1 through 4 at the original entry positions. The optional select-game texture is
-loaded and exposed but the menu draws the title atlas so both retail sets decode through the same
-path.
+The title atlas is drawn full-screen at `640x480`, so its first row occupies `(0, 7.5)` with size
+`640x45`; this is the press-start prompt position. The menu uses rows 1 through 4 at the original
+entry positions. The optional select-game texture is loaded and exposed but the menu draws the title
+atlas so both retail sets decode through the same path.
+
+## Logo composition
+
+`0x00411E30` draws one four-vertex triangle strip per logo piece from the table at `0x009A3840`.
+The table is eight rows of `(texture index, x, y, width, height)`, in draw order:
+
+| Texture | Position | Size |
+|---|---|---|
+| 7 | `(512,384)` | `128x128` |
+| 6 | `(512,256)` | `128x128` |
+| 5 | `(512,128)` | `128x128` |
+| 4 | `(512,0)` | `128x128` |
+| 1 | `(0,256)` | `256x256` |
+| 0 | `(0,0)` | `256x256` |
+| 3 | `(256,256)` | `256x256` |
+| 2 | `(256,0)` | `256x256` |
+
+Texture coordinates are the full `(0,0)-(1,1)` rectangle. The depth argument `-150.0` only feeds the
+`1.0 - argument` z value; the `-1.0 / argument` quotient is written below the vertex array and never
+read. There is no rotation or scale.
+
+`0x00415AB0` sets alpha blending off, alpha operation `SELECTARG2`, lighting off, diffuse material
+source colour 1, clamp addressing, and the `0x144` transformed/coloured/textured vertex format. It
+does not set blend factors, alpha test, culling or z state. Because blending is off, the white
+background is removed by a colour key rather than by blending. The port converts pure white texels in
+`logo.prs` to zero alpha at upload and then enables alpha test (`GREATER`, reference 0). The
+full-screen white 128x128 pieces therefore become fully transparent.
 
 ## Transitions
 
@@ -49,8 +76,8 @@ path.
 
 - Scene 2's own initialiser and update are not ported. The preview keeps the menu surface visible in
   place of the scene 2 loop after the original scene 2 request.
-- The eight logo pieces are drawn as a 3x2 arrangement from their stored dimensions rather than the
-  original vertex fan and rotation.
+- The eight logo pieces use the original table positions and full texture coordinates; the original
+  z value is not represented by the port's two-dimensional quad list.
 - The press-start prompt accepts the confirm action; the original callback reacts to any window input.
 - The network-state check that requests scene zero is not ported.
 - Audio, network login, movie playback and the options pages behind the menu are not ported.
@@ -61,9 +88,11 @@ path.
 
 `TitleSceneTests` and `TitleMenuTests` use synthetic GSL archives with raw and PRS-compressed XVM
 payloads. They cover archive loading, the two-step press-start transition, wrap and repeat selection,
-alpha fade, the four confirm transitions, cancel, expected quad positions and textures, and clean
-release. The retail archive at `data/data.gsl` was decoded through
+alpha fade, the four confirm transitions, cancel, the eight logo positions and textures, the white
+colour key, the exact logo and menu render-state sequences, expected quad positions and textures, and
+clean release. The retail archive at `data/data.gsl` was decoded through
 `WindowsFileSystem`, `DataFileRegistry` and `TitleScene`: press and select textures 256x256, eight
-logo textures, four entries, press-start quad at `(192,96)` with UV `(0,0.015625,1,0.109375)`, first
-menu quad at `(131,182)` size `180x38` with UV `(0,0.140625,1,0.234375)`, and 11 created textures
-disposed 11 times.
+logo textures, four entries, press-start quad at `(0,7.5)` size `640x45` with UV
+`(0,0.015625,1,0.109375)`, first menu quad at `(131,182)` size `180x38` with UV
+`(0,0.140625,1,0.234375)`, and 11 created textures disposed 11 times. A Windows capture of the
+start screen shows the SEGA and Sonic Team logos over black, with no white rectangle.

@@ -42,13 +42,7 @@ public static class TitlePreview
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
-		renderer.SetRenderState(RenderStateId.ZEnable, 0);
-		renderer.SetRenderState(RenderStateId.ZWriteEnable, 0);
-		renderer.SetRenderState(RenderStateId.CullMode, RenderStateId.CullNone);
-		renderer.SetRenderState(RenderStateId.Lighting, 0);
-		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
-		renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
-		renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
+		scene.ConfigureRenderState(renderer);
 		renderer.Clear(ClientHost.EmptyFrameColor);
 		UiDrawList draw = new();
 		scene.Draw(draw);

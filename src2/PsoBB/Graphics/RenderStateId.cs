@@ -54,6 +54,7 @@ public static class RenderStateId
 
 	public const uint ComparisonNever = 1;
 	public const uint ComparisonLessEqual = 4;
+	public const uint ComparisonGreater = 5;
 	public const uint ComparisonAlways = 8;
 
 	public const uint BlendZero = 1;
