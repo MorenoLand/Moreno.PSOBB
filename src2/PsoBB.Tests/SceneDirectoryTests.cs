@@ -1,3 +1,4 @@
+using System.Numerics;
 using PsoBB.Client;
 using PsoBB.Core;
 using PsoBB.Data;
@@ -33,6 +34,8 @@ public sealed class SceneDirectoryTests : IDisposable
 	{
 		GameState.Reset();
 		Scene1.Reset();
+		Scene2.Reset();
+		Scene2TransitionOverlay.Reset();
 		CharacterMakingScene.Reset();
 	}
 
@@ -40,6 +43,8 @@ public sealed class SceneDirectoryTests : IDisposable
 	{
 		GameState.Reset();
 		Scene1.Reset();
+		Scene2.Reset();
+		Scene2TransitionOverlay.Reset();
 		CharacterMakingScene.Reset();
 	}
 
@@ -106,12 +111,87 @@ public sealed class SceneDirectoryTests : IDisposable
 	}
 
 	[Fact]
-	public void SceneTwoHasNoPortedScreen()
+	public void SceneTwoWithoutAFactoryStopsWithTheInterfaceDiagnostic()
 	{
 		using DataFileRegistry files = OnlineTestData.Registry();
 		using RecordingRenderer renderer = new(RenderSettings.Default);
 		using SceneDirectory directory = new(files, renderer);
-		Assert.Null(directory.Create(Scene2.SceneNumber));
+		using SceneDirector director = new(new InputManager(new MemoryGameInput()), directory);
+		GameState.CurrentScene = Scene2.SceneNumber;
+
+		director.Update();
+
+		Assert.True(director.IsStopped);
+		Assert.False(director.IsExited);
+		Assert.Equal("Scene 2 has no supplied interface.", director.Diagnostic);
+		Assert.Null(director.Screen);
+	}
+
+	[Fact]
+	public void SceneTwoLifecycleThroughTheDirectorIsStartUpdateDrawRelease()
+	{
+		List<string> log = [];
+		Func<Scene2Interface> scene2 = () => new(state =>
+			state == Scene2.EntryScreenState ? new Scene2Screen(new RecordingPanel(log)) : null);
+		using DataFileRegistry files = Scene1TestData.Registry(includeLogo: false);
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using SceneDirectory directory = new(files, renderer, scene2Factory: scene2);
+		MemoryGameInput source = new();
+		InputManager input = new(source);
+		using SceneDirector director = new(input, directory);
+		GameState.CurrentScene = Scene2.SceneNumber;
+
+		director.Update();
+		Assert.NotNull(director.Screen);
+		Assert.Equal(Scene2.EntryScreenState, GameState.SceneScreenState);
+		Assert.Equal(2u, GameState.SceneFadeState);
+
+		director.Update();
+		Assert.Equal(["create", "update"], log);
+		director.Draw(new UiDrawList());
+		Assert.Equal(["create", "update", "draw"], log);
+
+		source.SetKey(GameKey.Escape, true);
+		input.Update(TimeSpan.Zero);
+		director.Update();
+		Assert.Contains("update", log);
+		Assert.DoesNotContain("release", log);
+		director.Draw(new UiDrawList());
+		Assert.Equal("draw", log[^1]);
+
+		director.Update();
+
+		Assert.True(director.IsExited);
+		Assert.Equal(Scene2.ReleasedScreenState, GameState.SceneScreenState);
+		Assert.Equal(["create", "update", "draw", "update", "draw", "release"], log);
+	}
+
+	[Fact]
+	public void SceneOneRequestsSceneTwoWithTransitionOne()
+	{
+		using DataFileRegistry files = Scene1TestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using SceneDirectory directory = new(files, renderer);
+		using SceneDirector director = new(new InputManager(new MemoryGameInput()), directory);
+		GameState.CurrentScene = Scene1.SceneNumber;
+		int total = TitleLogoSequence.TimerTicks + TitleLogoSequence.FrameLimit + 1 + TitleLogoSequence.TimerTicks - 1;
+		for (int index = 0; index < total; index++)
+			director.Update();
+
+		Assert.False(director.IsStopped);
+		director.Update();
+
+		Assert.Equal(1u, GameState.SceneTransition);
+		Assert.Equal(Scene2.SceneNumber, GameState.RequestedScene);
+		Assert.Equal(Scene1.SceneNumber, GameState.CurrentScene);
+	}
+
+	[Fact]
+	public void ScenesWithoutPortedScreensReturnNoScreen()
+	{
+		using DataFileRegistry files = OnlineTestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using SceneDirectory directory = new(files, renderer);
 		Assert.Null(directory.Create(14));
 		Assert.Null(directory.Create(18));
 	}
@@ -398,6 +478,38 @@ public sealed class SceneDirectoryTests : IDisposable
 			Director.Dispose();
 			Files.Dispose();
 			Renderer.Dispose();
+		}
+	}
+
+	private sealed class RecordingPanel : UiPanel
+	{
+		private readonly List<string> _log;
+
+		public RecordingPanel(List<string> log)
+		{
+			_log = log;
+			Size = new Vector2(640f, 480f);
+			Color = 0xFFFFFFFFu;
+			_log.Add("create");
+		}
+
+		public override void Update(float deltaSeconds)
+		{
+			_log.Add("update");
+			base.Update(deltaSeconds);
+		}
+
+		public override void Draw(UiDrawList drawList)
+		{
+			_log.Add("draw");
+			base.Draw(drawList);
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (!IsDisposed)
+				_log.Add("release");
+			base.Dispose(disposing);
 		}
 	}
 

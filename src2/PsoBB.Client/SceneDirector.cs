@@ -154,7 +154,7 @@ public sealed class SceneDirector : IDisposable
 		SceneDirectory directory;
 		try
 		{
-			directory = new SceneDirectory(files, host.Renderer, options.Network, options.CinematicLogo);
+			directory = new SceneDirectory(files, host.Renderer, options.Network, options.CinematicLogo, options.Scene2Factory);
 		}
 		catch
 		{
@@ -182,7 +182,7 @@ public sealed class SceneDirector : IDisposable
 		ISceneScreen? screen = _screens.Create(scene);
 		if (screen is null)
 		{
-			Stop($"Scene {scene} has no ported screen.");
+			Stop(_screens.DescribeMissing(scene) ?? $"Scene {scene} has no ported screen.");
 			return;
 		}
 		_screen = screen;

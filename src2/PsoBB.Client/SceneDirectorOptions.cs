@@ -1,3 +1,5 @@
+using PsoBB.Scenes;
+
 namespace PsoBB.Client;
 
 /// <summary>
@@ -10,4 +12,7 @@ public sealed class SceneDirectorOptions
 
 	/// <summary>Gets or sets whether scene 1 selects the cinematic logo descriptor.</summary>
 	public bool CinematicLogo { get; init; }
+
+	/// <summary>Gets or sets the factory that builds the scene-2 interface tree, or <see langword="null"/> when it is not supplied.</summary>
+	public Func<Scene2Interface>? Scene2Factory { get; init; }
 }
