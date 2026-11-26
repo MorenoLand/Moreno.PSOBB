@@ -84,4 +84,8 @@ public static class RenderStateId
 	public const uint BlendOne = 2;
 	public const uint BlendSourceAlpha = 5;
 	public const uint BlendInverseSourceAlpha = 6;
+	public const uint BlendDestinationAlpha = 7;
+	public const uint BlendInverseDestinationAlpha = 8;
+	public const uint BlendDestinationColor = 9;
+	public const uint BlendInverseDestinationColor = 10;
 }
