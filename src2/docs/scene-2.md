@@ -1,4 +1,4 @@
-# Scene 2: proven state and unported screen
+# Scene 2: proven state, menu text and title effects
 
 Scene 2's initialiser, update and release are `0x00824934`, `0x0081AA00` and `0x0081E160`. All three
 call renderer, interface, input and asset systems that are not ported, so none of them is annotated or
@@ -6,13 +6,14 @@ claimed as a port. The one complete function on the scene-2 path is the selector
 `0x00824860`, ported by `PsoBB.Scenes.Scene2.SelectSharedScreenState`.
 
 Scene 1 screen 9 is **not** the observed Login screen: its constructor `0x004D5A14` builds a 108-byte
-sprite whose update only animates and hides it. Scene 2 remains the candidate because its state-zero
-controller `0x006F8130` selects `title.adx` and builds a four-slot selector and account dialog, but
-the function that draws the Login/Start Game/Exit Game/Patch Download/Register UserID rows has not
-been identified. No screen, layout, menu entry or asset assignment is invented or claimed.
+sprite whose update only animates and hides it. Scene 2 is the observed screen. Its state-zero
+controller `0x006F8130` selects `title.adx`, builds the title art and the four-slot selector, and loads
+the `title_a`/`title_b`/`title_seiunn` effect records; selector state 0 later creates the account
+dialog. The Login header and the Start Game/Exit Game/Patch Download/Register UserID rows are built by
+the account dialog from `unitxt_e.prs` list 41; they are not baked into the title effect textures.
 
-The title screen in `build/ref-13.png` was not reconstructed from the screenshot. No guessed layout,
-menu entries, labels, assets or transitions remain in the code.
+The title screen in `build/ref-13.png` and `build/oracle-captures/t09.png` was not reconstructed from
+the screenshots. No guessed layout, menu entries, labels, assets or transitions remain in the code.
 
 ## Ported function
 
@@ -26,68 +27,124 @@ agree that entries 0–3 call `0x006F8534`, entries 4–5 call the null function
 calls `0x006F4C04`. `0x006F8534` calls `0x00824860`. The table, selector and state-9 screen object are
 not ported.
 
-## Evidence addresses, not ported
+## Transition to scene 2
 
-- `0x00824934` calls the common scene frame `0x00824944` and then `0x0081E298`.
-- `0x0081E298` saves screen state, selects state 0 and starts fade 1. The optional
-  `0x00ACBEF0` branch is unported.
-- `0x0081AA00` advances fade 1 → 2 → 0 and then calls `0x0081AAC8`; the renderer, interface tree,
-  camera, input and cancel paths are unported.
-- The state-zero branch of `0x0081AAC8` allocates 76 bytes and constructs `0x006F8130`.
-- `0x006F8130` stores the controller in `0x00A96954`, writes scene parameter 1, selects `title.adx`,
-  chooses a `0x04B0` or `0x0320` timer from `0x006DC358`, creates child objects `0x006F4734`,
-  `0x006FECB8` and `0x006F4CA4`, and loads cache textures `483`, `484` and `485`.
-- `0x006F4734` draws through `0x006F475C`, which uses `0x00415AB0`, `0x00415BCC` and the ring vertex
-  helper `0x006F46C4`.
-- `0x006FECB8` moves a four-slot index with `0x006FED2C`; confirming stores state two. `0x006FEDE0`
-  creates the account dialog at `0x007617E8`. The menu labels and their slot mapping are not
-  established by these functions.
-- `0x0081E160` releases the screen controller, interface tree and textures; none of those objects is
-  ported.
-
-## Assets proven only as archive contents
-
-The standalone archives contain the following textures; this does **not** prove scene 2 uses them:
-
-| Archive | Proven contents |
-|---|---|
-| `title_eng.prs` / `title.prs` | 21 textures: four 256x256 backdrop pieces at 3–6, a 512x512 emblem at 11, a 512x512 ring at 12 |
-| `f256_backtext.prs` | five 256x256 circuit background textures |
-| `patch.xvm` | one 256x256 button strip and one 64x64 button strip |
-| `textureenglish.xvm` / `texturejapanese.xvm` | 256x256 texture-font atlases, not proven to be the title labels |
-
-The global numeric cache indices loaded by the controller (`483`, `484`, `485`) are not mapped to
-these files. The observed labels are in `unitxt_e.prs` as shown above, but the function that draws
-them for this screen is still unidentified. The draw function that composes the reference screen was
-not identified.
-
-## Draw-path investigation
-
-The oracle captures show the Login menu at `t09` without input. The transition path to scene 2 is
-proven:
+The path from the title UI to scene 2 is proven:
 
 1. `0x00411C94` state 9 counts past 60 frames and schedules `0x00411E94`.
-2. `0x00411E94` writes `dword_A3B078 = 1` when `0x006DC358() == 1`.
+2. `0x00411E94` writes `dword_A3B078 = 1` when `0x006DC358() == 1`; otherwise it writes the same flag
+   after hiding its callback object.
 3. The title-UI virtual method `0x007A44F0` sees `dword_A3B078`, hides its child, enters state 3, and
    the next state-3 call invokes `0x007A60DC(2)`, requesting scene 2.
-4. Scene 2 runs the fade and `0x0081AAC8` state 0 constructs `0x006F8130`.
+4. Scene 2 runs the fade in `0x0081AA00`; its state-zero branch `0x0081AAC8` allocates 76 bytes and
+   constructs `0x006F8130`.
+
+## The account dialog builds the menu from list 41
 
 The selector object is confirmed from the vtable at `0x00B3EAF8`: destructor `0x006FEC44`, update
 `0x006FED04`, draw `0x006FF0D4`, null slot `0x0061CDB0`.
 
-`0x006FF0D4` is the only caller of `0x006FB8D4`, which indexes the 32-byte element table at
-`0x009CFF00`. It draws element 10 with frame 10 from the 20-byte frame table at `0x009CFB60`:
-element 10 is a 256x32 strip at `(193,338)`, and frame 10 covers `(0,0)-(255,31)`. The call passes
-scale `-10.0` and flags `0x22` to `0x0082B6BC`. The static elements 11–14 are 256x32 strips at
-`(193,300)`, `(193,332)`, `(193,364)` and `(193,396)`, and element 15 is at `(192,308)`. The function
-that draws elements 11–15, the text lookup for `unitxt_e.prs` IDs 3–7, and the mapping from the
-element/frame tables to an archive texture are **not identified**. No C# member reproduces a menu
-element; `Scene2.SelectSharedScreenState` reproduces only `0x00824860`.
+`0x006FED04` dispatches selector state 0 to `0x006FEDE0` and state 1 to `0x006FED2C`, then increments
+the frame counter. `0x006FEDE0` creates the account dialog `0x007617E8` when
+`0x0040E234(dword_A0F698 | HIDWORD(qword_A0F670))` is true, and stores the dialog pointer at selector
+`+0x3C`. When the dialog reports confirmation, the selector copies the user and password buffers
+through `0x007624C8` and `0x007624D4`, hides the dialog, and sets selector state 2.
 
-`0x006FED04` dispatches update state 0 to `0x006FEDE0` and state 1 to `0x006FED2C`, then increments
-the frame counter. `0x006FED2C` changes the four-slot index in `[object+0x20]`, wraps it at both
-ends and sets `[object+0x24] = 2` on confirm. `0x006FEDE0` creates the account dialog at
-`0x007617E8`. Their input globals, dialog controls and draw destinations are not ported.
+`0x007617E8` calls `0x00761C48`, which resolves every label through `0x00792FE8`:
+
+| Slot | Lookup | Text |
+|---|---|---|
+| Header | `0x00792FE8(41, 2)` | `Login` |
+| 0 | `0x00792FE8(41, 3)` | `Start Game` |
+| 1 | `0x00792FE8(41, 4)` | `Exit Game` |
+| 2 | `0x00792FE8(41, 5)` | `Patch Download` |
+| 3 | `0x00792FE8(41, 6)` | `Register UserID` |
+
+`0x00761C48` has two branches. When `0x0082D2F8()` is nonzero it builds a two-row list with the Login
+header and Start Game/Exit Game. Otherwise it builds the five-slot list used by `t09`: the Login header,
+the four rows above, and a fifth non-action hint created by `0x00735DB8` with the string data at
+`0x00974EB8`; the wide text `[%s]` begins at `0x00974EBC`. The observed capture shows that fifth slot
+as `[d]`; the string data is in the shipped image, not in the capture.
+
+The rows are bound to the list widget, not to the selector's four-slot index. `0x00735C90` adds each
+row with `0x0072DB60` and stores the caller's data value (`0`, `1`, `2`, `3`) in the list's item table.
+`0x007348D8` handles list input and updates the selected item at list `+0x8C`; on confirm
+`0x007365F4` returns the selected item's stored data value, and `0x007621E4` maps it:
+
+| Data value | Dialog state | Meaning |
+|---|---|---|
+| 0 | 9 | close the dialog; the selector then reaches state 2 |
+| 1 | 5 | Exit Game flow |
+| 2 | 7 | Patch Download flow |
+| 3 | 3 | Register UserID/account-edit flow |
+
+The fifth item (index 4) is a non-action hint; `0x007621E4` has no case for it.
+
+The selector also has a separate four-slot index at `+0x20`. `0x006FED2C` decrements/increments it,
+wraps it, and sets `+0x24 = 2` on confirm. `0x006F8464` checks selector state 2 through `0x006FF1A4`,
+reads the index through `0x004076B0` (`[selector + 0x20]`), and dispatches `0x009D04C8[index]`. No write
+from the account dialog or its list selection to `selector + 0x20` was found in the lifted code. The
+dialog's row data and the selector's index are separate mechanisms; the selector index is initialised
+to zero, and zero is also the Start Game row that closes the dialog.
+
+## Text rendering
+
+The list widget vtable is `0x00B40A38`: destructor `0x00734700`, update `0x007348D8`, draw
+`0x007352D0`. The draw path is:
+
+1. `0x007352D0` calls the base widget draw `0x00710F80`, which binds the GUI skin texture set
+   `dword_A983D8` (`&off_9F58C8` or `&off_9F58F4`, selected by `0x00712D14`) and draws the widget frame
+   and title bar.
+2. `0x0072DB60` stores each row string at the item's `+0x20`. The item draw `0x0072D9B4` reads that
+   string and calls `0x0071D924` or `0x0071D58C`; both draw the glyph quads. `0x0071D58C` parses with
+   `0x007AC580`/`0x007AC24C`; `0x0071D924` uses `0x00789240`/`0x00789044`.
+3. The font atlas is `dword_A9CD48`, bound by `0x00829CC8`. `0x0079324C` selects it by language; for
+   English it is the `textureenglish.xvm` texture-font atlas. The glyph draw uses `0x007893A4` or
+   `0x00788FA0` for the matching glyph cell.
+
+The GUI skin and font atlas are separate from the title effect records below.
+
+## Title effect records 483–485
+
+`0x006F8130` loads three 152-byte records through `0x0050A0EC` and stores the resulting 208-byte
+objects at controller `+0x40`, `+0x44` and `+0x48`:
+
+| Record | Name field (+0x00) | Type (+0x10) | Texture ID (+0x14) | +0x48 | +0x4C |
+|---|---|---|---|---|---|
+| 483 | `title_a` / `ontaib` | 2 | `0x000AB02C` | 50 | 10 |
+| 484 | `title_b` | 2 | `0x000AB02C` | 100 | 20 |
+| 485 | `title_seiunn` / `ki` | 0 | `0x000AAEF7` | 350 | 300 |
+
+`0x0050A0EC` indexes `dword_A72CD0 + 152 * index` and builds the 208-byte object with vtable
+`0x00AFF308`, storing the record pointer at object `+0x28`. The function that allocates and fills the
+table is `0x0050DAE0`; `0x0050D92C` frees it and `0x0050CD6C` edits individual records:
+
+1. `operator new(0x13000)` allocates 512 records.
+2. `0x005B9910(off_9BB1B8[0], buffer)` loads the named file. `off_9BB1B8[0]` points to the string
+   `particleentry.dat`.
+3. `0x005B9918` forwards to `0x005BB880`, which resolves the name through the file system, copies the
+   bytes, and returns the byte count. The count divided by 152 becomes `dword_9BB1C8`.
+
+The GSL entry `particleentry.dat` is directory index 1043, sector 24610, stored size 77824, offset
+`0x03011000`. That is 512 records. Records 483, 484 and 485 therefore start at `0x03022EC8`,
+`0x03022F60` and `0x03022FF8`. The local `particleentrya36.dat`–`particleentrya46.dat` files are
+64-record variants and are not this table. No direct caller of `0x0050DAE0` was found in the lifted
+code; its output is confirmed by the running host's `dword_A72CD0` contents.
+
+The record's `+0x14` value is a texture ID in `effect_nt.xvm`, not a GSL entry index. `0x00501C4C`
+loads `effect_nt.rel`, parses `effect_nt.xvm` through `0x0081A7D8`, and fills the 54-entry
+`dword_A72880` table from the parsed XVM texture records; the IDs match the XVM global indices at
+`+0x10`, and `0x00501804` maps an ID to its slot. `effect_nt.xvm` is GSL directory index 1375, sector
+30087, size 177280, offset `0x03AC3800`. It contains 54 `XVRT` chunks. The two IDs map as follows:
+
+| Texture ID | XVRT slot | Format | Size | Chunk offset | Pixel bytes |
+|---|---|---|---|---|---|
+| `0x000AB02C` | 5 | DXT1 | 32x32 | `0x03AC45C0` | 512 |
+| `0x000AAEF7` | 43 | DXT1 | 128x128 | `0x03AD7740` | 8192 |
+
+The decoded payloads are particle sprites: `0xAB02C` is a blue glow orb and `0xAAEF7` is a 4x4
+smoke/star sheet. Neither contains the Login or row text. The labels are drawn by the account dialog's
+text list, and the title effect records supply the title artwork's particle sprites.
 
 ## Scene 1 screen 9 is not the login screen
 
@@ -107,35 +164,39 @@ The scene-1 renderer container at `0x004D3408` allocates thirteen screen objects
 | 11 | `0x004D16B0` |
 | 12 | `0x004D1A3C` |
 
-Screen 9 is therefore not `0x004D7E70`. `0x004D5A14` allocates 108 bytes and calls
-`0x004D5A84`, which builds a sprite object (vtable `off_AFC7E8`, field 14 set to 4). Its update
-`0x004D5AAC` advances a frame counter, calls the sprite transform helper `0x007A8F28` and hides the
-sprite when the frame count is reached. It contains no text lookup, no menu rows and no input
-handling. Scene 1's other title UI at `0x007A4530` → `0x00411BE8` draws logo strips through
-`0x00411E30` and `0x00415AB0`; it also has no menu rows. Scene 1 screen 9 is therefore **not** the
-observed Login screen.
+Screen 9 is therefore not `0x004D7E70`. `0x004D5A14` allocates 108 bytes and calls `0x004D5A84`,
+which builds a sprite object (vtable `off_AFC7E8`, field 14 set to 4). Its update `0x004D5AAC`
+advances a frame counter, calls the sprite transform helper `0x007A8F28` and hides the sprite when
+the frame count is reached. It contains no text lookup, no menu rows and no input handling. Scene 1's
+other title UI at `0x007A4530` → `0x00411BE8` draws logo strips through `0x00411E30` and `0x00415AB0`;
+it also has no menu rows. Scene 1 screen 9 is therefore **not** the observed Login screen.
 
 ## The observed labels are in the English text table
 
-`unitxt_e.prs`, decompressed, contains the following UTF-16LE run at offset 234540:
+`unitxt_e.prs` list 41 (32 strings) contains the exact run:
 
 `Login / Start Game / Exit Game / Patch Download / Register UserID / Empty / Input UserID / UserID / Password / Save UserID and Password?`
 
-This proves the exact labels and the account fields. The function that selects these string IDs and
-draws them has not been identified; no screen is assigned them.
+List 41 indices 2–6 are the header and four action rows. Indices 7–11 are the account-edit fields used
+by `0x00762224`. `0x00792FE8(list, index)` indexes the table; `0x00793304` selects the locale
+`unitxt_*.prs` bundle and `0x0079324C` selects the matching texture-font atlas.
 
 ## Unported boundary
 
-- The title screen composition, camera, animated logo/ring, menu labels, row positions, fonts,
-  button art and account dialog are unported.
-- No layout or menu entries are reconstructed from the reference image.
-- The selector table transition is recorded as constants only; the selector object and state 9's
-  screen object are not ported.
-- Missing reference: the draw path for the four static rows and the Login header (elements 11–15 of
-  `0x009CFF00`), the text lookup/draw for `unitxt_e.prs` IDs 3–7, and the texture-atlas mapping for
-  the `0x0082B6BC` element draw.
+- The title screen composition, camera, animated logo/ring, GUI skin, panel, glyph rendering and
+  account-edit dialog are unported.
+- No layout or menu entries are reconstructed from the reference images.
+- Only `0x00824860` is a complete port. The selector object, `0x007617E8`, `0x00761C48`, the list
+  widget and the text renderer are documented but not ported.
+- The text IDs and row binding are no longer missing. What remains unported is the GUI/font rendering
+  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`) and the title effect loader
+  (`0x0050A0EC`/`0x0050DAE0`), which depend on the file, texture and interface systems absent from the
+  branch.
 
 ## Verification
 
 `Scene2Tests` covers the saved previous state, selected state 9, fade 1 and the scene table row. It
-does not test labels, assets, layout or transitions that the machine code does not establish.
+does not test labels, assets, layout or transitions that the machine code does not establish. The
+oracle captures were used only to confirm that the account dialog and the observed menu are the same
+screen; the labels, IDs, record names and texture slots above come from the shipped binaries and the
+lift.
