@@ -16,7 +16,6 @@ public static class NinjaModelReader
 	/// <param name="body">The model body or chunk stream.</param>
 	/// <returns>The parsed model.</returns>
 	/// <exception cref="ModelFormatException">A node, mesh, buffer or chunk range is invalid.</exception>
-	[Original(0x005121F8, "ModelObject_AllocateNodes_005121f8")]
 	public static NinjaModel Read(ReadOnlyMemory<byte> body)
 	{
 		if (IsChunkStream(body.Span))

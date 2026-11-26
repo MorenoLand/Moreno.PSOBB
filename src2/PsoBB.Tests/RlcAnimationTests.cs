@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using PsoBB.Models;
 
 namespace PsoBB.Tests;
@@ -35,6 +36,24 @@ public sealed class RlcAnimationTests
 	}
 
 	/// <summary>
+	/// A retail-style quaternion motion uses a 20-byte record and is exposed as a quaternion track.
+	/// </summary>
+	[Fact]
+	public void QuaternionMotionLayoutIsDetected()
+	{
+		byte[] body = QuaternionMotionCore();
+		NinjaMotion motion = NinjaMotion.Parse(body, 1);
+		Assert.True(motion.HasTranslation);
+		Assert.True(motion.HasQuaternionRotation);
+		NinjaBoneAnimation bone = Assert.Single(motion.Bones);
+		Assert.Equal(NinjaAnimationTrackKind.Quaternion, bone.Tracks[1].Kind);
+		Assert.Equal(20, bone.Tracks[1].RecordSize);
+		NinjaKeyframe key = bone.Tracks[1].Keyframes[1];
+		Assert.Equal(10u, key.Frame);
+		Assert.Equal(0.25f, key.W);
+	}
+
+	/// <summary>
 	/// A truncated chunk header or a malformed keyframe offset is rejected.
 	/// </summary>
 	[Fact]
@@ -66,5 +85,37 @@ public sealed class RlcAnimationTests
 	{
 		RelAsset asset = RelAsset.Parse(ModelTestData.WithRelocationTable([1, 2, 3, 4], []));
 		Assert.Throws<ModelFormatException>(() => asset.ReadModel());
+	}
+
+	private static byte[] QuaternionMotionCore()
+	{
+		byte[] body = new byte[100];
+		BinaryPrimitives.WriteUInt32LittleEndian(body, 12);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4), 10);
+		BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(8), 0x2001);
+		BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(10), 2);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(12), 28);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(16), 60);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(20), 2);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(24), 2);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(28), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(32), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(36), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(40), 0);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(44), 10);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(48), 10);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(52), 20);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(56), 30);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(60), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(64), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(68), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(72), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(76), 1);
+		BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(80), 10);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(84), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(88), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(92), 0);
+		BinaryPrimitives.WriteSingleLittleEndian(body.AsSpan(96), 0.25f);
+		return body;
 	}
 }
