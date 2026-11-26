@@ -34,6 +34,16 @@ The portable scene readers validate every table, pointer slot and stream before 
 - The BML loader reads the first 0x800-byte header block and aligned streams from a complete buffer. The original reads the same ranges through its asynchronous asset buffer and screen-loading state machine.
 - Ninja chunks are exposed as type and body bytes. NJCM/NJTL model conversion, texture upload and render-state setter semantics are not part of this loader batch.
 
+## Model readers
+
+The portable model readers in `PsoBB.Models` turn Ninja chunk streams into node trees, vertex arrays, index buffers, material state and keyframes. The original walks guest pointers inside fixed load buffers.
+
+- Pointer relocation adds the represented buffer base, which is zero in the flat portable model, so relocated pointer words stay file-relative offsets. Payload pointers are then rebased to the payload start. The table traversal and bounds checks match `0x0083B124` and `0x005BA264`.
+- Truncated chunks, out-of-range pointers, unsupported vertex formats and invalid buffer indices are rejected. The original would read past the mapped buffer or draw with an unchecked index.
+- The NMDM header carries no bone count. The caller supplies the model node count as the original does; a standalone motion can use a length-derived bound.
+- The PAE container is the project's asset wrapper. Its model and texture-list sections reuse the client's relocated-block and Ninja chunk layouts, so the inner formats remain the original ones.
+- `PsoBB.Scene.BmlArchive` and `PsoBB.Models.BmlArchive` currently parse the same container at different depths: the scene copy exposes stream ranges for map props, the model copy builds model, motion and texture objects. They are kept as separate layers until the scene loader consumes the model archive directly.
+
 ## WebGL renderer
 
 The browser WebGL 2 renderer preserves the Direct3D 11 renderer's visible output for solid geometry, textures, blending, depth, stencil, alpha test and fog. The remaining differences come from the browser graphics API.
