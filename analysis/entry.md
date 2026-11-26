@@ -17,14 +17,14 @@ e9 69 00 00 00   jmp  00b60005
 At `0x00B5F7D0`:
 
 ```
-68 a5 eb 96 00      push 0096eba5        ; "patch.dll"
+68 a5 eb 96 00      push 0096eba5        ; patch library name
 ff 15 30 81 8f 00   call dword [008f8130] ; kernel32!LoadLibraryA
 bb 27 02 00 00      mov ebx, 0x227
 e8 20 08 00 00      call 00b60005
 c3                  ret
 ```
 
-`0x0096EBA5` reads `patch.dll` (observed). The code after the call performs
+`0x0096EBA5` reads the patch library name (observed). The code after the call performs
 self-modifying fixups inside `.pseudo`, using `call $+5` / `pop ebp` /
 `sub ebp, 0x4BE14D` and writes through computed pointers. It is a client patch
 loader, not the C runtime startup.
@@ -77,5 +77,5 @@ Calls observed in the same function (`0x0085AB43`-`0x0085AD10`):
 0x00B60000` (the observed PE entry, kept for verification). `0x0085AB43` is
 listed in `[lift].extra` because IDA did not create a function there.
 
-Limitation: the Patch patch loader (`patch.dll`, `0x00B5F7D0` /
+Limitation: the patch loader (the patch library, `0x00B5F7D0` /
 `0x00B60000`) is not part of the lifted program.
