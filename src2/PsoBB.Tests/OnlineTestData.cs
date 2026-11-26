@@ -1,4 +1,5 @@
 using PsoBB.Data;
+using PsoBB.Imaging;
 using PsoBB.Platform;
 
 namespace PsoBB.Tests;
@@ -20,9 +21,9 @@ internal static class OnlineTestData
 		fileSystem.CreateDirectory(GamePath.Parse("data"));
 		List<(string Name, byte[] Stored, int UncompressedSize)> entries = [];
 		if (includeEnglish)
-			entries.Add(("f256_slot_eng.prs", ArchiveSamples.Compress(TitleTestData.Xvm((256, 256))), 0));
+			entries.Add(("f256_slot_eng.prs", ArchiveSamples.Compress(Xvm((256, 256))), 0));
 		if (includeStandalone)
-			entries.Add(("f256_slot.prs", ArchiveSamples.Compress(TitleTestData.Xvm((256, 256))), 0));
+			entries.Add(("f256_slot.prs", ArchiveSamples.Compress(Xvm((256, 256))), 0));
 		byte[] gsl = ArchiveSamples.Gsl([.. entries]);
 		using (IGameFile? file = fileSystem.Open(GamePath.Parse("data/data.gsl"), GameFileAccess.Write, GameFileMode.Create))
 		{
@@ -30,5 +31,17 @@ internal static class OnlineTestData
 			file.Write(gsl);
 		}
 		return new DataFileRegistry(fileSystem, DataArchiveSource.Gsl("data/data.gsl"));
+	}
+
+	private static byte[] Xvm(params (int Width, int Height)[] sizes)
+	{
+		byte[][] chunks = new byte[sizes.Length][];
+		for (int index = 0; index < sizes.Length; index++)
+		{
+			int width = sizes[index].Width;
+			int height = sizes[index].Height;
+			chunks[index] = TextureTestData.Xvr(XvmTextureFormat.Dxt1, (uint)(900 + index), width, height, new byte[width * height / 2]);
+		}
+		return TextureTestData.Xvm(chunks);
 	}
 }
