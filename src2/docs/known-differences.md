@@ -18,6 +18,14 @@
 
 The original accepts resolution preset five although its table has five entries, so preset five reports a zero width and height. The port keeps that result rather than inventing a sixth resolution.
 
+## Scene 5 is character making
+
+The scene at `0x004E9C74` is the character-making screen, not the options menu. It loads
+`charamakingmot.bml`, `CHARA.adx`, the `f256_ad_pic_2` and `f256_backtext` surfaces, creates the
+thirteen-screen preview container and activates screen 8. Its controls and 3D preview are not
+ported; the scene exposes the loaded assets and transitions only. The options controls are the
+pause-menu panel at `0x007538EC`/`0x00753D84`. See `scene-5-character-making.md`.
+
 ## Archive readers
 
 The portable archive readers in `PsoBB.Archives` turn archive bytes into a validated directory. The original reads through a fixed zero-filled buffer and a host file API that returns short reads, so it has no equivalent truncation errors. The readers expose declared table values; the original's storage layer rounds every read to 2048-byte sectors.
