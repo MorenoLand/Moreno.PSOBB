@@ -311,6 +311,14 @@ void f_006a32b0(void)
     /* 006a32ed: ret  */ FN_RET(0x006a32b0); r_esp += 4; return;
 }
 
+void f_006a32f0(void)
+{
+    FN_ENTER(0x006a32f0);
+    /* 006a32f0: mov ecx, 0xa94354 */ r_ecx = 0xa94354u;
+    /* 006a32f5: call 0x61cdb0 */ r_esp -= 4; W32(r_esp, 0x6a32fau); f_0061cdb0();
+    /* 006a32fa: ret  */ FN_RET(0x006a32f0); r_esp += 4; return;
+}
+
 void f_006a32fc(void) /* sub_6A32FC */
 {
     FN_ENTER(0x006a32fc);

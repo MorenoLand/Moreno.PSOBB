@@ -79,6 +79,17 @@ void f_006aa074(void)
     /* 006aa0b5: ret  */ FN_RET(0x006aa074); r_esp += 4; return;
 }
 
+void f_006aa0b8(void)
+{
+    FN_ENTER(0x006aa0b8);
+    /* 006aa0b8: push 0x61cdb0 */ { u32 v = 0x61cdb0u; r_esp -= 4; W32(r_esp, v); }
+    /* 006aa0bd: push 4 */ { u32 v = 0x4u; r_esp -= 4; W32(r_esp, v); }
+    /* 006aa0bf: push 8 */ { u32 v = 0x8u; r_esp -= 4; W32(r_esp, v); }
+    /* 006aa0c1: push 0xa94800 */ { u32 v = 0xa94800u; r_esp -= 4; W32(r_esp, v); }
+    /* 006aa0c6: call 0x8586d6 */ r_esp -= 4; W32(r_esp, 0x6aa0cbu); f_008586d6();
+    /* 006aa0cb: ret  */ FN_RET(0x006aa0b8); r_esp += 4; return;
+}
+
 void f_006aa0cc(void) /* sub_6AA0CC */
 {
     FN_ENTER(0x006aa0cc);

@@ -19,3 +19,8 @@ what users build with it or for any damage or legal consequence that results.
 
 If you believe content in a repository built from this template infringes your rights, contact the
 repository owner. This template itself contains only original code and documentation.
+
+## Third-party components
+
+- `runtime/stb_vorbis.c`: Ogg Vorbis decoder by Sean Barrett and contributors,
+  dual-licensed MIT or public domain. The full notice is at the end of the file.
