@@ -63,8 +63,9 @@ bitmaps. `FontTextures` uploads the three `TextureImage` pages through `IRendere
 `TextRenderer` submits one `UiQuad` per glyph to `UiDrawList`. No operating-system font, device
 context or platform type is used by the portable library.
 
-Limitations: the exact GDI face metrics, the five registry-provided face names, the game's
-colour-table contents and the separate Japanese XVM texture-font path
-(`unknown_render_texturejapanese_xvm_font2_0071D924`) are supplied by the host or remain
-outside this port. The atlas cache policy is represented by the fixed three-page layout; the
-runtime texture-update counter is not needed when a font is built once.
+Limitations: the exact GDI face metrics, the five registry-provided face names and the game's
+colour-table contents are supplied by the host or remain outside this port. The XVM
+texture-font path (`unknown_render_texturejapanese_xvm_font2_0071D924`) is ported for the
+printable ASCII range in `TextureFontSurface`; wide glyphs and page selection above code unit
+`0x00FF` remain outside it. The atlas cache policy is represented by the fixed three-page
+layout; the runtime texture-update counter is not needed when a font is built once.
