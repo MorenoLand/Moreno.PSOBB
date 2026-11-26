@@ -43,7 +43,10 @@ def run(read, address, size, stack=(), registers=None, memory=(), capture=()):
             mapped.add(base)
 
     map_page(address)
-    machine.mem_write(address, read(address, size))
+    try:
+        machine.mem_write(address & ~0xFFF, read(address & ~0xFFF, 0x1000))
+    except ValueError:
+        machine.mem_write(address, read(address, size))
     map_page(STACK - 0x40)
     esp = STACK - 0x40
     machine.mem_write(esp, struct.pack("<I", 0xFFFFFFFF))
@@ -58,7 +61,7 @@ def run(read, address, size, stack=(), registers=None, memory=(), capture=()):
         machine.reg_write(register, (registers or {}).get(name, 0))
     machine.reg_write(UC_X86_REG_ESP, esp)
     try:
-        machine.emu_start(address, address + size - 1)
+        machine.emu_start(address, 0xFFFFFFFF, count=1000000)
     except UcError:
         if machine.reg_read(UC_X86_REG_EIP) != 0xFFFFFFFF:
             raise
