@@ -6,4 +6,5 @@
 	<Project Path="PsoBB.Tests/PsoBB.Tests.csproj" />
 	<Project Path="PsoBB.Rendering.Direct3D11/PsoBB.Rendering.Direct3D11.csproj" />
 	<Project Path="PsoBB.Rendering.Direct3D11.Tests/PsoBB.Rendering.Direct3D11.Tests.csproj" />
+	<Project Path="PsoBB.Windows/PsoBB.Windows.csproj" />
 </Solution>
