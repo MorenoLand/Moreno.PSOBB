@@ -12,6 +12,10 @@
 - `LoginFlow` has no protocol timer. The transport is non-blocking and the host pumps the flow; a stalled server leaves the current stage waiting, and an orderly close or transport failure moves the flow to `Failed`.
 - A browser page cannot open a raw TCP stream. `BrowserGameConnection` refuses transport operations and a host relay must implement `IGameConnection` over WebSockets.
 
+## Server endpoints
+
+The client host names come from `PsoBB.Net.ServerHostTable` because the image strings are host-patched and the retail executable is not part of this repository. The mode, alternate-set and configuration-test results are selector inputs; the branches and ports match the original. See `server-endpoints.md`.
+
 ## Options
 
 `GameOptions` reads the original registry names and layouts. The original has no persisted key-binding value, no numeric music or sound-effect volume and no other chat preference; the fixed control map and the `SOUNDCTRL` enables are all it stores. `PsoBB.Input.Bindings`, `PsoBB.Audio.MusicVolume` and `PsoBB.Audio.SoundVolume` are portable additions documented in `configuration.md`.
