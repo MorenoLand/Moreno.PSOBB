@@ -55,7 +55,7 @@ internal static class Program
 				RunClient(window, dataFolder);
 			return 0;
 		}
-		catch (Exception exception) when (exception is FileNotFoundException or InvalidDataException or Direct3D11UnavailableException or InvalidOperationException or TextureFormatException)
+		catch (Exception exception) when (exception is not OutOfMemoryException)
 		{
 			MessageBox(0, exception.Message, "Phantasy Star Online Blue Burst", 0x10);
 			return 1;
