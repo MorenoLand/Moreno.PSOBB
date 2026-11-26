@@ -13,10 +13,14 @@ public sealed class InputBindings
 	private const int ActionCount = (int)InputAction.Action10 + 1;
 	private static readonly IReadOnlyList<InputAction> NoActions = [];
 	private static readonly IReadOnlyList<GameKey> NoKeys = [];
+	private static readonly IReadOnlyList<MouseButtons> NoMouseButtons = [];
+	private static readonly IReadOnlyList<GamepadButtons> NoGamepadControls = [];
 	private readonly Dictionary<int, List<InputAction>> _actionsByKey = [];
 	private readonly Dictionary<MouseButtons, List<InputAction>> _actionsByMouseButton = [];
 	private readonly Dictionary<GamepadButtons, List<InputAction>> _actionsByGamepadControl = [];
 	private readonly List<GameKey>[] _keysByAction = new List<GameKey>[ActionCount];
+	private readonly List<MouseButtons>[] _mouseButtonsByAction = new List<MouseButtons>[ActionCount];
+	private readonly List<GamepadButtons>[] _gamepadControlsByAction = new List<GamepadButtons>[ActionCount];
 
 	/// <summary>
 	/// Creates an empty map.
@@ -24,7 +28,11 @@ public sealed class InputBindings
 	public InputBindings()
 	{
 		for (int action = 0; action < ActionCount; action++)
+		{
 			_keysByAction[action] = [];
+			_mouseButtonsByAction[action] = [];
+			_gamepadControlsByAction[action] = [];
+		}
 	}
 
 	/// <summary>
@@ -96,6 +104,9 @@ public sealed class InputBindings
 		List<InputAction> actions = GetOrAdd(_actionsByMouseButton, button);
 		if (!actions.Contains(action))
 			actions.Add(action);
+		List<MouseButtons> buttons = _mouseButtonsByAction[(int)action];
+		if (!buttons.Contains(button))
+			buttons.Add(button);
 	}
 
 	/// <summary>
@@ -110,6 +121,9 @@ public sealed class InputBindings
 		List<InputAction> actions = GetOrAdd(_actionsByGamepadControl, control);
 		if (!actions.Contains(action))
 			actions.Add(action);
+		List<GamepadButtons> controls = _gamepadControlsByAction[(int)action];
+		if (!controls.Contains(control))
+			controls.Add(control);
 	}
 
 	/// <summary>
@@ -118,6 +132,10 @@ public sealed class InputBindings
 	/// <param name="action">The action to look up.</param>
 	/// <returns>The bound keys in binding order, or an empty list.</returns>
 	public IReadOnlyList<GameKey> GetKeys(InputAction action) => IsAction(action) ? _keysByAction[(int)action] : NoKeys;
+
+	internal IReadOnlyList<MouseButtons> GetMouseButtons(InputAction action) => IsAction(action) ? _mouseButtonsByAction[(int)action] : NoMouseButtons;
+
+	internal IReadOnlyList<GamepadButtons> GetGamepadControls(InputAction action) => IsAction(action) ? _gamepadControlsByAction[(int)action] : NoGamepadControls;
 
 	internal IReadOnlyList<InputAction> GetActions(int scanCode) => _actionsByKey.TryGetValue(scanCode, out List<InputAction>? actions) ? actions : NoActions;
 
