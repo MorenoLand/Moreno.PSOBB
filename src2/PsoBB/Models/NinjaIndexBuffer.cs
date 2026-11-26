@@ -28,6 +28,16 @@ public sealed class NinjaIndexBuffer
 	public bool IsAlpha { get; }
 
 	/// <summary>
+	/// Creates one decoded strip buffer for the retail chunk-model path.
+	/// </summary>
+	/// <param name="indices">The triangle-strip indices.</param>
+	/// <param name="arguments">The accumulated render-state commands.</param>
+	/// <param name="vertexBufferIndex">The vertex buffer that the indices address.</param>
+	/// <param name="isAlpha">Whether the buffer belongs to the translucent pass.</param>
+	/// <returns>The index buffer.</returns>
+	internal static NinjaIndexBuffer Create(ushort[] indices, NinjaRenderStateArgument[] arguments, int vertexBufferIndex, bool isAlpha) => new(indices, arguments, vertexBufferIndex, isAlpha);
+
+	/// <summary>
 	/// Reads one index-buffer descriptor.
 	/// </summary>
 	/// <param name="body">The NJCM body.</param>

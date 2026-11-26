@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Text;
 using PsoBB.Models;
 
 namespace PsoBB.Tests;
@@ -43,6 +44,35 @@ public sealed class ModelBmlArchiveTests
 		Assert.NotNull(archive.Files[0].Model);
 		NinjaMotion motion = Assert.IsType<NinjaMotion>(archive.Files[1].Motion);
 		Assert.Equal(2, motion.Bones.Count);
+	}
+
+	/// <summary>
+	/// An archive without embedded textures keeps entries on 0x800 boundaries even when the header
+	/// texture flag is set.
+	/// </summary>
+	[Fact]
+	public void EntriesWithoutTexturesUseSectorAlignment()
+	{
+		byte[] chunks = ModelTestData.Chunk("NJCM", ModelTestData.ModelCore());
+		int second = 0x1000;
+		byte[] archive = new byte[second + chunks.Length];
+		BinaryPrimitives.WriteUInt32LittleEndian(archive.AsSpan(4), 2);
+		archive[8] = 0;
+		archive[9] = 1;
+		Encoding.ASCII.GetBytes("first.bml").CopyTo(archive, 0x40);
+		BinaryPrimitives.WriteUInt32LittleEndian(archive.AsSpan(0x40 + 0x20), (uint)chunks.Length);
+		BinaryPrimitives.WriteUInt32LittleEndian(archive.AsSpan(0x40 + 0x28), (uint)chunks.Length);
+		Encoding.ASCII.GetBytes("second.bml").CopyTo(archive, 0x80);
+		BinaryPrimitives.WriteUInt32LittleEndian(archive.AsSpan(0x80 + 0x20), (uint)chunks.Length);
+		BinaryPrimitives.WriteUInt32LittleEndian(archive.AsSpan(0x80 + 0x28), (uint)chunks.Length);
+		chunks.CopyTo(archive, 0x800);
+		chunks.CopyTo(archive, second);
+		BmlArchive parsed = BmlArchive.Parse(archive);
+		Assert.Equal(2, parsed.Files.Count);
+		Assert.Equal("first.bml", parsed.Files[0].Name);
+		Assert.Equal("second.bml", parsed.Files[1].Name);
+		Assert.NotNull(parsed.Files[0].Model);
+		Assert.NotNull(parsed.Files[1].Model);
 	}
 
 	/// <summary>

@@ -121,6 +121,7 @@ public static class NinjaModelReader
 		private readonly ReadOnlyMemory<byte> _body;
 		private readonly Dictionary<int, NinjaNode> _nodeCache = [];
 		private readonly Dictionary<int, NinjaMesh> _meshCache = [];
+		private readonly Dictionary<int, List<NinjaNode>> _chunkNodes = [];
 		private readonly List<NinjaNode> _nodes = [];
 		private readonly List<NinjaMesh> _meshes = [];
 
@@ -140,6 +141,8 @@ public static class NinjaModelReader
 				throw new ModelFormatException("The NJCM model body is truncated.", 0);
 			List<NinjaNode> roots = ReadSiblings(0, 0, true);
 			Flatten(roots);
+			if (_chunkNodes.Count != 0)
+				NinjaChunkModel.Attach(_body.Span, _chunkNodes, roots, _meshes);
 			return roots;
 		}
 
@@ -217,14 +220,29 @@ public static class NinjaModelReader
 			uint childOffset = BinaryPrimitives.ReadUInt32LittleEndian(body[(offset + 44)..]);
 			uint nextOffset = BinaryPrimitives.ReadUInt32LittleEndian(body[(offset + 48)..]);
 			NinjaMesh? mesh = null;
+			bool chunkMesh = false;
+			int meshOffsetValue = 0;
 			if (meshOffset != 0)
 			{
 				if (meshOffset > int.MaxValue)
 					throw new ModelFormatException("The NJCM mesh pointer is invalid.", offset + 4);
-				mesh = ReadMesh((int)meshOffset);
+				meshOffsetValue = (int)meshOffset;
+				if (NinjaChunkModel.IsChunkMesh(body, meshOffsetValue))
+					chunkMesh = true;
+				else
+					mesh = ReadMesh(meshOffsetValue);
 			}
 			NinjaNode node = new(flags, position, scale, rotationX, rotationY, rotationZ, rotation, mesh);
 			_nodeCache.Add(offset, node);
+			if (chunkMesh)
+			{
+				if (!_chunkNodes.TryGetValue(meshOffsetValue, out List<NinjaNode>? nodes))
+				{
+					nodes = [];
+					_chunkNodes.Add(meshOffsetValue, nodes);
+				}
+				nodes.Add(node);
+			}
 			if (childOffset != 0)
 			{
 				if (childOffset > int.MaxValue)

@@ -43,7 +43,7 @@ public sealed class NinjaNode
 	public NinjaQuaternion? Quaternion { get; }
 
 	/// <summary>Gets the attached mesh, or null for a transform-only node.</summary>
-	public NinjaMesh? Mesh { get; }
+	public NinjaMesh? Mesh { get; private set; }
 
 	/// <summary>Gets the child nodes in model order.</summary>
 	public IReadOnlyList<NinjaNode> Children => _children;
@@ -55,4 +55,10 @@ public sealed class NinjaNode
 	public bool SkipsChildren => (EvaluationFlags & 0x10) != 0;
 
 	internal void AddChild(NinjaNode child) => _children.Add(child);
+
+	/// <summary>
+	/// Attaches a mesh after the chunk parser has collected the strip owners.
+	/// </summary>
+	/// <param name="mesh">The mesh to attach, or null.</param>
+	internal void SetMesh(NinjaMesh? mesh) => Mesh = mesh;
 }

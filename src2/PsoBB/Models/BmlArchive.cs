@@ -52,9 +52,10 @@ public sealed class BmlArchive
 		int dataOffset = Align(0x40 + (int)fileCount * 0x40, 0x800);
 		if (dataOffset > data.Length)
 			throw new ModelFormatException("The BML entry data lies outside the archive.", 4);
-		int fileAlignment = hasTextures ? 0x20 : 0x800;
 		BmlFile[] files = new BmlFile[(int)fileCount];
 		int position = dataOffset;
+		bool interleavedTextures = fileCount != 0 && BinaryPrimitives.ReadUInt32LittleEndian(data[(0x40 + 0x2C)..]) != 0;
+		int fileAlignment = interleavedTextures ? 0x20 : 0x800;
 		for (int index = 0; index < files.Length; index++)
 		{
 			int descriptorOffset = 0x40 + index * 0x40;
