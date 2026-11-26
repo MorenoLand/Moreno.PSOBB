@@ -58,12 +58,6 @@ public sealed class OnlineScene : IDisposable
 	/// <summary>The per-vertex diffuse colour <c>0x407FD8</c> uses for the download panels.</summary>
 	public const uint PanelColor = 0x8F000000;
 
-	/// <summary>The status label the download window draws at <c>0x23,0x14B</c>.</summary>
-	public const string ConnectingLabel = "Connecting...";
-
-	/// <summary>The status label position used by <c>0x407F6C</c> and <c>0x4080AC</c>.</summary>
-	public static readonly Vector2 StatusPosition = new(23f, 331f);
-
 	/// <summary>The English progress-bar archive the download window selects first.</summary>
 	public const string ProgressTextureName = "f256_slot_eng";
 
@@ -228,24 +222,6 @@ public sealed class OnlineScene : IDisposable
 		if (_state is not (OnlineSceneState.Loading or OnlineSceneState.Connecting))
 			return;
 		DrawProgressPanel(draw);
-	}
-
-	/// <summary>
-	/// Draws the connecting label through the supplied bitmap-text renderer.
-	/// </summary>
-	/// <param name="text">The text renderer that receives the glyph quads.</param>
-	/// <param name="draw">The draw list that receives the glyph quads.</param>
-	/// <param name="color">The label colour in 0xAARRGGBB form.</param>
-	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
-	/// <exception cref="ObjectDisposedException">The scene is released.</exception>
-	public void DrawStatus(TextRenderer text, UiDrawList draw, uint color = 0xFFFFFFFF)
-	{
-		ArgumentNullException.ThrowIfNull(text);
-		ArgumentNullException.ThrowIfNull(draw);
-		ObjectDisposedException.ThrowIf(_disposed, this);
-		if (_state is not (OnlineSceneState.Loading or OnlineSceneState.Connecting))
-			return;
-		text.Draw(draw, ConnectingLabel, StatusPosition, color);
 	}
 
 	/// <summary>
