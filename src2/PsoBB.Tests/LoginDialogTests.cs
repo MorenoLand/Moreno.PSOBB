@@ -142,6 +142,23 @@ public sealed class LoginDialogTests
 	}
 
 	[Fact]
+	public void FrameDrawsBehindTheHeaderAndRows()
+	{
+		RecordingTextSurface text = new();
+		using LoginDialog dialog = new(CreateText(), "[d]", text) { Frame = new LoginDialogFrame() };
+		UiDrawList drawList = new();
+
+		dialog.Draw(drawList);
+
+		Assert.Equal(16, drawList.Quads.Count);
+		Assert.Equal(LoginDialogFrame.TitlePanelPosition + new Vector2(LoginDialogFrame.PanelInset), drawList.Quads[0].Position);
+		Assert.Equal(new Vector2(224f, 308f), drawList.Quads[14].Position);
+		Assert.Equal(LoginDialog.RowAreaPosition, drawList.Quads[15].Position);
+		Assert.Equal(6, text.Draws.Count);
+		Assert.Equal("Login", text.Draws[0].Text);
+	}
+
+	[Fact]
 	public void TextureFontSurfaceDrawsTheRowsThroughTheList()
 	{
 		using RecordingRenderer renderer = new(RenderSettings.Default);
@@ -164,7 +181,7 @@ public sealed class LoginDialogTests
 	[Fact]
 	public void CloseStopsDrawingAndDisposeReleasesTheList()
 	{
-		using LoginDialog dialog = new(CreateText());
+		using LoginDialog dialog = new(CreateText()) { Frame = new LoginDialogFrame() };
 		UiDrawList drawList = new();
 
 		dialog.Close();
@@ -173,6 +190,7 @@ public sealed class LoginDialogTests
 
 		dialog.Dispose();
 		Assert.True(dialog.IsDisposed);
+		Assert.True(dialog.Frame!.IsDisposed);
 		Assert.True(dialog.Menu.IsDisposed);
 	}
 

@@ -29,20 +29,23 @@ public sealed class LoginDialog : IDisposable
 	/// <summary>The row step used by the list.</summary>
 	public const float RowHeight = 20f;
 
-	/// <summary>The account panel position from the data image at <c>0x00974E08</c>.</summary>
+	/// <summary>The online account-edit panel position from the data image at <c>0x00974E08</c>.</summary>
 	public static readonly Vector2 PanelPosition = new(210f, 340f);
 
-	/// <summary>The account panel size from the data image at <c>0x00974E08</c>.</summary>
-	public static readonly Vector2 PanelSize = new(220f, 120f);
+	/// <summary>The title-menu panel position observed in the oracle capture.</summary>
+	public static readonly Vector2 TitlePanelPosition = LoginDialogFrame.TitlePanelPosition;
+
+	/// <summary>The title-menu panel size.</summary>
+	public static readonly Vector2 PanelSize = LoginDialogFrame.TitlePanelSize;
 
 	/// <summary>The header height taken from the panel's first row.</summary>
-	public const float HeaderHeight = 20f;
+	public const float HeaderHeight = LoginDialogFrame.HeaderHeight;
 
-	/// <summary>The position of the header label inside the account panel.</summary>
-	public static readonly Vector2 HeaderPosition = PanelPosition;
+	/// <summary>The position of the header label inside the title-menu panel.</summary>
+	public static readonly Vector2 HeaderPosition = TitlePanelPosition;
 
-	/// <summary>The position of the four-row list inside the account panel.</summary>
-	public static readonly Vector2 RowAreaPosition = new(PanelPosition.X, PanelPosition.Y + HeaderHeight);
+	/// <summary>The position of the four-row list inside the title-menu panel.</summary>
+	public static readonly Vector2 RowAreaPosition = new(TitlePanelPosition.X, TitlePanelPosition.Y + HeaderHeight);
 
 	/// <summary>The size of the four-row list and its disabled hint row.</summary>
 	public static readonly Vector2 RowAreaSize = new(PanelSize.X, PanelSize.Y - HeaderHeight);
@@ -144,6 +147,9 @@ public sealed class LoginDialog : IDisposable
 	/// Gets or sets the scene-2 selector renderer that draws its selected-row strip at (193, 338).
 	/// </summary>
 	public Action<UiDrawList>? SelectorFrameDraw { get; set; }
+
+	/// <summary>Gets or sets the textured title-menu frame drawn behind the header and rows.</summary>
+	public LoginDialogFrame? Frame { get; set; }
 
 	/// <summary>
 	/// Substitutes the confirm key label into the data-image hint format.
@@ -249,6 +255,7 @@ public sealed class LoginDialog : IDisposable
 		if (_closed)
 			return;
 		SelectorFrameDraw?.Invoke(drawList);
+		Frame?.Draw(drawList, _menu.SelectedIndex);
 		_header.Draw(drawList);
 		_menu.Draw(drawList);
 	}
@@ -261,6 +268,7 @@ public sealed class LoginDialog : IDisposable
 		if (_disposed)
 			return;
 		_disposed = true;
+		Frame?.Dispose();
 		_header.Dispose();
 		_menu.Dispose();
 	}
