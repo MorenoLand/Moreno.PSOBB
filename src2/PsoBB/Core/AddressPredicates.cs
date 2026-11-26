@@ -1,16 +1,15 @@
 namespace PsoBB.Core;
 
 /// <summary>
-/// Predicates over the 16-bit identifiers and offsets used by the original client.
+/// Predicates over the 16-bit identifiers the client passes between its systems.
 /// </summary>
 public static class AddressPredicates
 {
 	/// <summary>
-	/// Returns <see langword="true"/> when <paramref name="value"/> is below the 0x1000 page boundary.
-	/// The original subtracts 0x1000 and returns the sign bit, so the test is an unsigned comparison.
+	/// Returns whether a 16-bit identifier lies below the first 0x1000 values.
 	/// </summary>
-	/// <param name="value">The 16-bit value supplied by the caller.</param>
-	/// <returns><see langword="true"/> for values 0x0000 through 0x0FFF.</returns>
+	/// <param name="value">The identifier to test.</param>
+	/// <returns><see langword="true"/> for 0x0000 through 0x0FFF.</returns>
 	[Original(0x0051F8D8)]
 	public static bool IsBelowPageSize(ushort value) => value < 0x1000;
 }

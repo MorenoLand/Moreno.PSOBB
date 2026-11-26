@@ -1,8 +1,8 @@
 namespace PsoBB.Mathematics;
 
 /// <summary>
-/// Quotient and remainder produced by the original integer division helper.
+/// The quotient and remainder of a biased integer division.
 /// </summary>
-/// <param name="Quotient">Value returned in the original's eax.</param>
-/// <param name="Remainder">Value returned in the original's edx.</param>
+/// <param name="Quotient">The whole part of the division.</param>
+/// <param name="Remainder">The part left after the whole part.</param>
 public readonly record struct DivisionResult(int Quotient, int Remainder);
