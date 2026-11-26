@@ -21,7 +21,7 @@ public sealed class GameOptionsTests
 		Assert.Equal(480, options.Height);
 		Assert.False(options.Use32BitColor);
 		Assert.False(options.Windowed);
-		Assert.Equal(2, options.TextureDetail);
+		Assert.Equal(2, options.Brightness);
 		Assert.True(options.ChatWordWrap);
 		Assert.True(options.AudioEnabled);
 		Assert.True(options.SoundEffectsEnabled);
@@ -50,7 +50,7 @@ public sealed class GameOptionsTests
 			ResolutionIndex = 3,
 			Use32BitColor = true,
 			Windowed = true,
-			TextureDetail = 4,
+			Brightness = 4,
 			ChatWordWrap = false,
 			SoundEffectsEnabled = false,
 			MusicEnabled = false,
@@ -67,7 +67,7 @@ public sealed class GameOptionsTests
 		Assert.Equal(1024, loaded.Height);
 		Assert.True(loaded.Use32BitColor);
 		Assert.True(loaded.Windowed);
-		Assert.Equal(4, loaded.TextureDetail);
+		Assert.Equal(4, loaded.Brightness);
 		Assert.False(loaded.ChatWordWrap);
 		Assert.False(loaded.SoundEffectsEnabled);
 		Assert.False(loaded.MusicEnabled);
@@ -78,8 +78,8 @@ public sealed class GameOptionsTests
 		Assert.Equal([MouseButtons.Right], loaded.Input.GetMouseButtons(InputAction.Confirm));
 		Assert.Equal([GamepadButtons.B], loaded.Input.GetGamepadControls(InputAction.Confirm));
 		Assert.Equal([GameKey.Escape], loaded.Input.GetKeys(InputAction.Cancel));
-		Assert.True(settings.TryGetInt32(LegacyOptionNames.ExtraOption, out int textureDetail));
-		Assert.Equal(4, textureDetail);
+		Assert.True(settings.TryGetInt32(LegacyOptionNames.ExtraOption, out int brightness));
+		Assert.Equal(4, brightness);
 		Assert.True(settings.TryGetBinary(LegacyOptionNames.ControlBuffer, out byte[]? control));
 		Assert.Equal(Ints(3, 1, 0), control);
 		Assert.True(settings.TryGetInt32(LegacyOptionNames.WordWrap, out int wordWrap));
@@ -112,20 +112,20 @@ public sealed class GameOptionsTests
 	}
 
 	[Fact]
-	public void ClampsTextureDetail()
+	public void ClampsBrightness()
 	{
 		MemoryGameSettings high = new();
 		high.SetInt32(LegacyOptionNames.ExtraOption, 99);
-		Assert.Equal(4, GameOptions.Load(high).TextureDetail);
+		Assert.Equal(4, GameOptions.Load(high).Brightness);
 		MemoryGameSettings negative = new();
 		negative.SetInt32(LegacyOptionNames.ExtraOption, -1);
-		Assert.Equal(4, GameOptions.Load(negative).TextureDetail);
+		Assert.Equal(4, GameOptions.Load(negative).Brightness);
 		MemoryGameSettings minimum = new();
 		minimum.SetInt32(LegacyOptionNames.ExtraOption, int.MinValue);
-		Assert.Equal(4, GameOptions.Load(minimum).TextureDetail);
+		Assert.Equal(4, GameOptions.Load(minimum).Brightness);
 		MemoryGameSettings malformed = new();
 		malformed.SetBinary(LegacyOptionNames.ExtraOption, new byte[3]);
-		Assert.Equal(2, GameOptions.Load(malformed).TextureDetail);
+		Assert.Equal(2, GameOptions.Load(malformed).Brightness);
 	}
 
 	[Fact]
@@ -245,7 +245,7 @@ public sealed class GameOptionsTests
 		settings.SetBinary(LegacyOptionNames.WindowMode, Ints(1));
 		settings.SetBinary(LegacyOptionNames.FocusSound, Ints(0));
 		GameOptions options = GameOptions.Load(settings);
-		Assert.Equal(3, options.TextureDetail);
+		Assert.Equal(3, options.Brightness);
 		Assert.False(options.ChatWordWrap);
 		Assert.True(options.Windowed);
 		Assert.False(options.FocusSoundEnabled);
@@ -262,8 +262,8 @@ public sealed class GameOptionsTests
 		Assert.Equal(Ints(0, 0, 0, 0, 0, 2, 0, 0, 0), graphic);
 		Assert.True(settings.TryGetBinary(LegacyOptionNames.SoundControl, out byte[]? sound));
 		Assert.Equal(Ints(1, 1, 1), sound);
-		Assert.True(settings.TryGetInt32(LegacyOptionNames.ExtraOption, out int textureDetail));
-		Assert.Equal(2, textureDetail);
+		Assert.True(settings.TryGetInt32(LegacyOptionNames.ExtraOption, out int brightness));
+		Assert.Equal(2, brightness);
 		Assert.True(settings.TryGetInt32(LegacyOptionNames.WordWrap, out int wordWrap));
 		Assert.Equal(1, wordWrap);
 		Assert.True(settings.TryGetInt32(LegacyOptionNames.WindowMode, out int windowMode));

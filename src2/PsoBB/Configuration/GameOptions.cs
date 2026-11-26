@@ -16,7 +16,7 @@ public sealed class GameOptions
 	private int _resolutionIndex;
 	private bool _use32BitColor;
 	private bool _windowed;
-	private int _textureDetail = LegacyOptions.DefaultTextureDetail;
+	private int _brightness = LegacyOptions.DefaultBrightness;
 	private bool _chatWordWrap = true;
 	private bool _soundEffectsEnabled = true;
 	private bool _musicEnabled = true;
@@ -52,11 +52,14 @@ public sealed class GameOptions
 	/// <summary>Gets or sets whether the client presents in a window, stored as <c>WINDOW_MODE</c>.</summary>
 	public bool Windowed { get => _windowed; set => _windowed = value; }
 
-	/// <summary>Gets or sets the texture detail index from zero through four, stored as <c>EXT0</c>.</summary>
-	public int TextureDetail
+	/// <summary>Gets or sets the brightness level from zero through four, stored as <c>EXT0</c>.</summary>
+	/// <remarks>The original labels level zero <c>+2 level</c>, level two <c>Normal</c> and level four <c>-2 level</c>; the renderer applies the matching gamma offset.</remarks>
+	public int Brightness
 	{
-		get => _textureDetail;
-		set => _textureDetail = Math.Clamp(value, 0, 4);
+		[Original(0x00482A38)]
+		get => _brightness;
+		[Original(0x00482A60)]
+		set => _brightness = Math.Clamp(value, 0, 4);
 	}
 
 	/// <summary>Gets or sets whether chat text wraps at the window edge, stored as <c>WORD_WRAP</c>.</summary>
@@ -122,7 +125,7 @@ public sealed class GameOptions
 			ResolutionIndex = display.ResolutionIndex,
 			Use32BitColor = display.Use32BitColor,
 			Windowed = display.Windowed,
-			TextureDetail = display.TextureDetail,
+			Brightness = display.Brightness,
 			ChatWordWrap = display.WordWrap,
 			AudioEnabled = sound.AudioEnabled,
 			SoundEffectsEnabled = sound.SoundEffectsEnabled,
@@ -140,13 +143,18 @@ public sealed class GameOptions
 	public void Save(IGameSettings settings)
 	{
 		ArgumentNullException.ThrowIfNull(settings);
-		LegacyOptions.SaveDisplaySettings(settings, ResolutionIndex, Use32BitColor, Windowed, TextureDetail, ChatWordWrap);
+		LegacyOptions.SaveDisplaySettings(settings, ResolutionIndex, Use32BitColor, Windowed, Brightness, ChatWordWrap);
 		LegacyOptions.SaveSoundSettings(settings, SoundEffectsEnabled, MusicEnabled, FocusSoundEnabled);
 		LegacyOptions.SaveClientCode(settings, LanguageCode);
 		LegacyOptions.SavePortableVolume(settings, LegacyOptionNames.PortableMusicVolume, MusicVolume);
 		LegacyOptions.SavePortableVolume(settings, LegacyOptionNames.PortableSoundVolume, SoundVolume);
 		LegacyOptions.SaveInputBindings(settings, Input);
 	}
+
+	/// <summary>Writes the brightness level to <c>EXT0</c> without changing any other stored option.</summary>
+	/// <param name="settings">The settings store that receives the value.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="settings"/> is null.</exception>
+	public void SaveBrightness(IGameSettings settings) => LegacyOptions.SaveBrightness(settings, Brightness);
 
 	/// <summary>Creates an input manager that uses the loaded binding map and gamepad thresholds.</summary>
 	/// <param name="input">The platform input source.</param>

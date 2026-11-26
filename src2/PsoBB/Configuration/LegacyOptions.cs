@@ -6,7 +6,7 @@ using PsoBB.Platform;
 namespace PsoBB.Configuration;
 
 /// <summary>The display values decoded from the original option store.</summary>
-internal readonly record struct LegacyDisplaySettings(int ResolutionIndex, bool Use32BitColor, bool Windowed, int TextureDetail, bool WordWrap);
+internal readonly record struct LegacyDisplaySettings(int ResolutionIndex, bool Use32BitColor, bool Windowed, int Brightness, bool WordWrap);
 
 /// <summary>The audio enables decoded from the original option store.</summary>
 internal readonly record struct LegacySoundSettings(bool AudioEnabled, bool SoundEffectsEnabled, bool MusicEnabled);
@@ -23,7 +23,7 @@ internal readonly record struct LegacyGraphicControl(int ResolutionIndex, bool U
 internal static class LegacyOptions
 {
 	internal const int DefaultResolutionIndex = 0;
-	internal const int DefaultTextureDetail = 2;
+	internal const int DefaultBrightness = 2;
 	internal const int MaxClientCodeLength = 0x104;
 	[OriginalGlobal(0x009006F4)]
 	private static readonly (int Width, int Height)[] Resolutions = [(640, 480), (800, 600), (1024, 768), (1280, 1024), (1600, 1200)];
@@ -54,14 +54,14 @@ internal static class LegacyOptions
 		LegacyGraphicControl graphic = SetDefaultGraphicSettings();
 		if (TryReadControlBuffer(settings, out int[] control) && TryReadGraphicControl(settings, out int[] graphicControl))
 			graphic = DecodeGraphicControl(control, graphicControl);
-		int textureDetail = ReadTextureDetail(settings);
+		int brightness = ReadBrightness(settings);
 		bool wordWrap = ReadWordWrap(settings);
 		bool windowed = ReadWindowMode(settings);
-		return new(graphic.ResolutionIndex, graphic.Use32BitColor, windowed, textureDetail, wordWrap);
+		return new(graphic.ResolutionIndex, graphic.Use32BitColor, windowed, brightness, wordWrap);
 	}
 
 	/// <summary>Writes the display options while preserving the unknown fields of an existing block.</summary>
-	internal static void SaveDisplaySettings(IGameSettings settings, int resolutionIndex, bool use32BitColor, bool windowed, int textureDetail, bool wordWrap)
+	internal static void SaveDisplaySettings(IGameSettings settings, int resolutionIndex, bool use32BitColor, bool windowed, int brightness, bool wordWrap)
 	{
 		int[] control = TryReadControlBuffer(settings, out int[] existing) ? existing : [0, 0, 0];
 		control[0] = Math.Clamp(resolutionIndex, 0, 5);
@@ -69,17 +69,17 @@ internal static class LegacyOptions
 		WriteBytes(settings, LegacyOptionNames.ControlBuffer, ToBytes(control));
 		if (!TryReadGraphicControl(settings, out _))
 			WriteBytes(settings, LegacyOptionNames.GraphicControl, ToBytes(DefaultGraphicControl));
-		SaveTextureDetail(settings, textureDetail);
+		SaveBrightness(settings, brightness);
 		WriteInt32(settings, LegacyOptionNames.WordWrap, wordWrap ? 1 : 0);
 		WriteInt32(settings, LegacyOptionNames.WindowMode, windowed ? 1 : 0);
 	}
 
-	/// <summary>Reads the texture detail index; the original's unsigned clamp maps a negative value to four.</summary>
-	internal static int ReadTextureDetail(IGameSettings settings) => TryReadInt32(settings, LegacyOptionNames.ExtraOption, out int value) ? value is < 0 or > 4 ? 4 : value : DefaultTextureDetail;
+	/// <summary>Reads the brightness level; the original's unsigned clamp maps a negative value to four.</summary>
+	internal static int ReadBrightness(IGameSettings settings) => TryReadInt32(settings, LegacyOptionNames.ExtraOption, out int value) ? value is < 0 or > 4 ? 4 : value : DefaultBrightness;
 
-	/// <summary>Writes the texture detail index using the original <c>EXT0</c> value.</summary>
+	/// <summary>Writes the brightness level to the original <c>EXT0</c> value.</summary>
 	[Original(0x00482A80)]
-	internal static void SaveTextureDetail(IGameSettings settings, int textureDetail) => WriteInt32(settings, LegacyOptionNames.ExtraOption, Math.Clamp(textureDetail, 0, 4));
+	internal static void SaveBrightness(IGameSettings settings, int brightness) => WriteInt32(settings, LegacyOptionNames.ExtraOption, Math.Clamp(brightness, 0, 4));
 
 	/// <summary>Reads the chat word-wrap flag; zero disables it and every other value enables it.</summary>
 	internal static bool ReadWordWrap(IGameSettings settings) => !TryReadInt32(settings, LegacyOptionNames.WordWrap, out int value) || value != 0;
