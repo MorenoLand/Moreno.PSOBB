@@ -186,18 +186,18 @@ internal sealed class ShaderPipeline : IDisposable
 		int offset = 0;
 		if (format.IsPreTransformed)
 		{
-			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32A32_Float, 0));
+			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32A32_Float, 0, 0, InputClassification.PerVertexData, 0));
 			offset += 16;
 		}
 		else
 		{
-			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0));
+			elements.Add(new InputElementDescription("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0));
 			offset += 12;
 		}
 		for (int index = 0; index < format.BlendWeightCount; index++)
 		{
 			Format weightFormat = index == format.BlendWeightCount - 1 && format.PackedLastWeight ? Format.R8G8B8A8_UNorm : Format.R32_Float;
-			elements.Add(new InputElementDescription("BLENDWEIGHT", (uint)index, weightFormat, (uint)offset));
+			elements.Add(new InputElementDescription("BLENDWEIGHT", (uint)index, weightFormat, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 4;
 		}
 		if (format.HasNormal)
@@ -206,13 +206,13 @@ internal sealed class ShaderPipeline : IDisposable
 			offset += 4;
 		if (format.HasDiffuse)
 		{
-			elements.Add(new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, (uint)offset));
+			elements.Add(new InputElementDescription("COLOR", 0, Format.R8G8B8A8_UNorm, (uint)offset, 0, InputClassification.PerVertexData, 0));
 			offset += 4;
 		}
 		if (format.HasSpecular)
 			offset += 4;
 		if (format.TextureCoordinateCount > 0)
-			elements.Add(new InputElementDescription("TEXCOORD", 0, TextureCoordinateFormat(format.TextureCoordinateSize), (uint)offset));
+			elements.Add(new InputElementDescription("TEXCOORD", 0, TextureCoordinateFormat(format.TextureCoordinateSize), (uint)offset, 0, InputClassification.PerVertexData, 0));
 		return [.. elements];
 	}
 
