@@ -189,6 +189,8 @@ public sealed class OfflineScene : IDisposable
 			GameState.GameStarted = 1;
 			SceneManager.ClearSceneEvent();
 		}
+		else if (SceneManager.SceneEvent)
+			SceneManager.ClearSceneEvent();
 	}
 
 	[Original(0x007BBBA8, "OfflineScene_UpdateField_007bbba8")]
@@ -202,6 +204,7 @@ public sealed class OfflineScene : IDisposable
 		if (SceneManager.SceneEvent)
 		{
 			SceneManager.ClearSceneEvent();
+			SceneManager.ClearMapLoaded();
 			return;
 		}
 		if (SceneManager.MapLoaded)

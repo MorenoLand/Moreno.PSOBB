@@ -20,8 +20,9 @@ Scene 10 is the offline game scene, not a menu. The baked table row is `0x007BC2
   `0x00AAB380` (`0x007A6120`). The map-ready path initialises the map tables through
   `0x0080C3C4`, `0x0080C79C(0)`, `0x0080CF44` and `0x00810550`, creates the 408-byte game object
   through `0x006BC800`, sets `0x00A95624` to one and clears the scene-event flag.
-- `0x007BBBA8` consumes the scene-event flag first and the map-ready flag second, clearing each
-  through `0x007A6108` and `0x007A6154`.
+- `0x007BBBA8` consumes the scene-event flag first and the map-ready flag second. The scene-event
+  path clears both flags through `0x007A6108` and `0x007A6154`; the map-ready-only path clears
+  `0x00AAB378`. The pre-game scene-event path also clears `0x00AAB380` at the end of its shared tail.
 - Escape is `0x007BFEDC`. The pre-game path calls `0x007BBB88`; the field path calls
   `0x007BBF8C`. Both clear both flags and `0x00A95624`, and call `0x007A6174`, which requests a
   scene-loop restart (requested scene 0, transition 3). They do not return to a menu.
