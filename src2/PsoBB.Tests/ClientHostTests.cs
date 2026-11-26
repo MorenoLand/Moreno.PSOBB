@@ -1,4 +1,5 @@
 using PsoBB.Client;
+using PsoBB.Configuration;
 using PsoBB.Core;
 using PsoBB.Graphics;
 using PsoBB.Platform;
@@ -109,18 +110,29 @@ public sealed class ClientHostTests : IDisposable
 		Assert.Empty(renderer.Commands);
 	}
 
+	[Fact]
+	public void LoadsGameOptionsAtStartup()
+	{
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		MemoryGameSettings settings = new();
+		settings.SetInt32(LegacyOptionNames.WordWrap, 0);
+		using ClientHost host = CreateHost(renderer, settings: settings);
+		Assert.False(host.GameOptions.ChatWordWrap);
+	}
+
 	private static ClientHost CreateHost(
 		RecordingRenderer renderer,
 		MemoryGameInput? input = null,
 		SingleThreadedDispatcher? dispatcher = null,
-		ManualGameClock? clock = null)
+		ManualGameClock? clock = null,
+		MemoryGameSettings? settings = null)
 	{
 		clock ??= new ManualGameClock(Start);
 		return new ClientHost(
 			new ClientOptions("data"),
 			new MemoryFileSystem(),
 			clock,
-			new MemoryGameSettings(),
+			settings ?? new MemoryGameSettings(),
 			input ?? new MemoryGameInput(),
 			dispatcher ?? new SingleThreadedDispatcher(clock),
 			new SilentAudioDevice(),
