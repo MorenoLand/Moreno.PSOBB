@@ -58,6 +58,10 @@ The transition pump runs the original order: begin display, draw the sublayer, r
 draw the full-screen overlay, draw the band pass, draw the primary layer, restore the viewport and
 end the display. The six transition windows are created at 640 by 480.
 
+`SceneDirectory` maps scene 2 only when the caller supplies a `Scene2Interface` factory. It builds a
+fresh interface tree, calls `Scene2.Start`, drives `Update`/`Draw`, and calls `Scene2.Release` on the
+director's release pass; without a factory it emits the no-interface diagnostic.
+
 ## Boundary
 
 - `0x00824944` also initialises the one-megabyte effect buffer, the title theme table at

@@ -11,4 +11,11 @@ public interface ISceneScreenFactory : IDisposable
 	/// <param name="scene">The scene number from the baked table.</param>
 	/// <returns>The screen, or <see langword="null"/> when the number has no ported screen.</returns>
 	ISceneScreen? Create(uint scene);
+
+	/// <summary>
+	/// Returns a specific diagnostic when <see cref="Create"/> cannot supply the scene, or <see langword="null"/> for the default message.
+	/// </summary>
+	/// <param name="scene">The scene number that could not be created.</param>
+	/// <returns>The diagnostic, or <see langword="null"/>.</returns>
+	string? DescribeMissing(uint scene) => null;
 }
