@@ -203,6 +203,36 @@ public sealed class LobbyWorld
 	}
 
 	/// <summary>
+	/// Sends the local player's stop-at-position record through the bound session.
+	/// </summary>
+	/// <returns><see langword="true"/> when the session accepted the record.</returns>
+	public bool SendStop()
+	{
+		PlayerCharacter? player = LocalPlayer;
+		return player is not null && LocalPlayerIndex is int clientId && SendStop(clientId, player);
+	}
+
+	/// <summary>
+	/// Sends the local player's walk-to-position record through the bound session.
+	/// </summary>
+	/// <returns><see langword="true"/> when the session accepted the record.</returns>
+	public bool SendWalk()
+	{
+		PlayerCharacter? player = LocalPlayer;
+		return player is not null && LocalPlayerIndex is int clientId && SendWalk(clientId, player);
+	}
+
+	/// <summary>
+	/// Sends the local player's run-to-position record through the bound session.
+	/// </summary>
+	/// <returns><see langword="true"/> when the session accepted the record.</returns>
+	public bool SendRun()
+	{
+		PlayerCharacter? player = LocalPlayer;
+		return player is not null && LocalPlayerIndex is int clientId && SendRun(clientId, player);
+	}
+
+	/// <summary>
 	/// Clears every tracked player and every join field.
 	/// </summary>
 	public void Reset()
@@ -433,6 +463,52 @@ public sealed class LobbyWorld
 		if (!LobbyEntity.TryGetClientId(entry, out int clientId))
 			return;
 		Entities.GetOrAdd(clientId).ApplyLobbyData(entry[..LobbyEntity.LobbyDataSize]);
+	}
+
+	private bool SendStop(int clientId, PlayerCharacter player)
+	{
+		byte[] record = new byte[0x18];
+		record[0] = 0x3E;
+		record[1] = 6;
+		BinaryPrimitives.WriteUInt16LittleEndian(record.AsSpan(2), (ushort)clientId);
+		BinaryPrimitives.WriteUInt16LittleEndian(record.AsSpan(6), player.Heading);
+		BinaryPrimitives.WriteInt16LittleEndian(record.AsSpan(8), -1);
+		BinaryPrimitives.WriteInt16LittleEndian(record.AsSpan(0x0A), -1);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(0x0C), player.Position.X);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(0x10), player.Position.Y);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(0x14), player.Position.Z);
+		return SendBroadcast(record);
+	}
+
+	private bool SendWalk(int clientId, PlayerCharacter player)
+	{
+		byte[] record = new byte[0x10];
+		record[0] = 0x40;
+		record[1] = 4;
+		BinaryPrimitives.WriteUInt16LittleEndian(record.AsSpan(2), (ushort)clientId);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(4), player.Position.X);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(8), player.Position.Z);
+		return SendBroadcast(record);
+	}
+
+	private bool SendRun(int clientId, PlayerCharacter player)
+	{
+		byte[] record = new byte[0x0C];
+		record[0] = 0x42;
+		record[1] = 3;
+		BinaryPrimitives.WriteUInt16LittleEndian(record.AsSpan(2), (ushort)clientId);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(4), player.Position.X);
+		BinaryPrimitives.WriteSingleLittleEndian(record.AsSpan(8), player.Position.Z);
+		return SendBroadcast(record);
+	}
+
+	[Original(0x007D3F38, "SendSubcommandBroadcast_007d3f38")]
+	private bool SendBroadcast(ReadOnlySpan<byte> record)
+	{
+		if (_session is null)
+			return false;
+		_session.Send(Packet.Create(PacketCommand.Broadcast, 0, record));
+		return true;
 	}
 
 	private bool IsActionAllowed(ushort permission)
