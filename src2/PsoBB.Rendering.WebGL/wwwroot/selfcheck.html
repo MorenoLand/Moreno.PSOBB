@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WebGL renderer self-check</title>
+	<style>
+		:root { color-scheme: dark; font: 15px/1.5 system-ui, sans-serif; background: #16191d; color: #e6e8eb; }
+		body { margin: 0; }
+		main { max-width: 60rem; margin: 0 auto; padding: 2rem 1.5rem; }
+		#summary { margin: 0 0 1.25rem; color: #a9b1bb; }
+		#frame { display: block; width: min(100%, 32rem); aspect-ratio: 4 / 3; margin: 1.25rem 0; border: 1px solid #2b3037; background: #000; }
+		ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid #2b3037; }
+		li { padding: 0.5rem 0; border-bottom: 1px solid #2b3037; font-family: ui-monospace, monospace; font-size: 0.875rem; }
+		li.pass::before { content: "PASS"; color: #69d28a; display: inline-block; width: 4.5rem; }
+		li.fail::before { content: "FAIL"; color: #ff7b72; display: inline-block; width: 4.5rem; }
+		li.fail { color: #ffb3ad; }
+		.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+	</style>
+</head>
+<body>
+	<main>
+		<h1 class="visually-hidden">WebGL renderer self-check</h1>
+		<p id="summary">Starting the WebAssembly runtime…</p>
+		<ul id="results"></ul>
+		<canvas id="frame" width="128" height="96"></canvas>
+		<pre id="report" hidden></pre>
+	</main>
+	<script type="module" src="selfcheck.js"></script>
+</body>
+</html>
