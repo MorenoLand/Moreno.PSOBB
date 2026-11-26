@@ -142,7 +142,7 @@ public sealed class TitleMenu : IDisposable
 	/// Cancels the menu and requests a restart from the title scene.
 	/// </summary>
 	/// <exception cref="ObjectDisposedException">The menu is released.</exception>
-	[Original(0x007A6174)]
+
 	public void Cancel()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
