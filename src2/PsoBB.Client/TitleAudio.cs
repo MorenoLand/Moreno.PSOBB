@@ -55,8 +55,9 @@ internal sealed class TitleAudio : IDisposable
 			try
 			{
 				pipeline.LoadCommonSounds(effects);
+				pipeline.LoadMapSounds(effects, 0);
 			}
-			catch (Exception exception) when (exception is AudioFormatException or FileNotFoundException or InvalidOperationException)
+			catch (Exception exception) when (exception is AudioFormatException or FileNotFoundException or InvalidOperationException or ArgumentOutOfRangeException)
 			{
 			}
 			try
