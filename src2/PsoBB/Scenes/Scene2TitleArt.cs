@@ -471,7 +471,7 @@ public enum TitleArtBlend
 	Opaque = 0,
 	/// <summary>Source-alpha over inverse-source-alpha blending.</summary>
 	Alpha = 1,
-	/// <summary>Additive source-one, destination-zero blending.</summary>
+	/// <summary>Additive source-one, destination-one blending.</summary>
 	Additive = 2,
 }
 
@@ -553,7 +553,7 @@ public sealed class TitleArtDrawList
 		else if (blend == TitleArtBlend.Additive)
 		{
 			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendOne);
-			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendZero);
+			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendOne);
 		}
 		renderer.SetRenderState(RenderStateId.Lighting, 0);
 		renderer.SetRenderState(RenderStateId.DiffuseMaterialSource, RenderStateId.MaterialColorDiffuse);

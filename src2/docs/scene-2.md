@@ -177,7 +177,7 @@ The exact texture set is:
 `TitleArtDrawList` submits the strip quads with the original `0x144` vertex format, z values,
 texture binds, alpha-blend enable state and texture-stage states 4, 13 and 14 used by `0x0082BB30`.
 The strip alpha pass uses source-alpha over inverse-source-alpha; the emblem overlay uses additive
-`SourceBlend=One`, `DestinationBlend=Zero`, matching the captured overlay.
+`SourceBlend=One`, `DestinationBlend=One`, so the black surround adds nothing.
 
 `DrawEmblem` reproduces the overlay after the strip passes: the 430-radius and 178-radius quads from
 frames 11 and 12, then the three 104-radius quads from the `0x0096E168` points `(-137,-79)`,
