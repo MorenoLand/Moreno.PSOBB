@@ -177,15 +177,20 @@ text list, and the title effect records supply the title artwork's particle spri
   `(137,-79)` and `(0,156)`. It uses the frame-derived angle `(frame << 16) / 900`, the
   `0x007A919C(0,88,115,frame,300,150,165,180)` colour, depth values `0.008333334`, `0.008403362` and
   `0.008474576`, and the runtime UV state below.
+- `DrawFlash` reproduces frames 150 through 170: `v15 = 255 * (1 - (frame % 300 - 150) / 20)`, expanded
+  into an opaque grey `0xFFxxxxxx`, texture 12, alpha state, depth `1 - 0.007142857` and the
+  `0x0082B440` quad from `(320 - 268.8t, 200 - 268.8t)` to `(320 + 268.8t, 200 + 268.8t)`, where
+  `t = (frame % 300 - 150) / 20`. The four `0xA96904/08/0C/10` UV values are supplied by the caller
+  because no writer exists in the lift or host data.
 
 `Scene2TitleArtTests` covers the twenty-one-texture load, the three record names and fields, the two
 effect payloads, both eight-strip passes, the sixteen-quad render submission, the emblem angle/colour,
-the two large quads and three ring quads, and the title-set selector.
+the two large quads and three ring quads, the flash window/colour/quad and the title-set selector.
 
 The runtime host gives `0xA96914 = 1`, `0xA96918/0x1C = 320/220`, `0xA96920 = 0`, `0xA96924/28 = 0`
 and `0xA9692C/30 = 0.35/0`. Those values are exposed through `TitleEmblemState`; the image defaults use
-them. The only unported piece of `0x006F475C` is the full-screen flash at frames 150 through 170,
-which uses the global-vertex `0x0082B440` path.
+them. The flash UV values remain the only missing draw input; they are explicit parameters rather than
+invented constants.
 
 Composing the mode-zero GSL `title.prs` (the default `Title` set) with frames 13 through 20 and 3
 through 10, then the overlay, produces the Blue Burst logo with the Japanese subtitle and the
@@ -234,19 +239,21 @@ by `0x00762224`. `0x00792FE8(list, index)` indexes the table; `0x00793304` selec
   account-edit dialog are unported.
 - No layout or menu entries are reconstructed from the reference images.
 - Complete ports are `0x00824860`, `0x00415AB0` and `0x00415BCC`; the 0x006F475C emblem/ring overlay
-  is implemented in `DrawEmblem` with the runtime constants above. The selector object, `0x007617E8`,
-  `0x00761C48`, the list widget and the text renderer are documented but not ported.
+  and flash are implemented in `DrawEmblem` and `DrawFlash` with the runtime constants above. The
+  selector object, `0x007617E8`, `0x00761C48`, the list widget and the text renderer are documented but
+  not ported.
 - The text IDs and row binding are no longer missing. What remains unported is the GUI/font rendering
-  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`), the frame 150-170 title flash, and the effect loader
-  (`0x0050A0EC`/`0x0050DAE0`), which depend on the file, texture and interface systems absent from the
-  branch.
+  stack (`0x007352D0`, `0x00710F80`, `0x0071D58C`), the flash UV source (`0xA96904/08/0C/10`), and the
+  effect loader (`0x0050A0EC`/`0x0050DAE0`), which depend on the file, texture and interface systems
+  absent from the branch.
 
 ## Verification
 
 `Scene2Tests` covers the saved previous state, selected state 9, fade 1 and the scene table row.
 `Scene2TitleArtTests` covers the twenty-one title textures, records 483–485, effect texture mapping,
-both strip passes, the sixteen-quad render submission, the emblem angle/colour and the two large plus
-three ring overlay quads. The full suite passes with 2112 tests and 6 skips. It does not test labels,
+both strip passes, the sixteen-quad render submission, the emblem angle/colour, the two large plus
+three ring overlay quads and the flash window/colour. The full suite passes with 2114 tests and 6
+skips. It does not test labels,
 assets, layout or transitions that the machine code does not establish. The oracle captures were used
 only to confirm that the account dialog and the observed menu are the same screen; the labels, IDs,
 record names and texture slots above come from the shipped binaries and the lift. The Blue Burst/Episode

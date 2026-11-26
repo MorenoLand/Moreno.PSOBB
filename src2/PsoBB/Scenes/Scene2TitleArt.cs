@@ -33,6 +33,12 @@ public sealed class Scene2TitleArt : IDisposable
 	/// <summary>The depth divisor the alpha strip pass passes to the original vertex helper.</summary>
 	public const float AlphaDepthDivisor = -130f;
 
+	/// <summary>The texture frame the flash binds at <c>0x006F475C</c>.</summary>
+	public const int FlashTextureFrame = 12;
+
+	/// <summary>The depth the flash passes to <c>0x0082B440</c>.</summary>
+	public const float FlashDepth = 1f - 0.007142857f;
+
 	/// <summary>Gets the selected title set.</summary>
 	public Scene2TitleSet TitleSet { get; }
 
@@ -234,6 +240,58 @@ public sealed class Scene2TitleArt : IDisposable
 		TitleArtVertex p2 = new(origin + new Vector2(width - height, height + width), new Vector2(u + extent, v + extent));
 		TitleArtVertex p3 = new(origin + new Vector2(-height, width), new Vector2(u, v + extent));
 		draw.AddOverlay(new TitleArtOverlayQuad(_textures[frame], p0, p1, p2, p3, color, depth, TitleArtBlend.Additive));
+	}
+
+	/// <summary>
+	/// Adds the frame 150-170 full-screen flash from <c>0x006F475C</c>.
+	/// </summary>
+	/// <param name="draw">The draw list that receives the flash quad.</param>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <param name="textureCoordinates">The four flash UV values; the caller supplies the runtime values.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The title art is released.</exception>
+	public void DrawFlash(TitleArtDrawList draw, int frame, Vector4 textureCoordinates)
+	{
+		ArgumentNullException.ThrowIfNull(draw);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		if (!IsFlashVisible(frame))
+			return;
+		float t = (frame % 300 - 150) / 20f;
+		float half = 64f * 4.2f * t;
+		Vector2 min = new(320f - half, 200f - half);
+		Vector2 max = new(320f + half, 200f + half);
+		draw.AddOverlay(new TitleArtOverlayQuad(
+			_textures[FlashTextureFrame],
+			new TitleArtVertex(min, new Vector2(textureCoordinates.X, textureCoordinates.Y)),
+			new TitleArtVertex(new Vector2(max.X, min.Y), new Vector2(textureCoordinates.Z, textureCoordinates.Y)),
+			new TitleArtVertex(max, new Vector2(textureCoordinates.Z, textureCoordinates.W)),
+			new TitleArtVertex(new Vector2(min.X, max.Y), new Vector2(textureCoordinates.X, textureCoordinates.W)),
+			GetFlashColor(frame),
+			FlashDepth,
+			TitleArtBlend.Alpha));
+	}
+
+	/// <summary>Gets a value indicating whether the frame is inside the 150-170 flash window.</summary>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <returns><see langword="true"/> from frame 150 through 170 of each 300-frame cycle.</returns>
+	public static bool IsFlashVisible(int frame)
+	{
+		int position = frame % 300;
+		return position >= 150 && position <= 170;
+	}
+
+	/// <summary>
+	/// Returns the flash grey used by <c>0x006F475C</c>; zero outside the window.
+	/// </summary>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <returns>The 0xAARRGGBB colour, or zero outside frames 150 through 170.</returns>
+	public static uint GetFlashColor(int frame)
+	{
+		if (!IsFlashVisible(frame))
+			return 0;
+		int value = (int)((1f - (frame % 300 - 150) / 20f) * 255f);
+		byte grey = (byte)value;
+		return 0xFF000000u | ((uint)grey << 16) | ((uint)grey << 8) | grey;
 	}
 
 	private static float AngleRadians(int angle) => angle * (MathF.PI * 2f / 65536f);
