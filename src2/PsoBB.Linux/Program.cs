@@ -27,6 +27,14 @@ internal static class Program
 			if (!args[index].StartsWith("--", StringComparison.Ordinal))
 				dataFolder = args[index];
 		}
+		dataFolder = dataFolder.Trim().Trim('"');
+		if (dataFolder.Length == 0)
+			dataFolder = AppContext.BaseDirectory;
+		if (!Directory.Exists(dataFolder))
+		{
+			Console.Error.WriteLine($"The game folder does not exist: {dataFolder}. Pass the folder that contains data/data.gsl or set PSOBB_DATA.");
+			return 1;
+		}
 		SdlGameWindow? window = null;
 		OpenGLRenderer? renderer = null;
 		try
@@ -41,7 +49,8 @@ internal static class Program
 			renderer = new OpenGLRenderer(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 			using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 			_ = new ClientStartup(renderer).Start();
-
+			while (window.Pump())
+				host.RunFrames(1);
 			host.RequestStop();
 			return 0;
 		}
