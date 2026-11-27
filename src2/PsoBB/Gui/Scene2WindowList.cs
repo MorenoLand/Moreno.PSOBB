@@ -64,7 +64,6 @@ public class Scene2WindowNode
 	/// <param name="list">The owning list.</param>
 	/// <param name="owner">The owner data pointer, or <see langword="null"/>.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="list"/> is null.</exception>
-	[Original(0x008193CC)]
 	public Scene2WindowNode(Scene2WindowList list, object? owner)
 	{
 		ArgumentNullException.ThrowIfNull(list);

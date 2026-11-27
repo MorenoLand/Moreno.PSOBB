@@ -14,3 +14,43 @@
 0x00819240	The CLR initializes its own CRT state; this stdout initializer has no counterpart.
 0x0081924C	The CLR initializes its own CRT state; this stdio table initializer has no counterpart.
 0x0081930C	The CLR initializes its own CRT state; this stdio table initializer has no counterpart.
+0x0083DD24	The CLR allocator replaces the original heap allocation.
+0x00857999	C# exceptions replace the original non-local jump notification.
+0x008579A2	C# exceptions replace the original non-local jump notification.
+0x008587C7	The CLR allocator replaces the original zeroed allocation.
+0x00858882	The CLR garbage collector replaces the original heap release.
+0x00859BAE	The CLR allocator replaces the original heap allocator.
+0x00859C29	The CLR allocator replaces the original new-handler allocation.
+0x00859C55	The CLR allocator replaces the original heap allocation.
+0x00859EDB	The port has no CRT lock table; this exit lock has no counterpart.
+0x00859EE4	The port has no CRT lock table; this exit unlock has no counterpart.
+0x0085B11E	.NET arrays replace the original aligned allocation.
+0x0085B1C1	.NET arrays replace the original aligned reallocation.
+0x0085B78A	C# exceptions and finally blocks replace the original SEH unwind.
+0x0085BBFC	The CLR provides locks; this stdio file lock has no counterpart because CrtFile keeps its own state.
+0x0085BC2B	The CLR provides locks; this stdio file lock has no counterpart because CrtFile keeps its own state.
+0x0085BC4E	The CLR provides locks; this stdio file unlock has no counterpart because CrtFile keeps its own state.
+0x0085BC7D	The CLR provides locks; this stdio file unlock has no counterpart because CrtFile keeps its own state.
+0x0085C54A	The CLR provides thread-local storage; this CRT TLS allocation has no counterpart.
+0x0085C583	The CLR provides thread-local storage; this per-thread CRT block has no counterpart.
+0x0085C5F4	The CLR provides thread-local storage; this per-thread CRT release has no counterpart.
+0x0085C73B	The CLR provides thread-local storage; this per-thread CRT release has no counterpart.
+0x0085D7EB	The CLR provides thread-local storage; this locale cleanup has no counterpart.
+0x0085E4C5	The CLR provides locks; this CRT unlock has no counterpart.
+0x0085E57A	The CLR provides locks; this CRT lock has no counterpart.
+0x0085E5AC	C# try blocks replace the original structured exception frame setup.
+0x0085E5E7	C# try blocks replace the original structured exception frame teardown.
+0x0085F50F	The CLR allocator replaces the original heap selection.
+0x0085F529	The CLR initializes its own heap; this heap initializer has no counterpart.
+0x0085F5E0	The CLR initializes its own heap; this small-block heap initializer has no counterpart.
+0x0085F653	The CLR garbage collector replaces the original small-block release.
+0x00860F6C	The CLR allocator replaces the original reallocation.
+0x00861119	The CLR allocator replaces the original allocation-size query; arrays carry their own length.
+0x0086215B	The CLR releases stream buffers; this stdio cleanup has no counterpart.
+0x00863A51	The platform file interface replaces the original file handle table release.
+0x00863B11	The CLR provides locks; this file handle lock has no counterpart because CrtFileDescriptor keeps its own state.
+0x00863BB1	The CLR provides locks; this file handle unlock has no counterpart because CrtFileDescriptor keeps its own state.
+0x008673AC	The CLR releases locale tables; this CRT cleanup has no counterpart.
+0x0086759B	The CLR releases locale tables; this CRT cleanup has no counterpart.
+0x008677C7	The CLR releases locale tables; this CRT cleanup has no counterpart.
+0x008CB064	C# exceptions replace the original exception frame setup.

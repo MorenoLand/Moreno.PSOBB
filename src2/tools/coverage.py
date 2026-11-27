@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 FUNCTIONS = ROOT / "recomp" / "data" / "functions.tsv"
 SOURCE = ROOT / "src2" / "PsoBB"
 ABSORBED = ROOT / "src2" / "absorbed.tsv"
-ORIGINAL = re.compile(r"\[Original\(0x([0-9A-Fa-f]+)\)\]")
+ORIGINAL = re.compile(r"\[Original\(0x([0-9A-Fa-f]+)(?:\s*,\s*\"[^\"]*\")?\)\]")
 
 
 def read_functions():

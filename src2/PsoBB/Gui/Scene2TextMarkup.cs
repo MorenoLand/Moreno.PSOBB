@@ -31,7 +31,6 @@ public static class Scene2TextMarkup
 	/// <param name="color">The colour to update.</param>
 	/// <returns>The index of the first normal character.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="text"/> is empty.</exception>
-	[Original(0x007AC580)]
 	public static int Skip(ReadOnlySpan<char> text, int index, ref bool bold, ref int color)
 	{
 		if (text.IsEmpty)

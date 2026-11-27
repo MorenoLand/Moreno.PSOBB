@@ -67,7 +67,6 @@ public sealed class UiTextTable
 	/// <param name="index">The entry index.</param>
 	/// <returns>The stored text.</returns>
 	/// <exception cref="ArgumentOutOfRangeException">The table or entry index is outside the container.</exception>
-	[Original(0x00792FE8)]
 	public string GetTableText(int table, int index)
 	{
 		if ((uint)table >= (uint)_tables.Length)
@@ -90,7 +89,6 @@ public sealed class UiTextTable
 	/// </summary>
 	/// <param name="index">The entry index.</param>
 	/// <returns>The stored text.</returns>
-	[Original(0x0079317C)]
 	public string GetMessage(int index) => GetTableText(MessageTableIndex, index);
 
 	private static string ReadString(ReadOnlySpan<byte> data, int offset)

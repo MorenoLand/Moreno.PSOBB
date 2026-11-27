@@ -15,7 +15,6 @@ public static class BmlChunkReader
 	/// <param name="data">The decompressed entry bytes.</param>
 	/// <returns>The chunks in file order with copied bodies.</returns>
 	/// <exception cref="SceneFormatException">A chunk header, body or POF0 chunk lies outside the entry.</exception>
-	[Original(0x0083B124, "read_ninjalib_iff_chunk")]
 	public static NinjaChunk[] Read(ReadOnlySpan<byte> data)
 	{
 		List<NinjaChunk> chunks = [];

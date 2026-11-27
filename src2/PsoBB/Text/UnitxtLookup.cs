@@ -14,7 +14,6 @@ public static class UnitxtLookup
 	/// <param name="index">The string index inside the list.</param>
 	/// <returns>The stored string.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="table"/> is null.</exception>
-	[Original(0x00792FE8)]
 	public static string Get(UnitxtTable table, int list, int index)
 	{
 		ArgumentNullException.ThrowIfNull(table);

@@ -69,7 +69,6 @@ public sealed class FieldCamera
 	/// </summary>
 	/// <param name="mode">The mode index, from zero through twelve.</param>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="mode"/> is outside the mode range.</exception>
-	[Original(0x004D30FC, "Camera_SetMode_004d30fc")]
 	public void SelectMode(byte mode)
 	{
 		if (mode >= ModeCount)
@@ -82,7 +81,6 @@ public sealed class FieldCamera
 	/// </summary>
 	/// <param name="mode">The new mode index, from zero through twelve.</param>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="mode"/> is outside the mode range.</exception>
-	[Original(0x004D31F4, "Camera_SwitchMode_004d31f4")]
 	public void SwitchMode(byte mode)
 	{
 		if (mode >= ModeCount)

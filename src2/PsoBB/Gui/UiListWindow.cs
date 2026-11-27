@@ -77,7 +77,6 @@ public class UiListWindow : UiControl
 	/// <summary>
 	/// Gets the data value stored beside the selected row, or minus one when no row is selected.
 	/// </summary>
-	[Original(0x007365F4)]
 	public int SelectedData => _selectedIndex >= 0 && _selectedIndex < _items.Count ? _items[_selectedIndex].Data : -1;
 
 	/// <summary>

@@ -30,8 +30,7 @@ public static class CharacterClassStats
 	/// </summary>
 	/// <param name="classByte">The class byte.</param>
 	/// <returns>The clamped index.</returns>
-	[Original(0x0068C45C)]
-	public static int ClampClass(int classByte) => (uint)classByte >= ClassCount ? 0 : classByte;
+	public static int ClampClass(int classByte) => PsoBB.Core.IndexValidation.ValidateSmallIndex((sbyte)classByte);
 
 	/// <summary>
 	/// Returns the 140-byte class record.

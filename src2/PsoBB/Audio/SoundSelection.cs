@@ -78,8 +78,7 @@ public static class SoundSelection
 	/// </summary>
 	/// <param name="value">The value.</param>
 	/// <returns>The square root, negated for negative input.</returns>
-	[Original(0x0082DC9C)]
-	public static float SignedSqrt(float value) => value >= 0f ? MathF.Sqrt(value) : -MathF.Sqrt(-value);
+	public static float SignedSqrt(float value) => PsoBB.Mathematics.FloatingPointMath.SquareRoot(value);
 
 	/// <summary>
 	/// Selects and plays a sound with the positional attenuation at <c>0x00814298</c>.
@@ -140,17 +139,10 @@ public static class SoundSelection
 	/// <param name="second">The second point.</param>
 	/// <returns>The distance or zero.</returns>
 	/// <exception cref="ArgumentException">A point is shorter than three floats.</exception>
-	[Original(0x00836208)]
 	public static float Distance(ReadOnlySpan<float> first, ReadOnlySpan<float> second)
 	{
 		if (first.Length < 3 || second.Length < 3)
 			throw new ArgumentException("A sound position needs three floats.");
-		double x = first[0] - second[0];
-		double y = first[1] - second[1];
-		double z = first[2] - second[2];
-		double sum = x * x + y * y + z * z;
-		if (sum < DistanceFloor)
-			return 0f;
-		return SignedSqrt((float)sum);
+		return (float)PsoBB.Mathematics.Vector3.Distance(new PsoBB.Mathematics.Vector3(first[0], first[1], first[2]), new PsoBB.Mathematics.Vector3(second[0], second[1], second[2]));
 	}
 }

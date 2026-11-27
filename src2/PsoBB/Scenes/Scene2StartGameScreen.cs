@@ -156,7 +156,6 @@ public sealed class Scene2StartGameScreen : IDisposable
 	/// </summary>
 	/// <returns><see langword="true"/> when a non-empty row was confirmed.</returns>
 	/// <exception cref="ObjectDisposedException">The screen is released.</exception>
-	[Original(0x004048E8, "Scene2StartGame_ConfirmSavedCharacter_004048e8")]
 	public bool ConfirmSelected()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -188,7 +187,6 @@ public sealed class Scene2StartGameScreen : IDisposable
 
 	/// <summary>Selects the title shared state, as the return path at <c>0x00404CA4</c> does.</summary>
 	/// <exception cref="ObjectDisposedException">The screen is released.</exception>
-	[Original(0x0081E298, "Scene2StartGame_ReturnToTitle_0081e298")]
 	public void ReturnToTitle()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);

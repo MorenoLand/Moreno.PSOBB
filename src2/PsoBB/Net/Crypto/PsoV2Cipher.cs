@@ -29,7 +29,6 @@ public sealed class PsoV2Cipher
 	/// Rebuilds the state for a seed and leaves it ready for the first word.
 	/// </summary>
 	/// <param name="seed">The 32-bit key.</param>
-	[Original(0x0084C390)]
 	public void Init(uint seed)
 	{
 		_seed = seed;
@@ -53,7 +52,6 @@ public sealed class PsoV2Cipher
 	/// XORs the stream over a byte buffer, consuming one word for the final partial word.
 	/// </summary>
 	/// <param name="data">The bytes to encrypt or decrypt in place.</param>
-	[Original(0x00763054)]
 	public void Xor(Span<byte> data)
 	{
 		int words = (data.Length + 3) / 4;

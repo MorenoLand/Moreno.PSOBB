@@ -57,7 +57,6 @@ public static class MapTextureArchive
 	/// <returns><see langword="true"/> when an archive was read.</returns>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
 	/// <exception cref="TextureFormatException">The archive is malformed.</exception>
-	[Original(0x00806FCC, "MapTextureArchive_LoadForMap_00806fcc")]
 	public static bool TryLoadForMap(IDataFiles files, string mapName, out IReadOnlyList<XvmTexture> textures)
 	{
 		ArgumentNullException.ThrowIfNull(files);

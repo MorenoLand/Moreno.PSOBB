@@ -48,7 +48,6 @@ public sealed class Scene2TitleMenu : IDisposable
 	/// </summary>
 	/// <returns>The requested action, or <see langword="null"/> when no enabled row is selected.</returns>
 	/// <exception cref="ObjectDisposedException">The menu is released.</exception>
-	[Original(0x006F853C, "TitleMenu_StartGame_006f853c")]
 	public LoginDialogAction? Confirm() => Dispatch(_dialog.ConfirmSelected());
 
 	/// <summary>

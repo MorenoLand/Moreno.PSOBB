@@ -395,7 +395,6 @@ public sealed class LoginFlow
 		return true;
 	}
 
-	[Original(0x0046819C)]
 	private bool HandleReconnect(Packet packet)
 	{
 		if (State is not (LoginFlowState.Authenticating or LoginFlowState.AwaitingSystemFile or LoginFlowState.CharacterSelect or LoginFlowState.CharacterSelected))

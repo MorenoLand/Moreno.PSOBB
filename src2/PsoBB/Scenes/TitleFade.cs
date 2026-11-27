@@ -17,7 +17,6 @@ public static class TitleFade
 	/// <summary>Advances the fade state once in the order the update applies it.</summary>
 	/// <param name="state">The current fade state; replaced with the next state.</param>
 	/// <returns><see langword="true"/> when the screen stays hidden for this frame.</returns>
-	[Original(0x0081AA00, "Scene2_AdvanceFade_0081aa00")]
 	public static bool Advance(ref uint state)
 	{
 		bool hidden = IsHidden(state);
