@@ -31,4 +31,13 @@ public static class Int64Arithmetic
 	/// <returns>The shifted value.</returns>
 	[Original(0x008CB210, "__aullshr")]
 	public static ulong ShiftRightUnsigned(ulong value, byte count) => count >= 64 ? 0UL : value >> count;
+
+	/// <summary>
+	/// Divides one unsigned 64-bit value by another and returns the quotient, as the original's <c>__aulldiv</c> does.
+	/// </summary>
+	/// <param name="dividend">The value to divide.</param>
+	/// <param name="divisor">The divisor; a zero divisor raises the same fault the original raises.</param>
+	/// <returns>The unsigned quotient.</returns>
+	[Original(0x00863510, "__aulldiv")]
+	public static ulong DivideUnsigned(ulong dividend, ulong divisor) => dividend / divisor;
 }

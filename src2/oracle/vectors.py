@@ -830,6 +830,20 @@ def aullshr_vectors(read):
     shift_right_vectors(read, 0x008CB210, 31, "008CB210.json", values)
 
 
+def aulldiv_vectors(read):
+    """0x00863510 (__aulldiv): unsigned 64-bit quotient of two operands pushed as four words; divisors are nonzero."""
+    pairs = [(0, 1), (1, 1), (0xFFFFFFFFFFFFFFFF, 1), (0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF), (0x8000000000000000, 2),
+             (0x123456789ABCDEF0, 0x10), (0x7FFFFFFF, 0x80000000), (0x100000000, 0x100000000),
+             (0xFFFFFFFFFFFFFFFF, 0x100000000), (12345678901234567890, 987654321), (0x00000001FFFFFFFF, 3),
+             (0xFFFFFFFF00000000, 0xFFFFFFFF), (1000000007, 0x7FFFFFFFFFFFFFFF)]
+    vectors = []
+    for dividend, divisor in pairs:
+        stack = [dividend & 0xFFFFFFFF, dividend >> 32, divisor & 0xFFFFFFFF, divisor >> 32]
+        eax, edx, _ = run(read, 0x00863510, 104, stack=stack)
+        vectors.append({"dividend": f"{dividend:016x}", "divisor": f"{divisor:016x}", "result": f"{(edx << 32) | eax:016x}"})
+    write("00863510.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
