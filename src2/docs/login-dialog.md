@@ -105,3 +105,33 @@ close. Data value 0 closes the account panel to start the game; it is not a sepa
 action. The scene-2 selector frames are reached through `SelectorFrameDraw`; their proven
 addresses and positions are constants on `LoginDialog`. `LoginDialogFrame` supplies the textured
 title body, header and selected-row strip, and `LoginDialog.Dispose` releases its two skin pages.
+
+## Input UserID layout, from the lifted code
+
+These facts come from the lifted C and the disassembly, not from screenshots. Each address is the
+place the value was read.
+
+- The panel is the window created at `0x00762224` by `0x0073840C` with `(140, 330, 360, 100)`
+  (`push 0x430C0000`, `0x43A50000`, `0x43B40000`, `0x42C80000`, `4`). `TitleRegisterDialog`
+  already uses these values.
+- The UserID editor is set to `(316, 346)` in the state-3 block of the dispatcher `0x007624E0`
+  (`0x007627C9`, `0x007627D9`). The Password editor is set to `(316, 366)` in the state-5 block
+  (`0x007625F5`, `0x007625FF`).
+- The list layout `0x00738C1C` places the window's child elements in groups of five (`add ebx, 5`).
+  Child index `c` has its y at `+0x0C` equal to `20 * c`, relative to the window origin. The x
+  value is not set by this routine.
+- Children are appended by `0x007389CC` and `0x00738A04`. Each call fills the next pre-allocated
+  element (`[window+0x28][count]`) and increments `[window+0x86]`. The register dialog makes four
+  such appends in `0x00762224`.
+- The row strip `0x007120EC` draws three slices on page `_c` (`dword_A983D8` page 2) with tint
+  `0xFFFFFFFF`, after `0x0082BB30(1)` and `0x0082BB60(2, -1)`. Its offsets are `x-2` (left cap),
+  `x+width-14` (right cap) and `x+14` (middle), with 16-pixel caps and a 16-pixel height. The
+  port's `LoginDialogFrame.DrawRow` matches those offsets.
+- The item text draw `0x0072D9B4` takes its x and y from the item at `+0x08` and `+0x0C` plus the
+  parent's `+0x10` and `+0x14`. Text width is clamped to the item's `+0x1C`. Flag `0x40` selects an
+  unbounded width (`0x970EBC` = 1e7) instead of the parent's `+0x44`.
+
+Not decoded yet, so the port does not change these: which of the four appended elements is the
+header, the UserID row, the Password row or the buttons; the centring formula behind the text x in
+`0x0072D9B4` (it uses the parent's `+0x30` and `+0x38`); and the blend state set by
+`0x0082BB30(1)`, which decides whether the strip looks white.
