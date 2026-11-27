@@ -858,6 +858,31 @@ def alldiv_vectors(read):
     write("0085ADE0.json", vectors)
 
 
+def shift_96_vectors(read, address, size, name):
+    """Shifts a 96-bit value, three dwords least significant first, by one bit in place at the pointer on the stack."""
+    base = 0x20000000
+    values = [(0, 0, 0), (1, 0, 0), (0x80000000, 0, 0), (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),
+              (0x80000000, 0x80000000, 0x80000000), (0x12345678, 0x9ABCDEF0, 0x0FEDCBA9), (0, 0, 0x80000000),
+              (0xDEADBEEF, 0, 1), (0x7FFFFFFF, 0x80000000, 0x00000001), (0x00000001, 0xFFFFFFFF, 0x80000000)]
+    vectors = []
+    for before in values:
+        _, _, captured = run(read, address, size, stack=[base], memory=[(base, struct.pack("<III", *before))],
+                             capture=[(base, 12)])
+        after = struct.unpack("<III", captured[base])
+        vectors.append({"before": list(before), "after": list(after)})
+    write(name, vectors)
+
+
+def shl12_vectors(read):
+    """0x00869982 (__shl_12): a 96-bit shift left by one bit."""
+    shift_96_vectors(read, 0x00869982, 64, "00869982.json")
+
+
+def shr12_vectors(read):
+    """0x008699B0 (__shr_12): a 96-bit shift right by one bit."""
+    shift_96_vectors(read, 0x008699B0, 64, "008699B0.json")
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
