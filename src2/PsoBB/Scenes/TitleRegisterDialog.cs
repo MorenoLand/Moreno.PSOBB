@@ -18,41 +18,70 @@ public sealed class TitleRegisterDialog : IDisposable
 	/// <summary>The observed dialog size from the data image at <c>0x00974E28</c>.</summary>
 	public static readonly Vector2 PanelSize = new(360f, 100f);
 
+	/// <summary>The top of the first row, taken from the user-id edit position written at <c>0x00762224</c>.</summary>
+	public const float RowTop = 346f;
+
+	/// <summary>The row step of the four rows.</summary>
+	public const float RowHeight = 20f;
+
+	/// <summary>The left edge of the value column, taken from the edit positions <c>(316, 346)</c> and <c>(316, 366)</c> set at <c>0x007624E0</c>.</summary>
+	public const float ValueColumn = 316f;
+
+	/// <summary>The number of characters the password row shows when the network flag is set.</summary>
+	public const int NetworkPasswordDisplayLength = 8;
+
+	private const int UserIdRow = 0;
+	private const int PasswordRow = 1;
+	private const int ConfirmRow = 2;
+	private const int NoEdit = -1;
+
 	private readonly LoginDialogFrame? _frame;
 	private readonly UiLabel _header;
 	private readonly UiLabel _userIdLabel;
 	private readonly UiLabel _passwordLabel;
-	private readonly UiEditBox _userId;
-	private readonly UiEditBox _password;
+	private readonly UiLabel _userIdValueLabel;
+	private readonly UiLabel _passwordValueLabel;
+	private readonly UiEditBox _userIdEditor;
+	private readonly UiEditBox _passwordEditor;
 	private readonly UiListWindow _buttons;
+	private string _userId = string.Empty;
+	private string _password = string.Empty;
 	private int _index;
+	private int _editing = NoEdit;
 	private bool _disposed;
 
 	/// <summary>
-	/// Builds the prompt, the two fields and the two buttons.
+	/// Builds the prompt, the two value rows, the two editors and the two buttons.
 	/// </summary>
 	/// <param name="text">The account text table.</param>
 	/// <param name="surface">The surface that measures and draws the text.</param>
 	/// <param name="frame">The optional title skin installed over the dialog rectangle.</param>
+	/// <param name="networkMode">Whether the network flag at <c>0x0082D2F8</c> is set.</param>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
-	public TitleRegisterDialog(GameText text, IUiTextSurface surface, LoginDialogFrame? frame = null)
+	public TitleRegisterDialog(GameText text, IUiTextSurface surface, LoginDialogFrame? frame = null, bool networkMode = false)
 	{
 		ArgumentNullException.ThrowIfNull(text);
 		ArgumentNullException.ThrowIfNull(surface);
+		NetworkMode = networkMode;
 		_frame = frame;
+		if (_frame is not null)
+			_frame.RowAreaTop = RowTop - PanelPosition.Y;
 		_header = CreateLabel(text.GetLoginScreenText(LoginScreenText.InputUserId), PanelPosition + new Vector2(10f, -LoginDialogFrame.HeaderOverhang), new Vector2(PanelSize.X - 20f, 20f), surface);
-		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), PanelPosition + new Vector2(10f, 22f), new Vector2(60f, 20f), surface);
-		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), PanelPosition + new Vector2(10f, 42f), new Vector2(60f, 20f), surface);
-		_userId = CreateField(PanelPosition + new Vector2(70f, 20f), new Vector2(PanelSize.X - 80f, 20f), surface);
-		_password = CreateField(PanelPosition + new Vector2(70f, 40f), new Vector2(PanelSize.X - 80f, 20f), surface, '*');
+		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), new Vector2(PanelPosition.X + 10f, RowTop), new Vector2(60f, RowHeight), surface);
+		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), new Vector2(PanelPosition.X + 10f, RowTop + RowHeight), new Vector2(60f, RowHeight), surface);
+		Vector2 valueSize = new(PanelPosition.X + PanelSize.X - ValueColumn - 10f, RowHeight);
+		_userIdValueLabel = CreateLabel(string.Empty, new Vector2(ValueColumn, RowTop), valueSize, surface);
+		_passwordValueLabel = CreateLabel(string.Empty, new Vector2(ValueColumn, RowTop + RowHeight), valueSize, surface);
+		_userIdEditor = CreateField(new Vector2(ValueColumn, RowTop), valueSize, surface, null);
+		_passwordEditor = CreateField(new Vector2(ValueColumn, RowTop + RowHeight), valueSize, surface, '*');
 		_buttons = new UiListWindow
 		{
-			Position = PanelPosition + new Vector2(10f, 62f),
-			Size = new Vector2(PanelSize.X - 20f, 38f),
-			ItemHeight = 19f,
+			Position = new Vector2(PanelPosition.X + 10f, RowTop + RowHeight * 2f),
+			Size = new Vector2(PanelSize.X - 20f, RowHeight * 2f),
+			ItemHeight = RowHeight,
 			ScrollBarWidth = 0f,
-			SelectionColor = 0x60000000u,
-			SelectedTextColor = 0xFFFFCC33u,
+			SelectionColor = 0x00000000u,
+			SelectedTextColor = 0xFFFFFFFFu,
 		};
 		_buttons.SetItems(
 		[
@@ -60,17 +89,37 @@ public sealed class TitleRegisterDialog : IDisposable
 			new UiListItem(text.GetLoginScreenText(LoginScreenText.Cancel), true, 1, 0xFFFFFFFFu, centered: true),
 		]);
 		_buttons.TextSurface = surface;
+		_userIdEditor.MaxLength = UserIdLimit;
+		_passwordEditor.MaxLength = PasswordLimit;
 		Select(0);
 	}
 
-	/// <summary>Gets the entered account name.</summary>
-	public string UserId => _userId.Text;
+	/// <summary>Gets whether the network flag at <c>0x0082D2F8</c> is set.</summary>
+	public bool NetworkMode { get; }
 
-	/// <summary>Gets the entered password.</summary>
-	public string Password => _password.Text;
+	/// <summary>Gets the user-id length limit written by <c>0x00762D2C</c>.</summary>
+	public int UserIdLimit => NetworkMode ? 12 : 16;
+
+	/// <summary>Gets the password length limit written by <c>0x00762D00</c>.</summary>
+	public int PasswordLimit => 16;
+
+	/// <summary>Gets the number of asterisks the password row can show.</summary>
+	public int PasswordDisplayLimit => NetworkMode ? NetworkPasswordDisplayLength : 16;
+
+	/// <summary>Gets the selected row: user id, password, confirm or cancel.</summary>
+	public int SelectedRow => _index;
+
+	/// <summary>Gets whether a text row is being edited in its popup.</summary>
+	public bool IsEditing => _editing != NoEdit;
 
 	/// <summary>Gets or sets the callback that plays a sound-effect identifier.</summary>
 	public Action<int>? SoundPlayer { get; set; }
+
+	/// <summary>Gets the entered account name.</summary>
+	public string UserId => _userId;
+
+	/// <summary>Gets the entered password.</summary>
+	public string Password => _password;
 
 	/// <summary>Gets whether the confirm action was accepted.</summary>
 	public bool Confirmed { get; private set; }
@@ -78,15 +127,20 @@ public sealed class TitleRegisterDialog : IDisposable
 	/// <summary>Gets whether the dialog was cancelled.</summary>
 	public bool Cancelled { get; private set; }
 
-	/// <summary>Moves between fields and buttons, reads typed characters and answers the prompt.</summary>
+	/// <summary>Moves between rows, edits the text rows in their popup and answers the prompt.</summary>
 	/// <param name="input">The input layer already polled for this frame.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	[Original(0x007624E0)]
 	public void Update(InputManager input)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		if (Confirmed || Cancelled)
 			return;
-		ReadText(input.Keyboard);
+		if (_editing != NoEdit)
+		{
+			UpdateEdit(input);
+			return;
+		}
 		if (input.WasActionPressed(InputAction.Cancel))
 		{
 			SoundPlayer?.Invoke(UiSounds.Cancel);
@@ -103,28 +157,34 @@ public sealed class TitleRegisterDialog : IDisposable
 			Select((_index + 1) % 4);
 			SoundPlayer?.Invoke(UiSounds.Select);
 		}
-		if (input.WasActionPressed(InputAction.Confirm) && _index >= 2)
+		if (input.WasActionPressed(InputAction.Confirm))
 		{
 			SoundPlayer?.Invoke(UiSounds.Activate);
-			Activate(_index - 2);
+			Activate(_index);
 		}
 	}
 
-	/// <summary>Adds the panel, labels, fields and buttons to the draw list.</summary>
+	/// <summary>Adds the panel, labels, values, popup editor and buttons to the draw list.</summary>
 	/// <param name="draw">The draw list that receives the quads.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
 	public void Draw(UiDrawList draw)
 	{
 		ArgumentNullException.ThrowIfNull(draw);
 		if (_frame is not null)
-			_frame.Draw(draw, -1);
+			_frame.Draw(draw, _editing == NoEdit ? _index : -1);
 		else
 			draw.Add(new UiQuad(PanelPosition, PanelSize, new Vector4(0f, 0f, 1f, 1f), null, 0xE0101010u));
 		_header.Draw(draw);
 		_userIdLabel.Draw(draw);
 		_passwordLabel.Draw(draw);
-		_userId.Draw(draw);
-		_password.Draw(draw);
+		if (_editing == UserIdRow)
+			_userIdEditor.Draw(draw);
+		else
+			_userIdValueLabel.Draw(draw);
+		if (_editing == PasswordRow)
+			_passwordEditor.Draw(draw);
+		else
+			_passwordValueLabel.Draw(draw);
 		_buttons.Draw(draw);
 	}
 
@@ -138,8 +198,10 @@ public sealed class TitleRegisterDialog : IDisposable
 		_header.Dispose();
 		_userIdLabel.Dispose();
 		_passwordLabel.Dispose();
-		_userId.Dispose();
-		_password.Dispose();
+		_userIdValueLabel.Dispose();
+		_passwordValueLabel.Dispose();
+		_userIdEditor.Dispose();
+		_passwordEditor.Dispose();
 		_buttons.Dispose();
 	}
 
@@ -151,13 +213,12 @@ public sealed class TitleRegisterDialog : IDisposable
 		return label;
 	}
 
-	private static UiEditBox CreateField(Vector2 position, Vector2 size, IUiTextSurface surface, char? maskCharacter = null)
+	private static UiEditBox CreateField(Vector2 position, Vector2 size, IUiTextSurface surface, char? maskCharacter)
 	{
 		UiEditBox field = new()
 		{
 			Position = position,
 			Size = size,
-			MaxLength = 16,
 			MaskCharacter = maskCharacter,
 			Focusable = true,
 			TextSurface = surface,
@@ -168,40 +229,74 @@ public sealed class TitleRegisterDialog : IDisposable
 
 	private void Select(int index)
 	{
-		CommitField(_index);
 		_index = index;
-		_userId.ClearFocus();
-		_password.ClearFocus();
-		if (index is 0 or 1)
+		_buttons.SelectedIndex = index >= ConfirmRow ? index - ConfirmRow : -1;
+	}
+
+	private void Activate(int row)
+	{
+		switch (row)
 		{
-			UiEditBox field = index == 0 ? _userId : _password;
-			field.SetFocus();
-			field.BeginEdit();
+			case UserIdRow:
+				BeginEdit(_userIdEditor, _userId, UserIdRow);
+				break;
+			case PasswordRow:
+				BeginEdit(_passwordEditor, _password, PasswordRow);
+				break;
+			case ConfirmRow:
+				Confirmed = true;
+				break;
+			default:
+				Cancelled = true;
+				break;
 		}
-		_buttons.SelectedIndex = index >= 2 ? index - 2 : -1;
 	}
 
-	private void CommitField(int index)
+	private void BeginEdit(UiEditBox editor, string value, int row)
 	{
-		if (index == 0)
-			_userId.CommitInput();
-		else if (index == 1)
-			_password.CommitInput();
+		editor.SetText(value);
+		editor.SetFocus();
+		editor.BeginEdit();
+		_editing = row;
 	}
 
-	private void Activate(int button)
+	private void UpdateEdit(InputManager input)
 	{
-		if (button == 0)
-			Confirmed = true;
-		else
-			Cancelled = true;
-	}
-
-	private void ReadText(KeyboardInput keyboard)
-	{
-		if (_index is not (0 or 1))
+		UiEditBox editor = _editing == UserIdRow ? _userIdEditor : _passwordEditor;
+		if (input.WasActionPressed(InputAction.Cancel))
+		{
+			editor.CancelEdit();
+			editor.ClearFocus();
+			_editing = NoEdit;
 			return;
-		UiEditBox field = _index == 0 ? _userId : _password;
+		}
+		if (input.WasActionPressed(InputAction.Confirm))
+		{
+			CommitEdit(editor);
+			return;
+		}
+		ReadText(input.Keyboard, editor);
+	}
+
+	private void CommitEdit(UiEditBox editor)
+	{
+		if (_editing == UserIdRow)
+		{
+			editor.CommitInput();
+			_userId = editor.Text;
+			_userIdValueLabel.SetText(_userId);
+		}
+		else
+		{
+			_password = editor.Text;
+			_passwordValueLabel.SetText(new string('*', Math.Min(_password.Length, PasswordDisplayLimit)));
+		}
+		editor.ClearFocus();
+		_editing = NoEdit;
+	}
+
+	private static void ReadText(KeyboardInput keyboard, UiEditBox field)
+	{
 		if (keyboard.WasKeyPressed(0x0E))
 			field.OnEvent(UiEvent.KeyDown(GameKey.Backspace));
 		if (TryReadCharacter(keyboard, out char character))

@@ -63,6 +63,60 @@ public sealed class DialogSoundTests
 		Assert.True(dialog.Cancelled);
 	}
 
+	[Fact]
+	public void RegisterEnterOpensThePopupAndEnterCommitsTheUserId()
+	{
+		(InputManager input, MemoryGameInput source) = CreateInput();
+		using TitleRegisterDialog dialog = new(CreateText(), new RecordingTextSurface());
+
+		Press(input, source, GameKey.Return, dialog.Update);
+		Assert.True(dialog.IsEditing);
+		Press(input, source, GameKey.A, dialog.Update);
+		Press(input, source, GameKey.B, dialog.Update);
+		Press(input, source, GameKey.Return, dialog.Update);
+
+		Assert.False(dialog.IsEditing);
+		Assert.Equal("ab", dialog.UserId);
+		Assert.False(dialog.Confirmed);
+	}
+
+	[Fact]
+	public void RegisterEscapeWhileEditingRestoresTheValueAndKeepsTheDialog()
+	{
+		(InputManager input, MemoryGameInput source) = CreateInput();
+		using TitleRegisterDialog dialog = new(CreateText(), new RecordingTextSurface());
+		Press(input, source, GameKey.Return, dialog.Update);
+		Press(input, source, GameKey.A, dialog.Update);
+		Press(input, source, GameKey.Return, dialog.Update);
+		Press(input, source, GameKey.Return, dialog.Update);
+		Press(input, source, GameKey.B, dialog.Update);
+
+		Press(input, source, GameKey.Escape, dialog.Update);
+
+		Assert.False(dialog.IsEditing);
+		Assert.False(dialog.Cancelled);
+		Assert.Equal("a", dialog.UserId);
+	}
+
+	[Fact]
+	public void RegisterPasswordRowStoresTheTextAndLimitsFollowTheNetworkFlag()
+	{
+		(InputManager input, MemoryGameInput source) = CreateInput();
+		using TitleRegisterDialog dialog = new(CreateText(), new RecordingTextSurface(), null, networkMode: true);
+		Assert.Equal(12, dialog.UserIdLimit);
+		Assert.Equal(16, dialog.PasswordLimit);
+		Assert.Equal(8, dialog.PasswordDisplayLimit);
+		Press(input, source, GameKey.Down, dialog.Update);
+		Press(input, source, GameKey.Return, dialog.Update);
+		Press(input, source, GameKey.C, dialog.Update);
+		Press(input, source, GameKey.Return, dialog.Update);
+
+		Assert.Equal("c", dialog.Password);
+		using TitleRegisterDialog offline = new(CreateText(), new RecordingTextSurface());
+		Assert.Equal(16, offline.UserIdLimit);
+		Assert.Equal(16, offline.PasswordDisplayLimit);
+	}
+
 	private static (InputManager Input, MemoryGameInput Source) CreateInput()
 	{
 		MemoryGameInput source = new();

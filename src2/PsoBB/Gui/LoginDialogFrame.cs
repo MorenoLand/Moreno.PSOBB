@@ -68,6 +68,9 @@ public sealed class LoginDialogFrame : IDisposable
 	/// <summary>Gets or sets the diffuse colour applied to the selected-row slices.</summary>
 	public uint RowColor { get; set; } = SkinColor;
 
+	/// <summary>Gets or sets the distance from the panel top to the first selectable row.</summary>
+	public float RowAreaTop { get; set; } = HeaderHeight;
+
 	/// <summary>Gets or sets the panel origin.</summary>
 	public Vector2 Position { get; set; } = TitlePanelPosition;
 
@@ -147,7 +150,7 @@ public sealed class LoginDialogFrame : IDisposable
 
 	private void DrawRow(UiDrawList drawList, int selectedIndex, bool hovered)
 	{
-		Vector2 position = new(Position.X, Position.Y + HeaderHeight + selectedIndex * RowHeight);
+		Vector2 position = new(Position.X, Position.Y + RowAreaTop + selectedIndex * RowHeight);
 		float width = Size.X;
 		float v0 = hovered ? HoverRowV : RowLeftSource.Y;
 		float v1 = v0 + RowStripHeight;
