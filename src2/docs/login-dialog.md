@@ -135,3 +135,11 @@ Not decoded yet, so the port does not change these: which of the four appended e
 header, the UserID row, the Password row or the buttons; the centring formula behind the text x in
 `0x0072D9B4` (it uses the parent's `+0x30` and `+0x38`); and the blend state set by
 `0x0082BB30(1)`, which decides whether the strip looks white.
+
+Element mapping, verified in `0x00762224`: `0x00792FE8(41, n)` returns unitxt list 41 string `n`.
+The header is string 8 (Input UserID), attached through `0x00738364` to `[window+0x60]`. The four
+appended children are string 9 (UserId, element 0, value object `[window+0x20]`), string 10
+(Password, element 1, buffer `esi`), string 1 (Confirm, element 2) and string 0 (Cancel, element 3).
+Element `c` sits at `origin.y + 20 * c`. The UserId editor at 346 and the Password editor at 366 are
+one row apart, so the origin that lines the rows up with them is 346. That origin is an inference
+from the editor positions; the write to `[window+0x14]` is not located yet.
