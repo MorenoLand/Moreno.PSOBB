@@ -145,12 +145,37 @@ public static class SystemSave
 		int result = MissingBlockStatus;
 		if (SaveBlock is not null && Pending == 0)
 		{
-			Language = UserLanguage;
+			Language = (sbyte)UserLanguage;
 			result = BuildMode();
 			if (result == 0)
 				result = StartLoad(files, (uint)Language);
 		}
 		Busy = result == 0 ? 1 : 0;
+		return result;
+	}
+
+	/// <summary>
+	/// Starts the PSO_SYSTEM load and queues pending 16, or 17 when <paramref name="alternate"/> is set,
+	/// without changing the busy flag.
+	/// </summary>
+	/// <param name="files">The data files that resolve PSO_SYSTEM.</param>
+	/// <param name="alternate">Whether the caller wants the alternate pending state.</param>
+	/// <returns>Zero when the load started, or the file-check status.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="files"/> is null.</exception>
+	[Original(0x006C3E8C)]
+	public static int StartAlternate(IDataFiles files, bool alternate)
+	{
+		ArgumentNullException.ThrowIfNull(files);
+		int result = MissingBlockStatus;
+		if (SaveBlock is not null && Pending == 0)
+		{
+			Language = (sbyte)UserLanguage;
+			result = BuildMode();
+			if (result == 0)
+				result = StartLoad(files, (uint)Language);
+		}
+		if (result == 0)
+			Pending = alternate ? 17 : SystemPending;
 		return result;
 	}
 
@@ -190,7 +215,7 @@ public static class SystemSave
 		int result = MissingBlockStatus;
 		if (SaveBlock is not null && Pending == 0)
 		{
-			Language = UserLanguage;
+			Language = (sbyte)UserLanguage;
 			result = BuildMode();
 			if (result == 0)
 				result = StartLoad(files, (uint)Language);
@@ -274,3 +299,4 @@ public static class SystemSave
 		return ~checksum != (uint)stored ? 1 : 0;
 	}
 }
+
