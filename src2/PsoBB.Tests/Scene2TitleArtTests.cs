@@ -244,16 +244,36 @@ public sealed class Scene2TitleArtTests
 		TitleArtDrawList flashing = new();
 		art.DrawTitle(flashing, 160);
 		Assert.Equal(16, flashing.Quads.Count);
-		Assert.Equal(6, flashing.OverlayQuads.Count);
+		Assert.Equal(8, flashing.OverlayQuads.Count);
 		Assert.Same(art.Textures[12], flashing.OverlayQuads[0].Texture);
 		Assert.Equal(Scene2TitleArt.FlashTextureCoordinates.Z, flashing.OverlayQuads[0].P2.TextureCoordinates.X);
 		TitleArtDrawList quiet = new();
 		art.DrawTitle(quiet, 10);
-		Assert.Equal(5, quiet.OverlayQuads.Count);
+		Assert.Equal(7, quiet.OverlayQuads.Count);
 		flashing.Render(renderer);
 		string[] destination = [.. renderer.Commands.Where(command => command.StartsWith("State 20:"))];
-		Assert.Equal(["State 20:2", "State 20:6", "State 20:2"], destination);
-		Assert.Equal(22, renderer.Commands.Count(command => command == "Draw TriangleList 2 28 144"));
+		Assert.Equal(["State 20:2", "State 20:6", "State 20:2", "State 20:6"], destination);
+		Assert.Equal(24, renderer.Commands.Count(command => command == "Draw TriangleList 2 28 144"));
+	}
+
+	[Fact]
+	public void DrawLogoSubmitsTheTwoLogoHalvesInFrontOfTheTitle()
+	{
+		using DataFileRegistry files = Scene2TitleTestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using Scene2TitleArt art = new(files, renderer);
+		TitleArtDrawList draw = new();
+
+		art.DrawLogo(draw);
+
+		Assert.Equal(2, draw.OverlayQuads.Count);
+		Assert.Same(art.Textures[1], draw.OverlayQuads[0].Texture);
+		Assert.Same(art.Textures[2], draw.OverlayQuads[1].Texture);
+		Assert.Equal(new Vector2(64f, 61f), draw.OverlayQuads[0].P0.Position);
+		Assert.Equal(new Vector2(320f, 317f), draw.OverlayQuads[0].P2.Position);
+		Assert.Equal(new Vector2(320f, 61f), draw.OverlayQuads[1].P0.Position);
+		Assert.Equal(new Vector2(576f, 317f), draw.OverlayQuads[1].P2.Position);
+		Assert.All(draw.OverlayQuads, quad => Assert.Equal(TitleArtBlend.Alpha, quad.Blend));
 	}
 
 	[Fact]

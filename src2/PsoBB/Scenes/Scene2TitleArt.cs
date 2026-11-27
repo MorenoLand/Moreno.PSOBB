@@ -37,6 +37,12 @@ public sealed class Scene2TitleArt : IDisposable
 	/// <summary>The texture frame the flash binds at <c>0x006F475C</c>.</summary>
 	public const int FlashTextureFrame = 12;
 
+	/// <summary>The texture frame of the left logo half; the right half is the next frame.</summary>
+	public const int LogoFirstFrame = 1;
+
+	/// <summary>The depth the logo passes to <c>0x0082B440</c>.</summary>
+	public const float LogoDepth = 1f - 0.1f;
+
 	/// <summary>The depth the flash passes to <c>0x0082B440</c>.</summary>
 	public const float FlashDepth = 1f - 0.007142857f;
 
@@ -347,7 +353,34 @@ public sealed class Scene2TitleArt : IDisposable
 		DrawFlash(draw, frame, FlashTextureCoordinates);
 		DrawAlphaStrips(draw);
 		DrawEmblem(draw, frame, state);
+		DrawLogo(draw);
 	}
+
+	/// <summary>
+	/// Adds the two logo textures, "PHANTASY / ONLINE" and "STAR / Blue Burst", as the two quads <c>0x006F4CC4</c> draws in front of the title.
+	/// </summary>
+	/// <param name="draw">The draw list that receives the quads.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The title art is released.</exception>
+	[Original(0x006F4CC4)]
+	public void DrawLogo(TitleArtDrawList draw)
+	{
+		ArgumentNullException.ThrowIfNull(draw);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		AddLogoQuad(draw, LogoFirstFrame, new Vector2(64f, 61f), new Vector2(320f, 317f));
+		AddLogoQuad(draw, LogoFirstFrame + 1, new Vector2(320f, 61f), new Vector2(576f, 317f));
+	}
+
+	private void AddLogoQuad(TitleArtDrawList draw, int frame, Vector2 min, Vector2 max)
+		=> draw.AddOverlay(new TitleArtOverlayQuad(
+			_textures[frame],
+			new TitleArtVertex(min, new Vector2(0f, 0f)),
+			new TitleArtVertex(new Vector2(max.X, min.Y), new Vector2(1f, 0f)),
+			new TitleArtVertex(max, new Vector2(1f, 1f)),
+			new TitleArtVertex(new Vector2(min.X, max.Y), new Vector2(0f, 1f)),
+			0xFFFFFFFFu,
+			LogoDepth,
+			TitleArtBlend.Alpha));
 
 	/// <summary>Gets a value indicating whether the frame is inside the 150-170 flash window.</summary>
 	/// <param name="frame">The controller frame counter.</param>
