@@ -971,6 +971,7 @@ def toupper_c_vectors(read):
 
 
 PTD = 0x20002000
+STRING = 0x20003000
 SEED_SLOT = PTD + 0x14
 
 
@@ -1005,6 +1006,53 @@ def rand_vectors(read):
         rand_vectors_out.append({"seed": seed, "result": eax, "state": struct.unpack("<I", captured[SEED_SLOT])[0]})
     write("00858798.json", srand_vectors)
     write("008587A5.json", rand_vectors_out)
+
+
+def default_locale_block(read):
+    """A per-thread block whose locale pointer is the default C locale, so the original takes its table path."""
+    block = bytearray(0x80)
+    block[0x64:0x68] = read(0x00A23CEC, 4)
+    return bytes(block)
+
+
+def numeric_text_cases():
+    generator = random.Random(0x5A7C3)
+    cases = [b"123", b"  42", b"\t-7", b"+9", b"-", b"", b"2147483647", b"2147483648", b"-2147483648",
+             b"99999999999", b"12abc", b"\n\r 5", b"   -0", b"+-5", b"0x1F", b"4294967296", b"-99999999999999",
+             b"9223372036854775807", b"9223372036854775808", b"-9223372036854775808", b"18446744073709551617"]
+    cases += [bytes([c]) + b"7" for c in range(256)]
+    for _ in range(40):
+        lead = bytes(generator.choice(b" \t\n\r\x0b\x0c+-") for _ in range(generator.randrange(3)))
+        digits = bytes(generator.choice(b"0123456789") for _ in range(generator.randrange(1, 22)))
+        cases.append(lead + digits + bytes([generator.choice(b"x.a \0")]))
+    return [case.split(b"\0")[0] for case in cases]
+
+
+def atol_vectors(read):
+    """0x0085A072 (_atol): the leading-space skip reads the default C-locale table; the call to __getptd is replaced by a test block."""
+    replacement = bytes([0xB8]) + struct.pack("<I", PTD)
+    reader = patched_reader(read, 0x0085A074, replacement)
+    block = default_locale_block(read)
+    vectors = []
+    for text in numeric_text_cases():
+        eax, _, _ = run(reader, 0x0085A072, 136, stack=[STRING], memory=[(PTD, block), (STRING, text + bytes(1))])
+        signed = eax - (1 << 32) if eax >= 0x80000000 else eax
+        vectors.append({"text": text.hex(), "result": signed})
+    write("0085A072.json", vectors)
+
+
+def atoi64_vectors(read):
+    """0x0085A0FF (__atoi64): the 64-bit accumulator of the same text walk; the call to __getptd is replaced by a test block."""
+    replacement = bytes([0xB8]) + struct.pack("<I", PTD)
+    reader = patched_reader(read, 0x0085A103, replacement)
+    block = default_locale_block(read)
+    vectors = []
+    for text in numeric_text_cases():
+        eax, edx, _ = run(reader, 0x0085A0FF, 167, stack=[STRING], memory=[(PTD, block), (STRING, text + bytes(1))])
+        value = (edx << 32) | eax
+        signed = value - (1 << 64) if value >= 1 << 63 else value
+        vectors.append({"text": text.hex(), "result": signed})
+    write("0085A0FF.json", vectors)
 
 
 def main():
@@ -1046,6 +1094,8 @@ def main():
     matrix_transform_positions_vectors(read)
     matrix_scale_rows_vectors(read)
     rand_vectors(read)
+    atol_vectors(read)
+    atoi64_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
