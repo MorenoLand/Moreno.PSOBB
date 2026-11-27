@@ -117,6 +117,34 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void ModeSeventeenMarksTheGuildFlagAndSelectsNineteen()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		SystemSave.Pending = 0;
+		machine.SetMode(17);
+		machine.SlotIndex = 2;
+
+		machine.Advance();
+
+		Assert.Equal(19u, machine.Mode);
+		Assert.Equal(1, machine.FileFlags[6]);
+		Assert.Equal(0, machine.Timer);
+	}
+
+	[Fact]
+	public void ModeSeventeenWaitsForThePendingWord()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		SystemSave.Pending = 1;
+		machine.SetMode(17);
+
+		machine.Advance();
+
+		Assert.Equal(17u, machine.Mode);
+		Assert.Equal(0, machine.FileFlags[2]);
+	}
+
+	[Fact]
 	public void TheFreeSpaceBudgetIsNegative()
 	{
 		Assert.Equal(90 - 50000, Scene2StartGameModeMachine.FreeSpaceBudget());
@@ -309,6 +337,7 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
 
 
 
