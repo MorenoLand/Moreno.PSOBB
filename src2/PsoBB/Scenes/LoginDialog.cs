@@ -134,7 +134,7 @@ public sealed class LoginDialog : IDisposable
 			ItemHeight = RowHeight,
 			SelectionHeight = LoginDialogFrame.RowStripHeight,
 			ScrollBarWidth = 0f,
-			SelectionColor = 0xFF5A6A6Au,
+			SelectionColor = 0x00000000u,
 			SelectedTextColor = 0xFF000000u,
 		};
 		_menu.SetItems(
@@ -269,7 +269,7 @@ public sealed class LoginDialog : IDisposable
 		if (_closed)
 			return;
 		SelectorFrameDraw?.Invoke(drawList);
-		Frame?.Draw(drawList, _menu.SelectedIndex);
+		Frame?.Draw(drawList, _menu.SelectedIndex, hovered: true);
 		_header.Draw(drawList);
 		_menu.Draw(drawList);
 	}
