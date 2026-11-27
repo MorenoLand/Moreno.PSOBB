@@ -46,6 +46,25 @@ public static class Scene2CellGrid
 	]);
 
 	/// <summary>
+	/// Builds the cell states for every grid entry.
+	/// </summary>
+	/// <param name="words">The row word, column word, then the cell words.</param>
+	/// <param name="kind">The base kind word.</param>
+	/// <returns>The cell states in row-major order.</returns>
+	/// <exception cref="ArgumentException">The words are too short or a type is outside the table.</exception>
+	public static Scene2CellState[] ReadStates(ReadOnlySpan<int> words, short kind)
+	{
+		Scene2Cell[] cells = Read(words);
+		Scene2CellState[] states = new Scene2CellState[cells.Length];
+		for (int index = 0; index < cells.Length; index++)
+		{
+			Scene2Cell cell = cells[index];
+			states[index] = Scene2CellState.Create(cell.Layout.Type, words[cell.Offset..], kind);
+		}
+		return states;
+	}
+
+	/// <summary>
 	/// Reads the cell count and the type and offset of every cell.
 	/// </summary>
 	/// <param name="words">The row word, column word, then the cell words.</param>

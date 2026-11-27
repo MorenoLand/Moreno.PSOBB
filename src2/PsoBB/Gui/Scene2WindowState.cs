@@ -17,7 +17,7 @@ namespace PsoBB.Gui;
 public sealed class Scene2WindowState
 {
 	/// <summary>The number of base words these functions touch.</summary>
-	public const int FieldCount = 33;
+	public const int FieldCount = 42;
 
 	/// <summary>Gets the word array indexed by the original byte offset divided by four.</summary>
 	public int[] Fields { get; } = new int[FieldCount];
@@ -28,6 +28,21 @@ public sealed class Scene2WindowState
 
 	/// <summary>Gets the z-order node the layout relinks.</summary>
 	public Scene2ZNode ZNode { get; } = new();
+
+	/// <summary>
+	/// Runs the layout and the base-word initialiser at <c>0x007108C4</c>.
+	/// </summary>
+	/// <param name="first">The first bound descriptor.</param>
+	/// <param name="second">The second bound descriptor.</param>
+	/// <param name="grid">The grid words the cell reader consumes.</param>
+	/// <param name="kind">The short kind word at offset 32.</param>
+	/// <exception cref="ArgumentException">A descriptor is too short or the grid is invalid.</exception>
+	[Original(0x007108C4)]
+	public void InitializeBase(ReadOnlySpan<int> first, ReadOnlySpan<int> second, ReadOnlySpan<int> grid, short kind)
+	{
+		InitializeLayout(first, second, grid, kind);
+		InitializeFields();
+	}
 
 	/// <summary>Gets the cells the layout reads from the grid words.</summary>
 	public Scene2Cell[] Cells { get; private set; } = [];
@@ -161,4 +176,5 @@ public static class Scene2Point
 		return (source[0], source[1], 0);
 	}
 }
+
 
