@@ -1,3 +1,8 @@
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
+using PsoBB.Audio;
+using PsoBB.Save;
+
 namespace PsoBB.Gui;
 
 /// <summary>
@@ -20,6 +25,12 @@ public sealed class Scene2WindowState
 	/// <summary>Gets or sets the theme pointer at <c>0x00A98480</c>.</summary>
 	[OriginalGlobal(0x00A98480)]
 	public static int ThemePointer { get; set; }
+
+	/// <summary>Gets the z-order node the layout relinks.</summary>
+	public Scene2ZNode ZNode { get; } = new();
+
+	/// <summary>Gets the cells the layout reads from the grid words.</summary>
+	public Scene2Cell[] Cells { get; private set; } = [];
 
 	/// <summary>Gets or sets the theme flag at <c>0x00A98538</c>.</summary>
 	[OriginalGlobal(0x00A98538)]
@@ -66,6 +77,69 @@ public sealed class Scene2WindowState
 	/// <returns>The value at <c>0x00A98480</c>.</returns>
 	[Original(0x00719930)]
 	public static int GetTheme() => ThemePointer;
+
+	/// <summary>
+	/// Writes the bound words, the grid cells, the z-order value and the flag-dependent state at
+	/// <c>0x00712C44</c>.
+	/// </summary>
+	/// <param name="first">The first bound descriptor.</param>
+	/// <param name="second">The second bound descriptor.</param>
+	/// <param name="grid">The grid words the cell reader consumes.</param>
+	/// <param name="kind">The short kind word at offset 32.</param>
+	/// <param name="play">The playback sink for the 1394 selection, or <see langword="null"/>.</param>
+	/// <exception cref="ArgumentException">A descriptor is too short or the grid is invalid.</exception>
+	[Original(0x00712C44)]
+	public void InitializeLayout(ReadOnlySpan<int> first, ReadOnlySpan<int> second, ReadOnlySpan<int> grid, short kind, Func<int, float, int>? play = null)
+	{
+		if (first.Length < 5 || second.Length < 2)
+			throw new ArgumentException("A window descriptor needs five and two words.");
+		Fields[12] = first[0];
+		Fields[13] = first[1];
+		Fields[14] = second[0];
+		Fields[15] = second[1];
+		CopyBounds();
+		Fields[7] = first[2];
+		Fields[21] = BitConverter.SingleToInt32Bits(-10000f);
+		Fields[11] = first[4];
+		ZNode.Key = first[2];
+		ZNode.Relink();
+		Fields[20] = 0;
+		Span<byte> word32 = MemoryMarshal.AsBytes(Fields.AsSpan(8, 1));
+		BinaryPrimitives.WriteUInt16LittleEndian(word32, unchecked((ushort)kind));
+		BinaryPrimitives.WriteUInt16LittleEndian(word32[2..], 0);
+		Cells = Scene2CellGrid.Read(grid);
+		Fields[23] = 0;
+		int flags = Fields[11];
+		if ((flags & 3) == 0)
+		{
+			Span<byte> word8 = MemoryMarshal.AsBytes(Fields.AsSpan(2, 1));
+			BinaryPrimitives.WriteUInt16LittleEndian(word8, (ushort)(BinaryPrimitives.ReadUInt16LittleEndian(word8) | 0x10));
+		}
+		if ((flags & 3) == 3 && (flags & 0x20) == 0)
+			SoundSelection.Play(1394, [], 0, 0, play ?? SoundSelection.Playback ?? ((_, _) => 0));
+		if (CharacterOptionTable.Value() <= 0f)
+			Fields[23] = 0x1000000;
+	}
+
+	/// <summary>
+	/// Creates a window from the theme list and its descriptors at <c>0x00710D30</c>.
+	/// </summary>
+	/// <param name="theme">The list the window links into.</param>
+	/// <param name="first">The first bound descriptor.</param>
+	/// <param name="second">The second bound descriptor.</param>
+	/// <param name="grid">The grid words the cell reader consumes.</param>
+	/// <param name="kind">The short kind word at offset 32.</param>
+	/// <returns>The initialised window.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="theme"/> is null.</exception>
+	[Original(0x00710D30)]
+	public static Scene2WindowState Create(Scene2ZList theme, ReadOnlySpan<int> first, ReadOnlySpan<int> second, ReadOnlySpan<int> grid, short kind)
+	{
+		ArgumentNullException.ThrowIfNull(theme);
+		Scene2WindowState state = new();
+		theme.Append(state.ZNode);
+		state.InitializeLayout(first, second, grid, kind);
+		return state;
+	}
 }
 
 /// <summary>
@@ -87,3 +161,4 @@ public static class Scene2Point
 		return (source[0], source[1], 0);
 	}
 }
+
