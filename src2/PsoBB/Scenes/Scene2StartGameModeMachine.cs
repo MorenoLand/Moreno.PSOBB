@@ -190,6 +190,24 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets the element and cursor slots the entry callbacks create.</summary>
 	public Scene2WindowChildren Children { get; } = new();
 
+	/// <summary>Gets or sets the surface the text boxes use.</summary>
+	public IUiTextSurface? TextSurface { get; set; }
+
+	/// <summary>Gets the shared text box created once by <c>0x00402F0C</c>, or <see langword="null"/>.</summary>
+	public Scene2TextBox? MessageBox { get; private set; }
+
+	/// <summary>Gets the mode-20 message box, or <see langword="null"/>.</summary>
+	public Scene2TextBox? Mode20Box { get; private set; }
+
+	/// <summary>Gets the mode-22 message box, or <see langword="null"/>.</summary>
+	public Scene2TextBox? Mode22Box { get; private set; }
+
+	/// <summary>Gets the mode-25 message box, or <see langword="null"/>.</summary>
+	public Scene2TextBox? Mode25Box { get; private set; }
+
+	/// <summary>Gets the mode-27 message box, or <see langword="null"/>.</summary>
+	public Scene2TextBox? Mode27Box { get; private set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -297,6 +315,7 @@ public sealed class Scene2StartGameModeMachine
 		Mode20OptionA = null;
 		Mode20OptionB = null;
 		Mode20Ready = false;
+		Mode20Box = null;
 		Children.Ensure(this);
 		Children.Release();
 		if (TextTable is null)
@@ -309,6 +328,15 @@ public sealed class Scene2StartGameModeMachine
 		Mode20OptionB = TextTable.GetString(29, 21);
 		Mode20Ready = Mode20Text.Length > 0;
 		MessageText = Mode20Text;
+		Mode20Box = EnsureMessageBox(Mode20Text, 1, Mode20OptionA, Mode20OptionB);
+	}
+
+	private Scene2TextBox? EnsureMessageBox(string? text, int selection, string? optionA, string? optionB)
+	{
+		if (TextSurface is null)
+			return null;
+		MessageBox ??= Scene2TextBox.Create(text, selection, optionA, optionB, TextSurface);
+		return MessageBox;
 	}
 
 	/// <summary>
@@ -353,6 +381,7 @@ public sealed class Scene2StartGameModeMachine
 	{
 		Mode22Text = null;
 		Mode22Ready = false;
+		Mode22Box = null;
 		Children.Ensure(this);
 		Children.Release();
 		if (TextTable is null)
@@ -362,6 +391,7 @@ public sealed class Scene2StartGameModeMachine
 		Mode22Text = first + "\n" + second;
 		Mode22Ready = Mode22Text.Length > 0;
 		MessageText = Mode22Text;
+		Mode22Box = EnsureMessageBox(Mode22Text, -1, null, null);
 	}
 
 	[Original(0x00405168)]
@@ -369,6 +399,7 @@ public sealed class Scene2StartGameModeMachine
 	{
 		Mode25Text = null;
 		Mode25Ready = false;
+		Mode25Box = null;
 		int code = EventCode?.Invoke() ?? -1;
 		if (code is < 0 or > 13 || TextTable is null)
 			return;
@@ -392,6 +423,7 @@ public sealed class Scene2StartGameModeMachine
 		Mode25Text = TextTable.GetString(71, index);
 		Mode25Ready = Mode25Text.Length > 0;
 		MessageText = Mode25Text;
+		Mode25Box = EnsureMessageBox(Mode25Text, -1, null, null);
 	}
 
 	/// <summary>
@@ -403,10 +435,12 @@ public sealed class Scene2StartGameModeMachine
 	[Original(0x00404DFC)]
 	private void EnterMode27()
 	{
+		Mode27Box = null;
 		Children.Ensure(this);
 		Children.Release();
 		Mode27Text = MessageText;
 		Mode27Ready = Mode27Text.Length > 0;
+		Mode27Box = EnsureMessageBox(Mode27Text, -1, null, null);
 	}
 
 	[Original(0x00405670)]

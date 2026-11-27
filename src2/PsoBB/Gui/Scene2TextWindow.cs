@@ -147,6 +147,15 @@ public sealed class Scene2TextWindow
 		return new Scene2TextWindow(first, second, grid, kind, count);
 	}
 
+	/// <summary>
+	/// Creates the default 30-line box from the descriptors at <c>0x008F87CC</c>/<c>0x008F87D4</c>.
+	/// </summary>
+	/// <param name="count">The line count written to the template column word.</param>
+	/// <returns>The initialised window.</returns>
+	/// <exception cref="ArgumentException">The count is invalid.</exception>
+	public static Scene2TextWindow CreateDefault(int count = LineCount) =>
+		Create([31, 20, 577, 184, 31], [577, 184], Scene2CellGrid.SingleRow(count), 0, count);
+
 	[Original(0x0073B71C)]
 	private Scene2TextWindow(ReadOnlySpan<int> first, ReadOnlySpan<int> second, ReadOnlySpan<int> grid, short kind, int count)
 	{
@@ -179,7 +188,7 @@ public sealed class Scene2TextWindow
 		for (int index = 0; index < lines; index++)
 		{
 			Scene2CellState cell = Cells[index];
-			if (BinaryPrimitives.ReadInt32LittleEndian(cell.Data.AsSpan(32)) == 0)
+			if (cell.Text is null)
 				continue;
 			int offset = index * 8;
 			int value = BinaryPrimitives.ReadInt32LittleEndian(Records.AsSpan(offset));

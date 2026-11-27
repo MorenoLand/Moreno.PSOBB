@@ -225,12 +225,14 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	[Fact]
 	public void TheModeTwentySevenEntryDisplaysTheSharedMessageAndReleasesChildren()
 	{
-		Scene2StartGameModeMachine machine = new(_files) { MessageText = "Warning" };
+		Scene2StartGameModeMachine machine = new(_files) { MessageText = "Warning", TextSurface = new NoopSurface() };
 
 		machine.SetMode(27);
 
 		Assert.Equal("Warning", machine.Mode27Text);
 		Assert.True(machine.Mode27Ready);
+		Assert.NotNull(machine.Mode27Box);
+		Assert.Equal("Warning", machine.Mode27Box!.Box.Cells[0].Text);
 		Assert.Null(machine.Children.Element);
 		Assert.Null(machine.Children.Cursor);
 	}
@@ -271,13 +273,20 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		for (int index = 20; index < values.Length; index++)
 			values[index] = $"T{index}";
 		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [29] = values }));
-		Scene2StartGameModeMachine machine = new(_files) { TextTable = table };
+		Scene2StartGameModeMachine machine = new(_files) { TextTable = table, TextSurface = new NoopSurface() };
 
 		machine.SetMode(20);
 		Assert.Equal("T23\nT24", machine.Mode20Text);
 		Assert.Equal("T23\nT24", machine.MessageText);
 		Assert.Equal("T20", machine.Mode20OptionA);
 		Assert.Equal("T21", machine.Mode20OptionB);
+		Assert.NotNull(machine.Mode20Box);
+		Assert.Equal(Scene2TextBox.LineCount, machine.Mode20Box!.Box.Cells.Length);
+		Assert.Equal("T23\nT24", machine.Mode20Box.Box.Cells[0].Text);
+		Assert.NotNull(machine.Mode20Box.Options);
+		Assert.Equal(2, machine.Mode20Box.Options!.Count);
+		Assert.Equal(1, machine.Mode20Box.Options.CurrentIndex);
+		Assert.Equal(0, machine.Mode20Box.Options.Flags132 & 4);
 
 		Array.Fill(machine.FileFlags, 1);
 		machine.SetMode(21);
@@ -326,10 +335,13 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 			values[index] = $"T{index}";
 		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [71] = values }));
 
-		Scene2StartGameModeMachine machine = new(_files) { EventCode = () => 0, TextTable = table };
+		Scene2StartGameModeMachine machine = new(_files) { EventCode = () => 0, TextTable = table, TextSurface = new NoopSurface() };
 		machine.SetMode(25);
 		Assert.Equal("T5", machine.Mode25Text);
 		Assert.True(machine.Mode25Ready);
+		Assert.NotNull(machine.Mode25Box);
+		Assert.Equal("T5", machine.Mode25Box!.Box.Cells[0].Text);
+		Assert.Null(machine.Mode25Box.Options);
 
 		machine = new(_files) { EventCode = () => 13, TextTable = table };
 		machine.SetMode(25);
@@ -847,6 +859,15 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 
 		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(24));
 		Assert.Contains("24", error.Message);
+	}
+
+	private sealed class NoopSurface : IUiTextSurface
+	{
+		public float Measure(string? text) => text?.Length ?? 0;
+
+		public void Draw(UiDrawList drawList, string? text, System.Numerics.Vector2 position, uint color, float maxWidth = 0f)
+		{
+		}
 	}
 
 	private static void ForceMode(Scene2StartGameModeMachine machine, uint mode) =>

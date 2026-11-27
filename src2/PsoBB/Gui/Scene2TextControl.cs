@@ -67,6 +67,20 @@ public sealed class Scene2TextControl
 	}
 
 	/// <summary>
+	/// Creates the control with one type-3 cell followed by type-0 cells and the window kind 4.
+	/// </summary>
+	/// <param name="capacity">The record capacity.</param>
+	/// <returns>The control state.</returns>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="capacity"/> is negative.</exception>
+	public static Scene2TextControl CreateDefault(int capacity = 2)
+	{
+		Scene2TextControl control = new(capacity);
+		control.Cells = Scene2CellGrid.ReadStates(Scene2CellGrid.SingleRow(capacity), 4);
+		control.Compare136 = 0;
+		return control;
+	}
+
+	/// <summary>
 	/// Moves the current index when the value is inside the capacity.
 	/// </summary>
 	/// <param name="index">The requested index.</param>
