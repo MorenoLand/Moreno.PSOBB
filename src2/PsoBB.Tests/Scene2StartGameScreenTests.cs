@@ -54,6 +54,10 @@ public sealed class Scene2StartGameScreenTests : IDisposable
 		Assert.Equal(28f, Scene2StartGameScreen.RowX);
 		Assert.Equal(182f, Scene2StartGameScreen.RowY);
 		Assert.Equal(43f, Scene2StartGameScreen.RowStep);
+		Assert.Equal(180f, Scene2StartGameScreen.RowWidth);
+		Assert.Equal(38f, Scene2StartGameScreen.RowHeight);
+		Assert.Equal(180f, Scene2StartGameScreen.RowAreaSize.X);
+		Assert.Equal(172f, Scene2StartGameScreen.RowAreaSize.Y);
 	}
 
 	[Fact]
