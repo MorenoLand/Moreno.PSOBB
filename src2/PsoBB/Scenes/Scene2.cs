@@ -187,8 +187,26 @@ public sealed class Scene2 : IDisposable
 	/// </summary>
 	public static void Reset() => SharedScreenCallback = null;
 
+	/// <summary>
+	/// Selects shared screen state 9 from the title selector's Start Game entry.
+	/// </summary>
+	[Original(0x006F853C, "TitleMenu_StartGame_006f853c")]
+	public static void SelectStartGame() => SelectSharedScreenState();
+
+	/// <summary>
+	/// Selects shared screen state 6, the lobby target of the state-9 success path.
+	/// </summary>
+	[Original(0x008215A0, "Scene2_SelectLobbyScreenState_008215a0")]
+	public static void SelectLobbyScreenState()
+	{
+		uint previous = GameState.SceneScreenState;
+		GameState.SceneScreenState = 6;
+		GameState.PreviousSceneScreenState = previous;
+		GameState.SceneFadeState = SharedFadeState;
+	}
+
 	[Original(0x0081E298, "Scene2_EnterSharedScreenStateZero_0081e298")]
-	private static void EnterSharedScreenStateZero()
+	public static void EnterSharedScreenStateZero()
 	{
 		uint previous = GameState.SceneScreenState;
 		GameState.SceneScreenState = EntryScreenState;
