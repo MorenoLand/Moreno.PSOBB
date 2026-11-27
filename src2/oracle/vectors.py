@@ -794,6 +794,19 @@ def ftol_vectors(read):
     write("008CB1E8.json", vectors)
 
 
+def allmul_vectors(read):
+    """0x0085ADA0 (__allmul): returns the low 64 bits of two 64-bit operands, pushed as four words."""
+    pairs = [(0, 0), (1, 1), (2, 3), (0xFFFFFFFF, 2), (0x100000000, 0x100000000), (0x7FFFFFFFFFFFFFFF, 2),
+             (0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF), (0x123456789ABCDEF0, 0x0FEDCBA987654321),
+             (0x8000000000000000, 0xFFFFFFFFFFFFFFFF), (3, 0x8000000000000000), (0x00000001FFFFFFFF, 0x00000001FFFFFFFF)]
+    vectors = []
+    for left, right in pairs:
+        stack = [left & 0xFFFFFFFF, left >> 32, right & 0xFFFFFFFF, right >> 32]
+        eax, edx, _ = run(read, 0x0085ADA0, 52, stack=stack)
+        vectors.append({"left": f"{left:016x}", "right": f"{right:016x}", "result": f"{(edx << 32) | eax:016x}"})
+    write("0085ADA0.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
