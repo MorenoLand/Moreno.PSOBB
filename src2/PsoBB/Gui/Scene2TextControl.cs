@@ -31,6 +31,13 @@ public sealed class Scene2TextControl
 	/// <summary>Gets or sets the word at offset 132.</summary>
 	public int Flags132 { get; set; }
 
+	/// <summary>
+	/// Returns the tail value of the current record, or -1 past the count, at <c>0x007365F4</c>.
+	/// </summary>
+	/// <returns>The stored value.</returns>
+	[Original(0x007365F4)]
+	public int SelectedValue() => (uint)CurrentIndex < (uint)Count ? BinaryPrimitives.ReadInt32LittleEndian(Records.AsSpan(CurrentIndex * 8 + 4)) : -1;
+
 	/// <summary>Gets or sets the word at offset 136.</summary>
 	public int Compare136 { get; set; }
 
@@ -191,5 +198,6 @@ public sealed class Scene2TextControl
 	[OriginalGlobal(0x009F3248)]
 	public static int DescriptorValue { get; private set; }
 }
+
 
 
