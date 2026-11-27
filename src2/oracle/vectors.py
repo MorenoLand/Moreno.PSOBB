@@ -883,6 +883,20 @@ def shr12_vectors(read):
     shift_96_vectors(read, 0x008699B0, 64, "008699B0.json")
 
 
+def addl_vectors(read):
+    """0x00869903 (___addl): adds two 32-bit values, stores the sum through the third argument, returns 1 on carry."""
+    base = 0x20000000
+    pairs = [(0, 0), (1, 1), (0xFFFFFFFF, 1), (0xFFFFFFFF, 0xFFFFFFFF), (0x80000000, 0x80000000), (0x7FFFFFFF, 1),
+             (0x12345678, 0x9ABCDEF0), (0xFFFFFFFE, 1), (0, 0xFFFFFFFF), (0xDEADBEEF, 0x01234567)]
+    vectors = []
+    for left, right in pairs:
+        eax, _, captured = run(read, 0x00869903, 40, stack=[left, right, base],
+                               memory=[(base, b"\x00" * 4)], capture=[(base, 4)])
+        vectors.append({"left": f"{left:08x}", "right": f"{right:08x}", "carry": eax & 0xFFFFFFFF,
+                        "sum": f"{struct.unpack('<I', captured[base])[0]:08x}"})
+    write("00869903.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
