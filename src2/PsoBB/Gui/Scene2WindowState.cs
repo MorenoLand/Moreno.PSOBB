@@ -21,6 +21,15 @@ public sealed class Scene2WindowState
 	[OriginalGlobal(0x00A98480)]
 	public static int ThemePointer { get; set; }
 
+	/// <summary>Gets or sets the theme flag at <c>0x00A98538</c>.</summary>
+	[OriginalGlobal(0x00A98538)]
+	public static int ThemeFlag { get; set; }
+
+	/// <summary>Returns whether the theme flag is set.</summary>
+	/// <returns><see langword="true"/> when <c>0x00A98538</c> is nonzero.</returns>
+	[Original(0x00719914)]
+	public static bool HasTheme() => ThemeFlag != 0;
+
 	/// <summary>
 	/// Writes the base initialiser words.
 	/// </summary>
