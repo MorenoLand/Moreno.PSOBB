@@ -215,6 +215,18 @@ public sealed class OnlineScene : IDisposable
 		SceneManager.RequestScene(SceneManager.ExitScene);
 	}
 
+	/// <summary>The connecting label at <c>0x008F8F2C</c>.</summary>
+	public const string ConnectingText = "Connecting..";
+
+	/// <summary>The label x position from <c>0x007AB534</c>.</summary>
+	public const float StatusX = 23f;
+
+	/// <summary>The label y position from <c>0x007AB534</c>.</summary>
+	public const float StatusY = 331f;
+
+	/// <summary>The label colour from the <c>0x007AB534</c> call.</summary>
+	public const uint StatusColor = 0xFFFFFFFF;
+
 	/// <summary>
 	/// Adds the two download panels while the scene is in its loading or connection phase.
 	/// </summary>
@@ -228,6 +240,24 @@ public sealed class OnlineScene : IDisposable
 		if (_state is not (OnlineSceneState.Loading or OnlineSceneState.Connecting))
 			return;
 		DrawProgressPanel(draw);
+	}
+
+	/// <summary>
+	/// Adds the <c>Connecting..</c> label at <c>(23,331)</c> while the scene is loading or connecting.
+	/// </summary>
+	/// <param name="surface">The surface that emits the glyph quads.</param>
+	/// <param name="draw">The draw list that receives the quads.</param>
+	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
+	/// <exception cref="ObjectDisposedException">The scene is released.</exception>
+	[Original(0x007AB534)]
+	public void DrawStatus(IUiTextSurface surface, UiDrawList draw)
+	{
+		ArgumentNullException.ThrowIfNull(surface);
+		ArgumentNullException.ThrowIfNull(draw);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		if (_state is not (OnlineSceneState.Loading or OnlineSceneState.Connecting))
+			return;
+		surface.Draw(draw, ConnectingText, new Vector2(StatusX, StatusY), StatusColor);
 	}
 
 	/// <summary>

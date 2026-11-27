@@ -136,6 +136,8 @@ public static class Scene2TitlePreview
 				online.Update(input);
 				UiDrawList ui = new();
 				online.Draw(ui);
+				if (textSurface is not null)
+					directory?.OnlineScene?.DrawStatus(textSurface, ui);
 				RenderRows(host.Renderer, ui, frame, capture);
 				frame++;
 				continue;
