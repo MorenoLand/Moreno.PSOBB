@@ -170,6 +170,48 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void TheModeFourteenEntryQueuesFifteenWhileThePatchIsBusy()
+	{
+		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		Scene2StartGameModeMachine machine = new(_files) { PatchBusy = () => true, CharacterFileReady = () => false };
+
+		machine.SetMode(14);
+
+		Assert.Equal(14u, machine.Mode);
+		Assert.Equal(15, SystemSave.Pending);
+
+		machine = new(_files) { PatchBusy = () => true, CharacterFileReady = () => true };
+		machine.SetMode(14);
+		Assert.Equal(22u, machine.Mode);
+
+		machine = new(_files) { PatchBusy = () => false };
+		machine.SetMode(14);
+		Assert.Equal(22u, machine.Mode);
+	}
+
+	[Fact]
+	public void TheModeFifteenEntryStaysOnlyForTheSevenValidation()
+	{
+		Scene2StartGameModeMachine machine = new(_files) { PatchValidation = () => 7 };
+		machine.SetMode(15);
+		Assert.Equal(15u, machine.Mode);
+
+		machine = new(_files) { PatchValidation = () => 0 };
+		machine.SetMode(15);
+		Assert.Equal(22u, machine.Mode);
+	}
+
+	[Fact]
+	public void TheModeSixteenEntryQueuesTwelve()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(16);
+
+		Assert.Equal(16u, machine.Mode);
+		Assert.Equal(12, SystemSave.Pending);
+	}
+
+	[Fact]
 	public void ModeTwentySixRotatesTheCameraFromTheController()
 	{
 		Scene2StartGameModeMachine machine = new(_files) { Flag27 = 1, Controller = new ControllerButtonState { Buttons = 0x00010000 } };
@@ -480,8 +522,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	{
 		Scene2StartGameModeMachine machine = new(_files);
 
-		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(14));
-		Assert.Contains("14", error.Message);
+		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(25));
+		Assert.Contains("25", error.Message);
 	}
 
 	private sealed class Files : IDataFiles
@@ -504,6 +546,7 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
 
 
 
