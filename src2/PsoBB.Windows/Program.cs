@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using PsoBB.Client;
 using PsoBB.Compression;
@@ -136,6 +137,8 @@ internal static class Program
 		{
 			Username = ByteString.FromText(user) ?? ByteString.Empty,
 			Password = ByteString.FromText(password) ?? ByteString.Empty,
+			HardwareId = CreateHardwareId(),
+			ClientConfig = CreateClientConfig(),
 		};
 		return new SceneNetworkOptions(hosts, login, () => new WindowsGameConnection())
 		{
@@ -143,6 +146,30 @@ internal static class Program
 			RuntimeHost = host,
 			RuntimePort = (ushort)port,
 		};
+	}
+
+	private static ulong CreateHardwareId()
+	{
+		foreach (NetworkInterface adapter in NetworkInterface.GetAllNetworkInterfaces())
+		{
+			if (adapter.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
+				continue;
+			byte[] address = adapter.GetPhysicalAddress().GetAddressBytes();
+			if (address.Length != 6 || address.All(value => value == 0))
+				continue;
+			ulong value = 0;
+			foreach (byte part in address)
+				value = (value << 8) | part;
+			return value;
+		}
+		return 0;
+	}
+
+	private static byte[] CreateClientConfig()
+	{
+		byte[] config = new byte[ClientLoginPacket.ClientConfigLength];
+		System.Text.Encoding.ASCII.GetBytes("! DLL ERROR !").CopyTo(config, 0);
+		return config;
 	}
 
 	private static void RunNowLoading(GameWindow window, string dataFolder)

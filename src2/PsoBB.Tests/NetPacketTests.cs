@@ -100,6 +100,54 @@ public sealed class NetPacketTests
 	/// <summary>
 	/// The welcome packet places the fixed copyright and both key blocks at their documented offsets.
 	/// </summary>
+	/// <summary>
+	/// The Blue Burst welcome appends the fixed 0xB4 server message after the two key blocks.
+	/// </summary>
+	[Fact]
+	public void ServerInitCarriesTheBlueBurstWelcomeMessage()
+	{
+		ByteString copyright = ByteString.FromText(ServerInitPacket.GameServerCopyright)!;
+		ByteString message = ByteString.FromText("This server is in no way affiliated with SEGA.")!;
+		ServerInitPacket packet = new() { Copyright = copyright, ServerKey = Pattern(0x30), ClientKey = Pattern(0x30, 9), Message = message };
+
+		byte[] payload = packet.WritePayload();
+
+		Assert.Equal(ServerInitPacket.PayloadLength + ServerInitPacket.MessageLength, payload.Length);
+		ServerInitPacket read = ServerInitPacket.Read(payload);
+		Assert.Equal(message, read.Message);
+
+		ServerInitPacket legacy = new() { Copyright = copyright, ServerKey = Pattern(0x30), ClientKey = Pattern(0x30, 9) };
+		Assert.Null(ServerInitPacket.Read(legacy.WritePayload()).Message);
+		Assert.Throws<InvalidDataException>(() => ServerInitPacket.Read(payload.AsSpan(0, 0x100)));
+	}
+
+	/// <summary>
+	/// The Blue Burst ping carries an optional big-endian server timestamp and still replies with the empty form.
+	/// </summary>
+	[Fact]
+	public void PingAcceptsTheServerTimestamp()
+	{
+		byte[] payload = [1, 2, 3, 4, 5, 6, 7, 8];
+		PingPacket ping = PingPacket.Read(payload);
+		Assert.Equal(0x0102030405060708ul, ping.Timestamp);
+		Assert.Empty(ping.WritePayload());
+		Assert.Equal(PingPacket.Instance, PingPacket.Read([]));
+		Assert.Throws<InvalidDataException>(() => PingPacket.Read(new byte[4]));
+	}
+
+	/// <summary>
+	/// The player-preview packet carries the slot and the fixed 0x7C block.
+	/// </summary>
+	[Fact]
+	public void PlayerPreviewRoundTripsTheSlotAndBlock()
+	{
+		byte[] preview = Pattern(PlayerPreviewPacket.PreviewLength, 3);
+		PlayerPreviewPacket packet = new() { CharacterIndex = 3, Preview = preview };
+		PlayerPreviewPacket read = PlayerPreviewPacket.Read(packet.WritePayload());
+		Assert.Equal(3, read.CharacterIndex);
+		Assert.Equal(preview, read.Preview.ToArray());
+	}
+
 	[Fact]
 	public void ServerInitRoundTripsCopyrightAndKeys()
 	{

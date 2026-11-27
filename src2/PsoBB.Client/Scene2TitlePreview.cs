@@ -6,6 +6,7 @@ using PsoBB.Graphics;
 using PsoBB.Gui;
 using PsoBB.Imaging;
 using PsoBB.Input;
+using PsoBB.Net;
 using PsoBB.Save;
 using PsoBB.Scenes;
 using PsoBB.Text;
@@ -45,6 +46,7 @@ public static class Scene2TitlePreview
 		SceneDirectory? directory = null;
 		ISceneScreen? online = null;
 		bool confirmEdge = false;
+		bool characterRequested = false;
 		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
@@ -134,6 +136,8 @@ public static class Scene2TitlePreview
 			if (online is not null)
 			{
 				online.Update(input);
+				if (startGameDiagnostic && !characterRequested && directory?.OnlineScene?.LoginFlow?.State == LoginFlowState.CharacterSelect)
+					characterRequested = directory.OnlineScene.SelectCharacter(0);
 				UiDrawList ui = new();
 				online.Draw(ui);
 				if (textSurface is not null)
