@@ -80,3 +80,29 @@
 0x008C9B14	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
 0x008C9B1A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
 0x008C9B20	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x0085CE9F	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085CEC4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085CEE9	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008606E4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00860717	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086073B	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00862186	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086203D	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00861A75	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086485B	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008691B9	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008596C4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085B9E3	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A81A	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A8F2	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008692A8	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00868B19	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00864767	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00865F69	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086A2A4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00869656	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00868E7D	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086936E	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086A9EB	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00863AD0	The platform file interface replaces the original file handle table.
+0x008639D5	The platform file interface replaces the original file handle table.
