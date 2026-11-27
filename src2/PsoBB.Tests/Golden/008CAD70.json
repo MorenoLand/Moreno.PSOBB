@@ -1,0 +1,86 @@
+[
+	{
+		"width": 4,
+		"count": 1,
+		"input": "7ec1a630",
+		"output": "7ec1a630"
+	},
+	{
+		"width": 8,
+		"count": 1,
+		"input": "47cf732c00000000",
+		"output": "47cf732c00000000"
+	},
+	{
+		"width": 4,
+		"count": 2,
+		"input": "6cff788af074fb10",
+		"output": "f074fb106cff788a"
+	},
+	{
+		"width": 8,
+		"count": 2,
+		"input": "415f20720000000025ee048f01010101",
+		"output": "415f20720000000025ee048f01010101"
+	},
+	{
+		"width": 4,
+		"count": 3,
+		"input": "c6a56b08de0e0624a9e97f2a",
+		"output": "c6a56b08de0e0624a9e97f2a"
+	},
+	{
+		"width": 8,
+		"count": 3,
+		"input": "18ffadda000000003a904b710101010131a8c6dd02020202",
+		"output": "3a904b710101010118ffadda0000000031a8c6dd02020202"
+	},
+	{
+		"width": 4,
+		"count": 4,
+		"input": "f50d9334b6619687ad70d9361f41f24a",
+		"output": "f50d9334ad70d9361f41f24ab6619687"
+	},
+	{
+		"width": 8,
+		"count": 4,
+		"input": "6163264500000000ac1ef019010101016ade5e8002020202d9d3ecb803030303",
+		"output": "ac1ef0190101010161632645000000006ade5e8002020202d9d3ecb803030303"
+	},
+	{
+		"width": 4,
+		"count": 5,
+		"input": "9814db9fbffaffa5308cd427714e3f050df0361f",
+		"output": "308cd4279814db9fbffaffa5714e3f050df0361f"
+	},
+	{
+		"width": 8,
+		"count": 5,
+		"input": "8ec0cd6700000000f293b4d6010101011f7ebd94020202021a838cf003030303c9835b2b04040404",
+		"output": "8ec0cd67000000001f7ebd9402020202f293b4d6010101011a838cf003030303c9835b2b04040404"
+	},
+	{
+		"width": 4,
+		"count": 7,
+		"input": "80a4f3b404dec43e784a46e002870c2ebd439915d75248cd954bc67e",
+		"output": "04dec43e80a4f3b4d75248cd784a46e0bd43991502870c2e954bc67e"
+	},
+	{
+		"width": 8,
+		"count": 7,
+		"input": "d088385c000000009c479856010101019a6483be02020202ed359fbf030303032ace176204040404055f2ec205050505f15d2fdb06060606",
+		"output": "9c47985601010101d088385c000000002ace1762040404049a6483be02020202ed359fbf03030303055f2ec205050505f15d2fdb06060606"
+	},
+	{
+		"width": 4,
+		"count": 8,
+		"input": "7cead87a87254622a6a04a2fe6c77fea5ea79711e18e36caba6451dab24ea3c4",
+		"output": "87254622a6a04a2f7cead87ab24ea3c4e18e36caba6451dae6c77fea5ea79711"
+	},
+	{
+		"width": 8,
+		"count": 8,
+		"input": "1be719f2000000007e2bf4ef01010101f0b2a7e9020202020d4122e103030303ee189d3404040404e1fbb1d2050505056dc9255f060606066ddd2a6407070707",
+		"output": "e1fbb1d2050505050d4122e103030303f0b2a7e9020202027e2bf4ef010101011be719f200000000ee189d34040404046dc9255f060606066ddd2a6407070707"
+	}
+]

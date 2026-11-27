@@ -1055,6 +1055,68 @@ def atoi64_vectors(read):
     write("0085A0FF.json", vectors)
 
 
+COMPARE = 0x20004000
+SORT_ARRAY = 0x20005000
+
+
+def int_compare_code():
+    """A cdecl callback that returns the first dword of its first argument minus that of its second."""
+    return bytes.fromhex("8b442404" "8b4c2408" "8b00" "8b09" "29c8" "c3")
+
+
+def sort_cases():
+    generator = random.Random(0x51A7E)
+    cases = []
+    for count in (1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 17, 31, 40, 64, 100):
+        for width in (4, 8):
+            values = [generator.randrange(-0x80000000, 0x80000000) for _ in range(count)]
+            cases.append((width, values))
+    for count in (9, 20, 50):
+        values = [generator.randrange(-4, 4) for _ in range(count)]
+        cases.append((4, values))
+    cases.append((4, [5] * 12))
+    cases.append((4, list(range(40, 0, -1))))
+    cases.append((4, [0x7FFFFFFF, -0x80000000, 0, 1, -1, 0x40000000, -0x40000000, 2, 3, 0x7FFFFFFE, -0x7FFFFFFF]))
+    return cases
+
+
+def element_bytes(width, values):
+    out = bytearray()
+    for index, value in enumerate(values):
+        out += struct.pack("<i", value) + bytes([index & 0xFF]) * (width - 4)
+    return bytes(out)
+
+
+def shortsort_vectors(read):
+    """0x008CAD70 (_shortsort): the high bound comes in eax; the low bound, width and comparison come on the stack."""
+    code = int_compare_code()
+    reader = lambda start, size: read(start, size)
+    vectors = []
+    for width, values in sort_cases():
+        if len(values) > 8:
+            continue
+        data = element_bytes(width, values)
+        hi = (len(values) - 1) * width
+        run_memory = [(COMPARE, code), (SORT_ARRAY, data)]
+        _, _, captured = run(reader, 0x008CAD70, 109, stack=[SORT_ARRAY, width, COMPARE], registers={"eax": SORT_ARRAY + hi},
+                             memory=run_memory, capture=[(SORT_ARRAY, len(data))])
+        vectors.append({"width": width, "count": len(values), "input": data.hex(), "output": captured[SORT_ARRAY].hex()})
+    write("008CAD70.json", vectors)
+
+
+def qsort_vectors(read):
+    """0x008CADE0 (_qsort): the comparison is a machine-code callback placed in the test image."""
+    code = int_compare_code()
+    vectors = []
+    for width, values in sort_cases():
+        data = element_bytes(width, values)
+        run_memory = [(COMPARE, code), (SORT_ARRAY, data)]
+        _, _, captured = run(read, 0x008CADE0, 643, stack=[SORT_ARRAY, len(values), width, COMPARE],
+                             memory=run_memory, capture=[(SORT_ARRAY, len(data))])
+        vectors.append({"width": width, "count": len(values), "input": data.hex(), "output": captured[SORT_ARRAY].hex()})
+    write("008CADE0.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -1096,6 +1158,8 @@ def main():
     rand_vectors(read)
     atol_vectors(read)
     atoi64_vectors(read)
+    shortsort_vectors(read)
+    qsort_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
