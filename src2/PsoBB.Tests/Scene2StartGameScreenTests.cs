@@ -44,6 +44,19 @@ public sealed class Scene2StartGameScreenTests : IDisposable
 	}
 
 	[Fact]
+	public void UsesTheRowPositionsFromTheShippedPairTable()
+	{
+		using Scene2StartGameScreen screen = new(CreateText(), CreateSave("HUNTER"));
+
+		Assert.Equal(Scene2StartGameScreen.RowX, screen.Menu.Position.X);
+		Assert.Equal(Scene2StartGameScreen.RowY, screen.Menu.Position.Y);
+		Assert.Equal(Scene2StartGameScreen.RowStep, screen.Menu.ItemHeight);
+		Assert.Equal(28f, Scene2StartGameScreen.RowX);
+		Assert.Equal(182f, Scene2StartGameScreen.RowY);
+		Assert.Equal(43f, Scene2StartGameScreen.RowStep);
+	}
+
+	[Fact]
 	public void ConfirmsAPresentSlotAndIgnoresAnEmptyOne()
 	{
 		int selected = -1;

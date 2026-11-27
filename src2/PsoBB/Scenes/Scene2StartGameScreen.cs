@@ -61,6 +61,15 @@ public sealed class Scene2StartGameScreen : IDisposable
 	/// <summary>The offset of the signature that marks a present record.</summary>
 	public const int CharacterValidityOffset = CharacterSaveSlot.SignatureOffset;
 
+	/// <summary>The row x position from the four pairs at <c>0x008F8940</c>.</summary>
+	public const float RowX = 28f;
+
+	/// <summary>The first row y position from <c>0x008F8944</c>.</summary>
+	public const float RowY = 182f;
+
+	/// <summary>The row spacing from the four pairs at <c>0x008F8940</c>.</summary>
+	public const float RowStep = 43f;
+
 	/// <summary>The shared state the successful network path selects.</summary>
 	public const uint LobbySharedScreenState = 6;
 
@@ -94,9 +103,9 @@ public sealed class Scene2StartGameScreen : IDisposable
 		_root = new UiPanel();
 		_menu = new UiListWindow
 		{
-			Position = Vector2.Zero,
+			Position = new Vector2(RowX, RowY),
 			Size = RowAreaSize,
-			ItemHeight = 20f,
+			ItemHeight = RowStep,
 			ScrollBarWidth = 0f,
 		};
 		_menu.SetItems(BuildRows(text, save));
@@ -125,7 +134,7 @@ public sealed class Scene2StartGameScreen : IDisposable
 		{
 			_textSurface = value;
 			_menu.TextSurface = value;
-			_menu.TextOffset = new Vector2(10f, 0f);
+			_menu.TextOffset = Vector2.Zero;
 		}
 	}
 
