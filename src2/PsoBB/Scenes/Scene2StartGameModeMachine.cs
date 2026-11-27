@@ -87,6 +87,15 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets or sets the event query used by mode 24.</summary>
 	public Func<int>? GameEvent { get; set; }
 
+	/// <summary>Gets or sets the host pump for the asynchronous save worker.</summary>
+	public Action? PumpSave { get; set; }
+
+	/// <summary>Gets or sets the first progress object at offset 0x64.</summary>
+	public int ProgressObject25 { get; set; }
+
+	/// <summary>Gets or sets the second progress object at offset 0x68.</summary>
+	public int ProgressObject26 { get; set; }
+
 	/// <summary>Gets or sets the controller the mode-26 camera checks read.</summary>
 	public ControllerButtonState? Controller { get; set; }
 
@@ -173,6 +182,7 @@ public sealed class Scene2StartGameModeMachine
 	[Original(0x00403084)]
 	public void Advance()
 	{
+		PumpSave?.Invoke();
 		Dispatch();
 		if (Timer > TimeoutFrames && Mode != TimeoutMode)
 		{
@@ -312,11 +322,17 @@ public sealed class Scene2StartGameModeMachine
 			case 2:
 				Mode2();
 				break;
+			case 3:
+				Mode3();
+				break;
 			case 4:
 				Mode4();
 				break;
 			case 6:
 				Mode6();
+				break;
+			case 7:
+				Mode7();
 				break;
 			case 8:
 				Mode8();
@@ -769,6 +785,64 @@ public sealed class Scene2StartGameModeMachine
 		SaveFileCheck.Status();
 		FileFlags[2 + 2 * SlotIndex] = 1;
 		SetMode(19);
+	}
+
+	/// <summary>
+	/// Starts the system load at <c>0x00403AF0</c> and selects mode 4 or 22.
+	/// </summary>
+	[Original(0x00403AF0)]
+	private void Mode3()
+	{
+		if (CounterA > 0)
+		{
+			Mode3Progress();
+			return;
+		}
+		Timer++;
+		if (SystemSave.BuildMode() != 0)
+			return;
+		SetMode(SystemSave.StartAlternate(_files, alternate: false) != 0 ? 22u : 4u);
+	}
+
+	/// <summary>
+	/// Clears the two progress objects at <c>0x00403AB8</c>; their host flag word is not modelled.
+	/// </summary>
+	[Original(0x00403AB8)]
+	private void Mode3Progress()
+	{
+		ProgressObject25 = 0;
+		ProgressObject26 = 0;
+	}
+
+	/// <summary>
+	/// Validates the four character slots at <c>0x00403BD4</c> and selects mode 6, 23, 22 or 1.
+	/// </summary>
+	[Original(0x00403BD4)]
+	private void Mode7()
+	{
+		if (SystemSave.Pending != 0)
+			return;
+		byte[]? image = CharacterSaveLoad.LoadBuffer;
+		if (image is null || CharacterSaveCodec.Validate(image) != CharacterSaveStatus.Valid)
+			FileFlags[1 + 2 * SlotIndex] = 0;
+		SlotIndex++;
+		if (SlotIndex < 4)
+		{
+			ChangeMode(6);
+			return;
+		}
+		if (FileFlags[1] != 0 && FileFlags[3] != 0 && FileFlags[5] != 0 && FileFlags[7] != 0)
+		{
+			EntryState = 0;
+			SetMode(23);
+		}
+		else if (RepeatFlag != 0)
+			SetMode(22);
+		else
+		{
+			RepeatFlag = 1;
+			SetMode(1);
+		}
 	}
 
 	[Original(0x00403B68)]

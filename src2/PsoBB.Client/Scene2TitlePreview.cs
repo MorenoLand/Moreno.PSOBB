@@ -100,7 +100,17 @@ public static class Scene2TitlePreview
 					if (startScreen is not null)
 						startScreen.TextSurface = textSurface;
 				}
-				machine ??= new Scene2StartGameModeMachine(files);
+				if (machine is null)
+				{
+					SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+					CharacterSaveLoad.Attach(
+						new byte[CharacterSaveLoad.PlayerChunkLength],
+						new byte[CharacterSaveLoad.SystemChunkLength],
+						new byte[CharacterSaveLoad.SaveLength],
+						new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+					GuildSave.Attach(new byte[4096], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+					machine = new Scene2StartGameModeMachine(files) { PumpSave = SystemSave.Pump };
+				}
 				controller ??= new ControllerButtonState();
 			}
 			if (startGame && machine is not null && controller is not null)

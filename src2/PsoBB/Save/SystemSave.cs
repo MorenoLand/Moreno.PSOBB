@@ -233,6 +233,19 @@ public static class SystemSave
 	}
 
 	/// <summary>
+	/// Drains the pending 16 state the worker handles at <c>0x006C38BC</c>.
+	/// </summary>
+	/// <remarks>
+	/// The character, guild and save-write pending states are drained by their own ported layers.
+	/// </remarks>
+	[Original(0x006C38BC)]
+	public static void Pump()
+	{
+		if (Pending == SystemPending)
+			CompletePendingSystem();
+	}
+
+	/// <summary>
 	/// Resets the save block to a fresh version word, timestamp and local start time.
 	/// </summary>
 	[Original(0x006C782C)]
