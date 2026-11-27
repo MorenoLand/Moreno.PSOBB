@@ -30,7 +30,7 @@ public sealed class Scene2TextWindow
 	public int Count { get; }
 
 	/// <summary>Gets the three-word point at offset 100.</summary>
-	public (int X, int Y, int Z) Point { get; }
+	public (float X, float Y, float Z) Point { get; private set; }
 
 	/// <summary>Gets or sets the scroll value at offset 112.</summary>
 	public float Scroll { get; set; }
@@ -93,6 +93,27 @@ public sealed class Scene2TextWindow
 	}
 
 	/// <summary>
+	/// Sets the point from the previous and current line and then updates the scroll at
+	/// <c>0x0073B558</c>.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">The grid has no cells.</exception>
+	[Original(0x0073B558)]
+	public void UpdatePosition()
+	{
+		if (Cells.Length == 0)
+			throw new InvalidOperationException("The grid has no cells.");
+		int index = Math.Min(CurrentLine, Cells.Length - 1);
+		int previous = index - 1;
+		if (previous < 0)
+			previous = Math.Min(Count, Cells.Length) - 1;
+		Scene2CellState current = Cells[index];
+		Scene2CellState before = Cells[Math.Max(0, previous)];
+		float value = before.TextPosition - current.TextPosition + before.TextHeight;
+		Point = (MaxWidth - 19f, value, 0f);
+		UpdateScroll();
+	}
+
+	/// <summary>
 	/// Updates the scroll from the -20 delta and copies the scroll source when the clamp changes it.
 	/// </summary>
 	/// <returns><see langword="true"/> when the clamp changed the value.</returns>
@@ -133,7 +154,7 @@ public sealed class Scene2TextWindow
 		Count = count;
 		Cells = Scene2CellGrid.ReadStates(grid, kind);
 		Records = new byte[count * 8];
-		Point = (-20 + Base.Fields[14], 0, 0);
+		Point = (BitConverter.Int32BitsToSingle(Base.Fields[14]) - 20f, 0f, 0f);
 		Base.Fields[35] = 180;
 		Base.Fields[38] = 0;
 		Base.Fields[33] = 0;
@@ -242,3 +263,4 @@ public sealed class Scene2TextWindow
 		return true;
 	}
 }
+
