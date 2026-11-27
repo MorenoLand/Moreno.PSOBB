@@ -38,6 +38,14 @@ public static class CrtCharacters
 	[Original(0x008598F9, "___tolower_mt")]
 	public static int ToLowerC(int character) => character is >= 'A' and <= 'Z' ? character + 0x20 : character;
 
+	/// <summary>
+	/// Raises a character on the C-locale path of the original's <c>___toupper_mt</c>: only the small letters a to z change, and every other value, negative end-of-file included, is returned unchanged.
+	/// </summary>
+	/// <param name="character">The character value.</param>
+	/// <returns>The uppercase letter, or the value unchanged.</returns>
+	[Original(0x00858A24, "___toupper_mt")]
+	public static int ToUpperC(int character) => character is >= 'a' and <= 'z' ? character - 0x20 : character;
+
 	private static byte ByteAt(ReadOnlySpan<byte> text, int index) => index < text.Length ? text[index] : (byte)0;
 
 	private static byte FoldAsciiCapital(byte value) => value is >= (byte)'A' and <= (byte)'Z' ? (byte)(value + 0x20) : value;

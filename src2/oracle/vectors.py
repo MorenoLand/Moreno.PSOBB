@@ -959,6 +959,17 @@ def tolower_c_vectors(read):
     write("008598F9.json", vectors)
 
 
+def toupper_c_vectors(read):
+    """0x00858A24 (___toupper_mt) on the C-locale path: a zero locale field at +0x14 selects the ASCII fold of a to z."""
+    base = 0x20000000
+    vectors = []
+    for c in list(range(-1, 256)):
+        eax, _, _ = run(read, 0x00858A24, 200, stack=[base, c & 0xFFFFFFFF], memory=[(base, bytes(256))])
+        signed = eax - (1 << 32) if eax >= 0x80000000 else eax
+        vectors.append({"c": c, "result": signed})
+    write("00858A24.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
