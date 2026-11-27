@@ -31,6 +31,7 @@ public sealed class SceneDirectory : ISceneScreenFactory
 	private readonly SceneNetworkOptions? _network;
 	private readonly bool _cinematicLogo;
 	private readonly Func<Scene2Interface>? _scene2Factory;
+	private readonly Func<LobbySceneHost>? _lobbyHostFactory;
 	private OnlineScreen? _online;
 	private bool _disposed;
 
@@ -42,8 +43,9 @@ public sealed class SceneDirectory : ISceneScreenFactory
 	/// <param name="network">The online endpoint and login inputs, or <see langword="null"/> for no connection.</param>
 	/// <param name="cinematicLogo">Whether scene 1 selects the cinematic logo descriptor.</param>
 	/// <param name="scene2Factory">The factory that builds a scene-2 interface tree, or <see langword="null"/> when it is not supplied.</param>
+	/// <param name="lobbyHostFactory">The factory that supplies the field resources for scene 11, or <see langword="null"/> to keep the online screen alone.</param>
 	/// <exception cref="ArgumentNullException">A required parameter is null.</exception>
-	public SceneDirectory(IDataFiles files, IRenderer renderer, SceneNetworkOptions? network = null, bool cinematicLogo = false, Func<Scene2Interface>? scene2Factory = null)
+	public SceneDirectory(IDataFiles files, IRenderer renderer, SceneNetworkOptions? network = null, bool cinematicLogo = false, Func<Scene2Interface>? scene2Factory = null, Func<LobbySceneHost>? lobbyHostFactory = null)
 	{
 		ArgumentNullException.ThrowIfNull(files);
 		ArgumentNullException.ThrowIfNull(renderer);
@@ -52,11 +54,15 @@ public sealed class SceneDirectory : ISceneScreenFactory
 		_network = network;
 		_cinematicLogo = cinematicLogo;
 		_scene2Factory = scene2Factory;
+		_lobbyHostFactory = lobbyHostFactory;
 		_textures = new TextureCache(renderer);
 	}
 
 	/// <summary>Gets the online scene created most recently, or <see langword="null"/>.</summary>
 	public OnlineScene? OnlineScene { get; private set; }
+
+	/// <summary>Gets the lobby scene created for scene 11, or <see langword="null"/> when no field host was supplied.</summary>
+	public LobbyScene? Lobby { get; private set; }
 
 	/// <inheritdoc/>
 	/// <exception cref="ObjectDisposedException">The directory is disposed.</exception>
@@ -89,6 +95,7 @@ public sealed class SceneDirectory : ISceneScreenFactory
 		_disposed = true;
 		try
 		{
+			Lobby?.Dispose();
 			_online?.Dispose();
 		}
 		finally
@@ -137,6 +144,11 @@ public sealed class SceneDirectory : ISceneScreenFactory
 				new ServerAddress(_network.RuntimeHost, _network.RuntimePort));
 			scene.Connect(address.Host, address.Port, _network.LoginRequest);
 			OnlineScene = scene;
+			if (_lobbyHostFactory is not null)
+			{
+				Lobby = new LobbyScene(scene, session, _lobbyHostFactory());
+				return Lobby;
+			}
 			OnlineScreen screen = new(scene, session);
 			_online = screen;
 			return screen;
