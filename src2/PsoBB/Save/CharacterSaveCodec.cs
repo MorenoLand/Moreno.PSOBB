@@ -60,15 +60,7 @@ public static class CharacterSaveCodec
 	{
 		if (data.Length != CharacterSave.Length)
 			throw new ArgumentException($"A character save is exactly 0x{CharacterSave.Length:X} bytes.", nameof(data));
-		uint crc = 0xFFFFFFFFu;
-		for (int index = 0; index < data.Length; index++)
-		{
-			byte value = index < 4 ? (byte)0 : data[index];
-			crc ^= value;
-			for (int bit = 0; bit < 8; bit++)
-				crc = (crc & 1u) != 0 ? (crc >> 1) ^ CrcPolynomial : crc >> 1;
-		}
-		return ~crc;
+		return SaveChecksum.Compute(data);
 	}
 
 	/// <summary>
