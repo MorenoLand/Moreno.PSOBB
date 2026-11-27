@@ -61,8 +61,8 @@ public sealed class Scene2StartGameScreen : IDisposable
 	/// <summary>The offset of the signature that marks a present record.</summary>
 	public const int CharacterValidityOffset = CharacterSaveSlot.SignatureOffset;
 
-	/// <summary>The row x position from the four pairs at <c>0x008F8940</c>.</summary>
-	public const float RowX = 28f;
+	/// <summary>The row x position from the four pairs at <c>0x008F8908</c>, the default <c>this+8 == 0</c> branch.</summary>
+	public const float RowX = 131f;
 
 	/// <summary>The first row y position from <c>0x008F8944</c>.</summary>
 	public const float RowY = 182f;
