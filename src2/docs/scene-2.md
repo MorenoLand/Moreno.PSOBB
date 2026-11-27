@@ -284,3 +284,33 @@ by the Episode 4 configuration. `t09` uses the same default background behind th
 
 The oracle captures were used only to confirm the rendered states; the labels, IDs, record names and
 texture slots above come from the shipped binaries and the lift.
+
+## State-9 mode machine
+
+`Scene2StartGameModeMachine` ports the dispatcher kernel at `0x00403084`, the mode change at
+`0x004033C4`, the 75-frame timeout to mode 22, and the nine file flags at offsets `0x34`-`0x54`.
+Ported update handlers: `0x004031E8` (0), `0x004033E8` (1), `0x00403864` (2),
+`0x00403AF0` (3), `0x00403B68` (4), `0x00403B94` (6), `0x00403BD4` (7), `0x00403CCC` (8),
+`0x00403D08` (9), `0x00403D48` (10), `0x00403D90` (11), `0x00403DD4` (12),
+`0x00403E1C` (13), `0x00403E60` (14), `0x00403EB4` (15), `0x00403F14` (16),
+`0x00403F54` (17), `0x004041D0` (19), `0x00404450` (20), `0x00404CA4` (23),
+`0x00404558` (24), `0x004050F0` (25), `0x004046D4` (26), `0x00404D60` (27) and
+`0x004048E8` (28). Mode 21 and the timeout mode share the `0x004044E0` confirm handler.
+Mode 5 is an entry-only transition to mode 6.
+
+The save path is the mode-0 file-flag stage, the mode-3 alternate system start, the mode-4 wait,
+the mode-6 system start, and the mode-7 four-slot character validation. `SystemSave.Pump` stands in
+for the asynchronous worker at `0x006C38BC`; it completes pending 16 before each dispatch. The mode-7
+valid flag set selects mode 23, which writes the shared lobby screen state 6.
+
+Ported entry callbacks: `0x00405734` (5), `0x00405670` (14), `0x00405600` (15),
+`0x00405580` (16), `0x004053E0` (22) and `0x00405168` (25). The mode-22 callback selects unitxt
+list 29 strings 27 and 34, and both the mode-22 and mode-25 callbacks leave the text-box factory
+`0x00402F0C` as a host seam. `0x00403784` and `0x00404A34` create and release the element and cursor
+slots and are ported.
+
+Remaining boundary: `0x00403FB4` (mode 18) has no pseudo or `asm/index.tsv` entry; the mode-21,
+mode-24, mode-26 and mode-27 entry callbacks (`0x0040544C`, `0x00405358`, `0x00404E28`,
+`0x00404DFC`) need the unported network/UI objects, and `0x00402F0C` still needs the runtime list
+grid at `0x009F310C`/`0x009F30E8`. The running `--startgame` diagnostic confirms the state-9 rows
+at frame 10 using a synthetic `PSO_CHARACTER`, then the scene-11 `Connecting..` label at frame 60.

@@ -148,6 +148,37 @@ public sealed class OnlineSceneTests : IDisposable
 	}
 
 	[Fact]
+	public void DrawsTheConnectingLabelAtTheOriginalPosition()
+	{
+		using DataFileRegistry files = OnlineTestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using OnlineScene scene = new(files, renderer);
+		UiDrawList draw = new();
+		RecordingSurface surface = new();
+
+		scene.DrawStatus(surface, draw);
+
+		Assert.Equal(OnlineScene.ConnectingText, surface.Text);
+		Assert.Equal(new System.Numerics.Vector2(OnlineScene.StatusX, OnlineScene.StatusY), surface.Position);
+		Assert.Equal(OnlineScene.StatusColor, surface.Color);
+	}
+
+	[Fact]
+	public void TheConnectingLabelIsNotDrawnAfterLoading()
+	{
+		using DataFileRegistry files = OnlineTestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using OnlineScene scene = new(files, renderer);
+		scene.CompleteLoading(0);
+		UiDrawList draw = new();
+		RecordingSurface surface = new();
+
+		scene.DrawStatus(surface, draw);
+
+		Assert.Null(surface.Text);
+	}
+
+	[Fact]
 	public void ProgressTextureFallsBackToTheLanguageNeutralArchive()
 	{
 		using DataFileRegistry files = OnlineTestData.Registry(includeEnglish: false, includeStandalone: true);
@@ -433,6 +464,22 @@ public sealed class OnlineSceneTests : IDisposable
 			Session.Dispose();
 			Renderer.Dispose();
 			Files.Dispose();
+		}
+	}
+
+	private sealed class RecordingSurface : IUiTextSurface
+	{
+		public string? Text { get; private set; }
+		public System.Numerics.Vector2 Position { get; private set; }
+		public uint Color { get; private set; }
+
+		public float Measure(string? text) => text?.Length ?? 0;
+
+		public void Draw(UiDrawList drawList, string? text, System.Numerics.Vector2 position, uint color, float maxWidth = 0f)
+		{
+			Text = text;
+			Position = position;
+			Color = color;
 		}
 	}
 

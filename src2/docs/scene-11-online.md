@@ -42,8 +42,9 @@ zero keeps the scene, 3 stores root 0 and requests scene 2, and any other nonzer
 root 2 and requests scene 2.
 
 The two download panels are submitted to `UiDrawList` at their original positions and sizes with
-`0x8F000000` and no texture. The connecting label and its `(23,331)` position are exposed for the
-merged `TextRenderer` through `DrawStatus`. `Cancel` closes the connection and requests scene 0.
+`0x8F000000` and no texture. `DrawStatus` submits the static `Connecting..` label from `0x008F8F2C`
+through the host text surface at `(23,331)` with white, matching the `0x007AB534` call; it draws only
+while the scene is loading or connecting. `Cancel` closes the connection and requests scene 0.
 
 The network exchange is the merged `PsoBB.Net.LoginFlow` over `GameSession`. The scene exposes the
 flow, pumps it during `Update`, maps its states, delegates the 0xE3 character preview request to
@@ -59,8 +60,9 @@ selected login endpoint when `SceneNetworkOptions` carries a host table; see `sc
 - The shared lobby and game update `0x007BCBF0`/`0x007BD2F0`, its page flags, the 3D rings at
   `0x007BC4E8`/`0x007BC508`, the frame timer `0x007BD288`, the network manager at `0x00797908`
   and the scene-2 hand-off are not ported. The redirected game-server phase stops at the first
-  command outside the 0x64/0x67, 0x81/0x83 and subcommand set: command 0x1A only copies its
-  fixed-size payload at `0x007C8854` and has no record codec in the lift. The 0x81 handler at
+  command outside the handled set. Command 0x1A copies its fixed `0x808`-byte payload at
+  `0x007C8854` and forwards the `0x800` bytes after the prefix to its receiver, or consumes it when
+  the receiver is null. The 0x81 handler at
   `0x007C8DC4` forwards a simple-mail entry to the callback at `0x0081384C`, and the 0x83 handler at
   `0x007C89EC` stores a header-counted lobby-menu list at `this+0x13CB8`; `SimpleMailPacket` and
   `LobbyMenuPacket` decode those records into `LobbyWorld.SimpleMails` and `LobbyWorld.LobbyMenu`.
@@ -76,5 +78,11 @@ surfaces. It covers scene parameter and root, all loading results, cancel input,
 quads and their renderer submission, the neutral fallback, a missing surface, merged-flow states,
 the 0xE3/0xE4 character exchange, the 0x19 redirect, the redirected connection and second login,
 the 0x64 and 0x67 lists, cancel and release after the redirect, a rejected login and idempotent
-release. `GameServerFlowTests` and the packet codec tests cover the 0x81 mail and 0x83 lobby-menu
-lists and the unsupported 0x1A command.
+release. `GameServerFlowTests` and the packet codec tests cover the 0x81 mail, the 0x83 lobby-menu
+lists and the forwarded 0x1A payload.
+
+The Windows client run with `--startgame` and a synthetic `PSO_CHARACTER` over a copied `data.gsl`
+renders the state-9 character rows at frame 10, reaches the mode-23 lobby result, and renders the
+scene-11 `Connecting..` label at `(23,331)` in frame 60. The run has no host table or login request,
+so the scene stays in its loading phase and the two translucent panels remain black over the black
+clear.
