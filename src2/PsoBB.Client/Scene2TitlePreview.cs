@@ -102,6 +102,9 @@ public static class Scene2TitlePreview
 				}
 				machine ??= new Scene2StartGameModeMachine(files);
 				controller ??= new ControllerButtonState();
+			}
+			if (startGame && machine is not null && controller is not null)
+			{
 				bool confirm = input.WasActionPressed(InputAction.Confirm) || (startGameDiagnostic && frame == 10);
 				machine.Controller = controller;
 				machine.GameEvent = () => confirmEdge ? 0xF : 0;
