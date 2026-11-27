@@ -536,14 +536,14 @@ public sealed class Scene2StartGameModeMachine
 			{
 				if (CharacterFileReady?.Invoke() == true)
 				{
-					ChangeMode(22);
+					SetMode(22);
 					return;
 				}
 				SystemSave.Pending = 15;
 				return;
 			}
 		}
-		ChangeMode(22);
+		SetMode(22);
 	}
 
 	[Original(0x00405600)]
@@ -551,7 +551,7 @@ public sealed class Scene2StartGameModeMachine
 	{
 		if (SystemSave.BuildMode() <= 4095 && (PatchValidation?.Invoke() ?? 0) == 7)
 			return;
-		ChangeMode(22);
+		SetMode(22);
 	}
 
 	[Original(0x00405580)]
@@ -563,7 +563,7 @@ public sealed class Scene2StartGameModeMachine
 			SystemSave.Pending = 12;
 			return;
 		}
-		ChangeMode(22);
+		SetMode(22);
 	}
 
 	private void Dispatch()
@@ -768,13 +768,7 @@ public sealed class Scene2StartGameModeMachine
 		bool ready = true;
 		foreach (int flag in FileFlags)
 			ready &= flag == 1;
-		ChangeMode(ready ? 3u : (uint)TimeoutMode);
-	}
-
-	private void ChangeMode(uint mode)
-	{
-		Mode = mode;
-		Timer = 0;
+		SetMode(ready ? 3u : (uint)TimeoutMode);
 	}
 
 	private bool SystemCheck()
@@ -922,12 +916,12 @@ public sealed class Scene2StartGameModeMachine
 		if (GlobalA3A940 != 0)
 		{
 			EntryState = 1;
-			ChangeMode(23);
+			SetMode(23);
 		}
 		else
 		{
 			EntryState = 0;
-			ChangeMode(24);
+			SetMode(24);
 		}
 	}
 
@@ -963,7 +957,7 @@ public sealed class Scene2StartGameModeMachine
 			else
 			{
 				CharacterConfirmed?.Invoke(value);
-				ChangeMode(26);
+				SetMode(26);
 			}
 		}
 		else if ((ScreenFlags & 4) != 0)
@@ -1033,7 +1027,7 @@ public sealed class Scene2StartGameModeMachine
 	{
 		if (GuildSave.BeginTime(0) != 0)
 			return;
-		ChangeMode(17);
+		SetMode(17);
 	}
 
 	/// <summary>
@@ -1153,7 +1147,7 @@ public sealed class Scene2StartGameModeMachine
 		SlotIndex++;
 		if (SlotIndex < 4)
 		{
-			ChangeMode(6);
+			SetMode(6);
 			return;
 		}
 		if (FileFlags[1] != 0 && FileFlags[3] != 0 && FileFlags[5] != 0 && FileFlags[7] != 0)
@@ -1262,6 +1256,7 @@ public sealed class Scene2StartGameModeMachine
 		}
 	}
 }
+
 
 
 
