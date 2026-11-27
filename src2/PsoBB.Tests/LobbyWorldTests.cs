@@ -443,8 +443,38 @@ public sealed class LobbyWorldTests
 	}
 
 	[Fact]
-	public void MenuSelectionRequiresARedirectedSession()
+	public void PlayerRecordsAreStoredOpaque()
 	{
+		LobbyWorld world = new();
+		byte[] payload = [9, 8, 7];
+		Assert.True(world.HandlePacket(Packet.Create(PacketCommand.PlayerRecords, 0, payload)));
+		Assert.Equal(payload, world.PlayerRecords.ToArray());
+	}
+
+	[Fact]
+	public void ServerTimeIsStored()
+	{
+		LobbyWorld world = new();
+		byte[] payload = new byte[0x1C];
+		System.Text.Encoding.ASCII.GetBytes("2026:11:27: 00:00:00.000").CopyTo(payload, 0);
+		payload[0x19] = 1;
+		Assert.True(world.HandlePacket(Packet.Create(PacketCommand.ServerTime, 0, payload)));
+		Assert.Equal("2026:11:27: 00:00:00.000", world.ServerTime);
+	}
+
+	[Fact]
+	public void SaveFileSyncIsStoredOpaque()
+	{
+		LobbyWorld world = new();
+		byte[] payload = [1, 2, 3, 4];
+		Assert.True(world.HandlePacket(Packet.Create(PacketCommand.SyncSaveFiles, 0, payload)));
+		Assert.Equal(payload, world.SaveFiles.ToArray());
+		world.Reset();
+		Assert.Empty(world.SaveFiles.ToArray());
+	}
+
+	[Fact]
+	public void MenuSelectionRequiresARedirectedSession()	{
 		Assert.Throws<InvalidOperationException>(() => new LobbyWorld().SelectMainMenuItem(MenuSelectionPacket.GoToLobbyItem));
 		TestConnection connection = new();
 		using GameSession session = new(connection);

@@ -139,9 +139,12 @@ public static class Scene2TitlePreview
 				online.Update(input);
 				if (startGameDiagnostic && !characterRequested && directory?.OnlineScene?.LoginFlow is { State: LoginFlowState.CharacterSelect, SystemFileCreated: true })
 					characterRequested = directory.OnlineScene.SelectCharacter(0);
-				if (startGameDiagnostic && !lobbyRequested && directory?.OnlineScene?.GameServerFlow?.World is { LobbyMenu: { Count: > 0 } mainMenu } lobbyWorld
-					&& mainMenu.Records.Any(record => record.MenuId == MenuSelectionPacket.MainMenuId))
-					lobbyRequested = lobbyWorld.SelectMainMenuItem(MenuSelectionPacket.GoToLobbyItem);
+				if (startGameDiagnostic && !lobbyRequested && directory?.OnlineScene?.GameServerFlow?.World is { Menu: { Count: > 0 } serverMenu } lobbyWorld)
+				{
+					MenuItemRecord entry = serverMenu.Records.FirstOrDefault(record => record.ItemId == MenuSelectionPacket.GoToLobbyItem);
+					if (entry.ItemId == MenuSelectionPacket.GoToLobbyItem)
+						lobbyRequested = lobbyWorld.SelectMenuItem(entry.MenuId, entry.ItemId);
+				}
 				UiDrawList ui = new();
 				online.Draw(ui);
 				if (textSurface is not null)

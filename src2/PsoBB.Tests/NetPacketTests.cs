@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using PsoBB.Core;
 using PsoBB.Net;
 
@@ -158,6 +159,24 @@ public sealed class NetPacketTests
 		MenuSelectionPacket read = MenuSelectionPacket.Read(packet.WritePayload());
 		Assert.Equal(0x11000011u, read.MenuId);
 		Assert.Equal(0x11222211u, read.ItemId);
+	}
+
+	/// <summary>
+	/// The command 0x07 menu read uses the header count minus one and the 0x2C record stride.
+	/// </summary>
+	[Fact]
+	public void MenuPacketReadsTheOmittedCountAndRecords()
+	{
+		byte[] payload = new byte[MenuItemRecord.Size];
+		BinaryPrimitives.WriteUInt32LittleEndian(payload, MenuSelectionPacket.MainMenuId);
+		BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(4), MenuSelectionPacket.GoToLobbyItem);
+		System.Text.Encoding.Unicode.GetBytes("Go to lobby").CopyTo(payload, 0x0A);
+		MenuPacket menu = MenuPacket.Read(payload, 0);
+		MenuItemRecord record = Assert.Single(menu.Records);
+		Assert.Equal(MenuSelectionPacket.MainMenuId, record.MenuId);
+		Assert.Equal(MenuSelectionPacket.GoToLobbyItem, record.ItemId);
+		Assert.Equal("Go to lobby", record.Name);
+		Assert.Throws<InvalidDataException>(() => MenuPacket.Read(payload.AsSpan(0, 0x2B), 0));
 	}
 
 	[Fact]
