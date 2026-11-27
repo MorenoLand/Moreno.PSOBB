@@ -281,8 +281,17 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	[Fact]
 	public void TheModeTwentyEightEntryParsesTheWorldListAndReleasesChildren()
 	{
+		int[] sizes = new int[12];
+		sizes[11] = 385;
+		string[] values = new string[385];
+		Array.Fill(values, string.Empty);
+		values[383] = "Box";
+		values[384] = "List";
+		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [11] = values }));
 		Scene2StartGameModeMachine machine = new(_files)
 		{
+			TextTable = table,
+			TextSurface = new NoopSurface(),
 			WorldListLines = ["A B 1 C 2 3 0", "D E 1 F 2 3 4"],
 		};
 
@@ -292,6 +301,11 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Assert.Equal(1, machine.WorldList!.Count);
 		Assert.Equal("A", machine.WorldList.Rows[0].Name1);
 		Assert.Equal(0, machine.WorldList.FirstListFlags);
+		Assert.NotNull(machine.WorldList.FirstList);
+		Assert.Equal("List", machine.WorldList.FirstList!.Title);
+		Assert.Equal(1, (int)machine.WorldList.FirstList.Count);
+		Assert.NotNull(machine.WorldList.SecondList);
+		Assert.Equal("Box", machine.WorldList.SecondList!.Cells[0].Text);
 		Assert.Null(machine.Children.Element);
 		Assert.Null(machine.Children.Cursor);
 	}
