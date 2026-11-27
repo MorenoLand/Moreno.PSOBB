@@ -32,6 +32,60 @@ public sealed class Scene2TextWindow
 	/// <summary>Gets the three-word point at offset 100.</summary>
 	public (int X, int Y, int Z) Point { get; }
 
+	/// <summary>Gets or sets the scroll value at offset 112.</summary>
+	public float Scroll { get; set; }
+
+	/// <summary>Gets or sets the copy source at offset 116.</summary>
+	public float ScrollLimitSource { get; set; }
+
+	/// <summary>Gets or sets the stored scroll at offset 152.</summary>
+	public float ScrollCopy { get; set; }
+
+	/// <summary>Gets or sets the offset-76 float the scroll delta uses.</summary>
+	public float Offset76 { get; set; }
+
+	/// <summary>
+	/// Clamps a scroll value between the point maximum and zero, at <c>0x0073F8A4</c>.
+	/// </summary>
+	/// <param name="maximum">The point maximum.</param>
+	/// <param name="value">The value to clamp.</param>
+	/// <param name="delta">The subtract amount.</param>
+	/// <returns><see langword="true"/> when the value changed.</returns>
+	[Original(0x0073F8A4)]
+	public static bool ClampScroll(float maximum, ref float value, float delta)
+	{
+		if (delta > maximum)
+		{
+			value = 0f;
+			return true;
+		}
+		if (value < 0f)
+		{
+			value = 0f;
+			return true;
+		}
+		float limit = maximum - delta;
+		if (value <= limit)
+			return false;
+		value = limit;
+		return true;
+	}
+
+	/// <summary>
+	/// Updates the scroll from the -20 delta and copies the scroll source when the clamp changes it.
+	/// </summary>
+	/// <returns><see langword="true"/> when the clamp changed the value.</returns>
+	[Original(0x0073B59C)]
+	public bool UpdateScroll()
+	{
+		float value = Scroll;
+		bool changed = ClampScroll(Point.Y, ref value, -20f + Offset76);
+		Scroll = value;
+		if (changed)
+			ScrollCopy = ScrollLimitSource;
+		return changed;
+	}
+
 	/// <summary>
 	/// Creates the text window.
 	/// </summary>
