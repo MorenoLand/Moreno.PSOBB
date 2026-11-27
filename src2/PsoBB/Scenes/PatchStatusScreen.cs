@@ -5,6 +5,7 @@ using PsoBB.Gui;
 using PsoBB.Imaging;
 using PsoBB.Net.Patch;
 using PsoBB.Text;
+using PsoBB.Compression;
 using PsoBB.Data;
 
 namespace PsoBB.Scenes;
@@ -44,8 +45,16 @@ public sealed class PatchStatusScreen : IDisposable
 		(0f, 330f, 3), (256f, 330f, 4), (512f, 330f, 5),
 	];
 
+	/// <summary>The number of ticks one background frame stays on screen.</summary>
+	public const int BackgroundTicksPerFrame = 3;
+
+	/// <summary>The length of the background counter cycle at <c>0x00401304</c>.</summary>
+	public const int BackgroundCycle = 15;
+
 	private readonly ITexture _bars;
 	private readonly ITexture _parts;
+	private readonly IReadOnlyList<ITexture> _background;
+	private readonly IReadOnlyList<ITexture> _grid;
 	private bool _disposed;
 
 	/// <summary>
@@ -53,12 +62,16 @@ public sealed class PatchStatusScreen : IDisposable
 	/// </summary>
 	/// <param name="bars">The bar sheet.</param>
 	/// <param name="parts">The housing and fill sheet.</param>
-	public PatchStatusScreen(ITexture bars, ITexture parts)
+	/// <param name="background">The animated background frames from <c>f256_backtext.prs</c>, or null for none.</param>
+	/// <param name="grid">The eight grid strips from <c>f256_ad_pic_2.prs</c>, or null for none.</param>
+	public PatchStatusScreen(ITexture bars, ITexture parts, IReadOnlyList<ITexture>? background = null, IReadOnlyList<ITexture>? grid = null)
 	{
 		ArgumentNullException.ThrowIfNull(bars);
 		ArgumentNullException.ThrowIfNull(parts);
 		_bars = bars;
 		_parts = parts;
+		_background = background ?? [];
+		_grid = grid ?? [];
 	}
 
 	/// <summary>
@@ -78,9 +91,35 @@ public sealed class PatchStatusScreen : IDisposable
 			return false;
 		ITexture bars = renderer.CreateTexture(textures[0].Width, textures[0].Height, textures[0].Image.Pixels.Span, textures[0].Image.Stride);
 		ITexture parts = renderer.CreateTexture(textures[1].Width, textures[1].Height, textures[1].Image.Pixels.Span, textures[1].Image.Stride);
-		screen = new PatchStatusScreen(bars, parts);
+		screen = new PatchStatusScreen(bars, parts, LoadArchive(files, renderer, "f256_backtext.prs"), LoadArchive(files, renderer, "f256_ad_pic_2.prs"));
 		return true;
 	}
+
+	private static List<ITexture> LoadArchive(IDataFiles files, IRenderer renderer, string name)
+	{
+		List<ITexture> frames = [];
+		if (!files.TryRead(name, out ReadOnlyMemory<byte> stored))
+			return frames;
+		ReadOnlyMemory<byte> data = stored;
+		if (stored.Length < 4 || System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(stored.Span) != XvmTextureReader.Magic)
+		{
+			int capacity = Math.Max(0x10000, stored.Length * 8);
+			byte[] destination = new byte[capacity];
+			int written = PrsDecompressor.Decompress(stored.Span, destination);
+			data = destination.AsMemory(0, written);
+		}
+		foreach (XvmTexture texture in XvmArchive.Read(data.Span))
+			frames.Add(renderer.CreateTexture(texture.Width, texture.Height, texture.Image.Pixels.Span, texture.Image.Stride));
+		return frames;
+	}
+
+	/// <summary>
+	/// Returns the background frame the counter selects: the counter runs from zero to fourteen and each frame lasts three ticks.
+	/// </summary>
+	/// <param name="tick">The number of updates since the screen appeared.</param>
+	/// <returns>The zero-based frame index.</returns>
+	[Original(0x00401304)]
+	public static int GetBackgroundFrame(int tick) => tick <= 0 ? 0 : (tick - 1) % BackgroundCycle / BackgroundTicksPerFrame;
 
 	/// <summary>
 	/// Formats the current-file line.
@@ -112,12 +151,23 @@ public sealed class PatchStatusScreen : IDisposable
 	/// <exception cref="ArgumentNullException">An argument is null.</exception>
 	/// <exception cref="ObjectDisposedException">The screen is released.</exception>
 	[Original(0x0070CCDC)]
-	public void Draw(UiDrawList draw, PatchProgress progress, GameText text, IUiTextSurface surface)
+	public void Draw(UiDrawList draw, PatchProgress progress, GameText text, IUiTextSurface surface, int tick = 0)
 	{
 		ArgumentNullException.ThrowIfNull(draw);
 		ArgumentNullException.ThrowIfNull(text);
 		ArgumentNullException.ThrowIfNull(surface);
 		ObjectDisposedException.ThrowIf(_disposed, this);
+		draw.Add(new UiQuad(Vector2.Zero, new Vector2(640f, 480f), new Vector4(0f, 0f, 1f, 1f), null, 0xFF000000u) { BlendMode = UiBlendMode.Alpha });
+		if (_grid.Count == Scene2TitleArt.Strips.Count)
+		{
+			foreach (TitleArtStrip strip in Scene2TitleArt.Strips)
+				draw.Add(new UiQuad(new Vector2(strip.X, strip.Y), new Vector2(strip.Width, strip.Height), new Vector4(0f, 0f, 1f, 1f), _grid[strip.FrameOffset], 0xFFFFFFFFu) { BlendMode = UiBlendMode.AdditiveAlpha });
+		}
+		if (_background.Count > 0)
+		{
+			ITexture frame = _background[Math.Min(GetBackgroundFrame(tick), _background.Count - 1)];
+			draw.Add(new UiQuad(Vector2.Zero, new Vector2(640f, 480f), new Vector4(0f, 0f, 1f, 1f), frame, 0xFFFFFFFFu) { BlendMode = UiBlendMode.AdditiveAlpha });
+		}
 		foreach ((float x, float y, int slice) in BarStrips)
 		{
 			float v = slice * 32f / 256f;
@@ -146,6 +196,10 @@ public sealed class PatchStatusScreen : IDisposable
 		_disposed = true;
 		_bars.Dispose();
 		_parts.Dispose();
+		foreach (ITexture frame in _background)
+			frame.Dispose();
+		foreach (ITexture strip in _grid)
+			strip.Dispose();
 	}
 
 	private void AddHousing(UiDrawList draw, float y)
@@ -166,5 +220,5 @@ public sealed class PatchStatusScreen : IDisposable
 	}
 
 	private static void AddQuad(UiDrawList draw, ITexture texture, Vector2 position, Vector2 size, Vector4 uv)
-		=> draw.Add(new UiQuad(position, size, uv, texture, 0xFFFFFFFFu));
+		=> draw.Add(new UiQuad(position, size, uv, texture, 0xFFFFFFFFu) { BlendMode = UiBlendMode.Alpha });
 }

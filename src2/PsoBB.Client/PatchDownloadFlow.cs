@@ -16,6 +16,7 @@ public sealed class PatchDownloadFlow : IDisposable
 	private readonly List<string> _messages = [];
 	private PatchStatusScreen? _screen;
 	private GameText? _text;
+	private int _tick;
 	private bool _disposed;
 
 	/// <summary>
@@ -62,7 +63,11 @@ public sealed class PatchDownloadFlow : IDisposable
 	public bool Start(string host, int port) => _session.Connect(host, port);
 
 	/// <summary>Pumps the patch session for one frame.</summary>
-	public void Update() => _session.Pump();
+	public void Update()
+	{
+		_tick++;
+		_session.Pump();
+	}
 
 	/// <summary>Draws the patch state over the title art.</summary>
 	/// <param name="draw">The draw list that receives the quads.</param>
@@ -73,7 +78,7 @@ public sealed class PatchDownloadFlow : IDisposable
 		ArgumentNullException.ThrowIfNull(surface);
 		if (_screen is not null && _text is not null)
 		{
-			_screen.Draw(draw, Progress, _text, surface);
+			_screen.Draw(draw, Progress, _text, surface, _tick);
 			if (FailureReason is not null)
 				surface.Draw(draw, FailureReason, new Vector2(100f, 440f), 0xFFFF8080u);
 			return;
