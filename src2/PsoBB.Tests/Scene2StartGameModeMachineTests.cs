@@ -223,6 +223,19 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void TheModeTwentySevenEntryDisplaysTheSharedMessageAndReleasesChildren()
+	{
+		Scene2StartGameModeMachine machine = new(_files) { MessageText = "Warning" };
+
+		machine.SetMode(27);
+
+		Assert.Equal("Warning", machine.Mode27Text);
+		Assert.True(machine.Mode27Ready);
+		Assert.Null(machine.Children.Element);
+		Assert.Null(machine.Children.Cursor);
+	}
+
+	[Fact]
 	public void TheModeTwentyOneEntryHasNoReachableBody()
 	{
 		Scene2StartGameModeMachine machine = new(_files);
@@ -249,11 +262,28 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
-	public void TheUnportedModeTwentyEntryStillStops()
+	public void TheModeTwentyEntrySelectsTheMessagePairFromTheFlags()
 	{
-		Scene2StartGameModeMachine machine = new(_files);
+		int[] sizes = new int[30];
+		sizes[29] = 27;
+		string[] values = new string[27];
+		Array.Fill(values, string.Empty);
+		for (int index = 20; index < values.Length; index++)
+			values[index] = $"T{index}";
+		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [29] = values }));
+		Scene2StartGameModeMachine machine = new(_files) { TextTable = table };
 
-		Assert.Throws<NotSupportedException>(() => machine.SetMode(20));
+		machine.SetMode(20);
+		Assert.Equal("T23\nT24", machine.Mode20Text);
+		Assert.Equal("T23\nT24", machine.MessageText);
+		Assert.Equal("T20", machine.Mode20OptionA);
+		Assert.Equal("T21", machine.Mode20OptionB);
+
+		Array.Fill(machine.FileFlags, 1);
+		machine.SetMode(21);
+		machine.SetMode(20);
+		Assert.Equal("T25\nT26", machine.Mode20Text);
+		Assert.Null(machine.Children.Element);
 	}
 
 	[Fact]
