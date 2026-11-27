@@ -561,6 +561,53 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void ModeEighteenSelectsTheFirstMissingFileMode()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(18);
+		Array.Fill(machine.FileFlags, 1);
+		machine.Advance();
+		Assert.Equal(1u, machine.Mode);
+
+		machine.SetMode(18);
+		machine.FileFlags[0] = 0;
+		machine.Advance();
+		Assert.Equal(8u, machine.Mode);
+		Assert.Equal(1, machine.Field10);
+
+		machine.SetMode(18);
+		machine.FileFlags[0] = 1;
+		machine.FileFlags[5] = 0;
+		machine.Advance();
+		Assert.Equal(10u, machine.Mode);
+		Assert.Equal(2, machine.SlotIndex);
+
+		machine.SetMode(18);
+		machine.FileFlags[5] = 1;
+		machine.FileFlags[4] = 0;
+		machine.Advance();
+		Assert.Equal(12u, machine.Mode);
+		Assert.Equal(1, machine.SlotIndex);
+	}
+
+	[Fact]
+	public void ModeEighteenUsesTheOneFlagsOnlyForTheMissingSystemFlag()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(18);
+		Array.Fill(machine.FileFlags, -1);
+		machine.FileFlags[7] = 1;
+		machine.Advance();
+		Assert.Equal(10u, machine.Mode);
+		Assert.Equal(3, machine.SlotIndex);
+
+		machine.SetMode(18);
+		Array.Fill(machine.FileFlags, -1);
+		machine.Advance();
+		Assert.Equal(1u, machine.Mode);
+	}
+
+	[Fact]
 	public void ModeSeventeenMarksTheGuildFlagAndSelectsNineteen()
 	{
 		Scene2StartGameModeMachine machine = new(_files);
