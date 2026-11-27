@@ -148,10 +148,18 @@ public sealed class LoginFlowTests
 		fixture.AdvanceToSystemFile();
 		PushEncrypted(fixture.Connection, new SyncSystemFilePacket { SystemFile = systemFile, TeamMembership = teamMembership }.ToPacket());
 		fixture.Flow.Pump();
-		Assert.Equal(LoginFlowState.CharacterSelect, fixture.Flow.State);
+		Assert.Equal(LoginFlowState.AwaitingSystemFile, fixture.Flow.State);
 		Assert.True(fixture.Flow.HasSystemFile);
+		Assert.False(fixture.Flow.SystemFileCreated);
 		Assert.Equal(systemFile, fixture.Flow.SystemFile.ToArray());
 		Assert.Equal(teamMembership, fixture.Flow.TeamMembership.ToArray());
+		List<Packet> sent = ReadSentPackets(fixture.Connection);
+		Assert.Equal(new byte[] { 0x93, 0xE0, 0xE2 }, sent.Select(packet => packet.Header.Opcode));
+		Assert.Equal(systemFile, SyncSystemFilePacket.Read(sent[2].Payload.Span).SystemFile.ToArray());
+		PushEncrypted(fixture.Connection, SystemFileCreated());
+		fixture.Flow.Pump();
+		Assert.Equal(LoginFlowState.CharacterSelect, fixture.Flow.State);
+		Assert.True(fixture.Flow.SystemFileCreated);
 	}
 
 	/// <summary>

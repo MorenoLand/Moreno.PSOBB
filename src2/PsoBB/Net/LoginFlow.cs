@@ -49,6 +49,9 @@ public sealed class LoginFlow
 	/// <summary>Gets whether a full system file arrived instead of the created-default notice.</summary>
 	public bool HasSystemFile { get; private set; }
 
+	/// <summary>Gets a value indicating whether the server created a default system file (command 0xE1).</summary>
+	public bool SystemFileCreated { get; private set; }
+
 	/// <summary>Gets the base account system file, or empty bytes before it arrives.</summary>
 	public ReadOnlyMemory<byte> SystemFile { get; private set; }
 
@@ -306,6 +309,7 @@ public sealed class LoginFlow
 		if (!created.IsSuccess)
 			return Fail($"The server reported system-file creation error 907 with result 0x{created.Result:X8}.");
 		HasSystemFile = false;
+		SystemFileCreated = true;
 		State = LoginFlowState.CharacterSelect;
 		return true;
 	}
@@ -327,7 +331,8 @@ public sealed class LoginFlow
 		SystemFile = sync.SystemFile;
 		TeamMembership = sync.TeamMembership;
 		HasSystemFile = true;
-		State = LoginFlowState.CharacterSelect;
+		if (!SendPacket(sync.ToPacket()))
+			return false;
 		return true;
 	}
 
@@ -438,6 +443,7 @@ public sealed class LoginFlow
 		SecurityToken = 0;
 		ClientConfig = ReadOnlyMemory<byte>.Empty;
 		HasSystemFile = false;
+		SystemFileCreated = false;
 		SystemFile = ReadOnlyMemory<byte>.Empty;
 		TeamMembership = ReadOnlyMemory<byte>.Empty;
 		SelectedCharacterIndex = null;
