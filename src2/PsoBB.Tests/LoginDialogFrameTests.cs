@@ -69,6 +69,7 @@ public sealed class LoginDialogFrameTests
 		Assert.Equal(new Vector2(16f, 16f), left.Size);
 		Assert.Equal(new Vector4(151f / 256f, 57f / 256f, 167f / 256f, 73f / 256f), left.TextureCoordinates);
 		Assert.Same(page, left.Texture);
+		Assert.Equal(UiBlendMode.AdditiveAlpha, left.BlendMode);
 		UiQuad right = list.Quads[13];
 		Assert.Equal(new Vector2(416f, 320f), right.Position);
 		Assert.Equal(new Vector4(183f / 256f, 57f / 256f, 199f / 256f, 73f / 256f), right.TextureCoordinates);
@@ -76,6 +77,19 @@ public sealed class LoginDialogFrameTests
 		Assert.Equal(new Vector2(224f, 320f), middle.Position);
 		Assert.Equal(new Vector2(192f, 16f), middle.Size);
 		Assert.Equal(new Vector4(167f / 256f, 57f / 256f, 183f / 256f, 73f / 256f), middle.TextureCoordinates);
+	}
+
+	[Fact]
+	public void SelectedRowUsesAdditiveAlphaAndRestoresTheDefaultBlend()
+	{
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using LoginDialogFrame frame = new() { RowTexture = new CountingTexture() };
+		UiDrawList list = new() { DefaultBlendMode = UiBlendMode.Alpha };
+		frame.Draw(list, 0);
+		list.Render(renderer);
+		Assert.Contains("State 19:5", renderer.Commands);
+		Assert.Contains("State 20:2", renderer.Commands);
+		Assert.Equal("State 20:6", renderer.Commands[^1]);
 	}
 
 	[Fact]

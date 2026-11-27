@@ -4,6 +4,7 @@ using PsoBB.Compression;
 using PsoBB.Data;
 using PsoBB.Graphics;
 using PsoBB.Imaging;
+using PsoBB.Mathematics;
 
 namespace PsoBB.Scenes;
 
@@ -12,8 +13,8 @@ namespace PsoBB.Scenes;
 /// </summary>
 /// <remarks>
 /// The three NowLoading textures form two 128-pixel halves and the 64-pixel emblem. The draw at
-/// <c>0x0078DDB8</c> advances the rotation word by 364, derives the emblem alpha from its sine and
-/// runs only while bit 1 of the title drawing flag is set. The load routine at <c>0x0078DF88</c>
+/// <c>0x0078DDB8</c> advances the rotation word by 364, derives the emblem alpha from its cosine, and
+/// draws the rotated emblem after both loading halves. The load routine at <c>0x0078DF88</c>
 /// reads <c>NowLoading.prs</c> and registers the three frames.
 /// </remarks>
 public sealed class NowLoadingScreen : IDisposable
@@ -39,20 +40,17 @@ public sealed class NowLoadingScreen : IDisposable
 	/// <summary>The second quad size.</summary>
 	public static readonly Vector2 RightSize = new(128f, 128f);
 
-	/// <summary>The emblem position from the element at <c>0x009FF1A8</c>.</summary>
+	/// <summary>The emblem centre from the element at <c>0x009FF1A8</c>.</summary>
 	public static readonly Vector2 EmblemPosition = new(496f, 416f);
 
-	/// <summary>The emblem size of frame 2 in the frame table at <c>0x009FF16C</c>.</summary>
+	/// <summary>The frame-2 size in the table at <c>0x009FF16C</c>.</summary>
 	public static readonly Vector2 EmblemSize = new(64f, 64f);
 
-	/// <summary>The scale <c>0x00819F7C</c> applies to the element through its 0.5 argument.</summary>
-	public const float EmblemScale = 2f;
+	/// <summary>The unrotated top-left from the frame-2 anchor at <c>0x00819F7C</c>.</summary>
+	public static readonly Vector2 EmblemDrawPosition = EmblemPosition - EmblemSize * 0.5f;
 
-	/// <summary>The drawn emblem rectangle after the 2x scale around the element centre.</summary>
-	public static readonly Vector2 EmblemDrawPosition = new(288f, 224f);
-
-	/// <summary>The drawn emblem size after the 2x scale.</summary>
-	public static readonly Vector2 EmblemDrawSize = new(64f, 64f);
+	/// <summary>The unrotated frame-2 bounds.</summary>
+	public static readonly Vector2 EmblemDrawSize = EmblemSize;
 
 	/// <summary>The full texture coordinates both halves sample.</summary>
 	public static readonly Vector4 TextureCoordinates = new(0f, 0f, 1f, 1f);
@@ -96,14 +94,13 @@ public sealed class NowLoadingScreen : IDisposable
 	public bool IsDisposed => _disposed;
 
 	/// <summary>
-	/// Returns the original 24-bit RGB colour with the sine-derived alpha byte.
+	/// Returns the original 24-bit RGB colour with the cosine-derived alpha byte.
 	/// </summary>
 	/// <param name="rotation">The rotation word at <c>0x009FF1BC</c>.</param>
 	/// <returns>The diffuse colour in 0xAARRGGBB form.</returns>
 	public static uint GetColor(int rotation)
 	{
-		double radians = rotation * (Math.PI * 2.0 / 65536.0);
-		double alpha = ((Math.Sin(radians) + 1.0) / 4.0 + 0.5) * 255.0;
+		double alpha = ((FixedPointTrigonometry.Cosine(rotation) + 1.0) / 4.0 + 0.5) * 255.0;
 		uint value = (uint)(int)alpha & 0xFFu;
 		return (value << 24) | 0xFFFFFFu;
 	}
@@ -123,9 +120,9 @@ public sealed class NowLoadingScreen : IDisposable
 			return;
 		Rotation = unchecked(Rotation + RotationStep);
 		uint color = GetColor(Rotation);
-		draw.AddOverlay(CreateQuad(_textures[2], EmblemDrawPosition, EmblemDrawSize, TextureCoordinates, color, 1f, TitleArtBlend.Additive));
 		draw.AddOverlay(CreateQuad(_textures[0], LeftPosition, LeftSize, TextureCoordinates, 0xFFFFFFFFu, 1f, TitleArtBlend.Opaque));
 		draw.AddOverlay(CreateQuad(_textures[1], RightPosition, RightSize, TextureCoordinates, 0xFFFFFFFFu, 1f, TitleArtBlend.Opaque));
+		draw.AddOverlay(CreateEmblemQuad(_textures[2], Rotation, color));
 	}
 
 	/// <summary>
@@ -138,6 +135,24 @@ public sealed class NowLoadingScreen : IDisposable
 		_disposed = true;
 		foreach (ITexture texture in _textures)
 			texture.Dispose();
+	}
+
+	private static TitleArtOverlayQuad CreateEmblemQuad(ITexture texture, int rotation, uint color)
+	{
+		double sine = FixedPointTrigonometry.Sine(rotation);
+		double cosine = FixedPointTrigonometry.Cosine(rotation);
+		float halfWidth = EmblemSize.X * 0.5f;
+		float halfHeight = EmblemSize.Y * 0.5f;
+		Vector2 Transform(float x, float y) => new((float)(EmblemPosition.X + cosine * x + sine * y), (float)(EmblemPosition.Y - sine * x + cosine * y));
+		return new TitleArtOverlayQuad(
+			texture,
+			new TitleArtVertex(Transform(-halfWidth, -halfHeight), new Vector2(0f, 0f)),
+			new TitleArtVertex(Transform(halfWidth, -halfHeight), new Vector2(1f, 0f)),
+			new TitleArtVertex(Transform(halfWidth, halfHeight), new Vector2(1f, 1f)),
+			new TitleArtVertex(Transform(-halfWidth, halfHeight), new Vector2(0f, 1f)),
+			color,
+			1f,
+			TitleArtBlend.AdditiveAlpha);
 	}
 
 	private static TitleArtOverlayQuad CreateQuad(ITexture texture, Vector2 position, Vector2 size, Vector4 coordinates, uint color, float depth, TitleArtBlend blend)

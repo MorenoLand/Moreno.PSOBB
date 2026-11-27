@@ -13,6 +13,9 @@ namespace PsoBB.Gui;
 /// <param name="Color">The diffuse colour in 0xAARRGGBB form.</param>
 public readonly record struct UiQuad(Vector2 Position, Vector2 Size, Vector4 TextureCoordinates, ITexture? Texture, uint Color)
 {
+	/// <summary>Gets or sets the quad's blend state.</summary>
+	public UiBlendMode BlendMode { get; init; }
+
 	/// <summary>Gets a value indicating whether the quad has no area.</summary>
 	public bool IsEmpty => Size.X <= 0f || Size.Y <= 0f;
 
@@ -31,7 +34,7 @@ public readonly record struct UiQuad(Vector2 Position, Vector2 Size, Vector4 Tex
 		float right = MathF.Min(Position.X + Size.X, MathF.Max(bounds.X, bounds.Z));
 		float bottom = MathF.Min(Position.Y + Size.Y, MathF.Max(bounds.Y, bounds.W));
 		if (right <= left || bottom <= top)
-			return new UiQuad(Position, Vector2.Zero, TextureCoordinates, Texture, Color);
+			return new UiQuad(Position, Vector2.Zero, TextureCoordinates, Texture, Color) { BlendMode = BlendMode };
 		float leftFraction = (left - Position.X) / Size.X;
 		float topFraction = (top - Position.Y) / Size.Y;
 		float rightFraction = (right - Position.X) / Size.X;
@@ -42,6 +45,6 @@ public readonly record struct UiQuad(Vector2 Position, Vector2 Size, Vector4 Tex
 			uv.Y + (uv.W - uv.Y) * topFraction,
 			uv.X + (uv.Z - uv.X) * rightFraction,
 			uv.Y + (uv.W - uv.Y) * bottomFraction);
-		return new UiQuad(new Vector2(left, top), new Vector2(right - left, bottom - top), texture, Texture, Color);
+		return new UiQuad(new Vector2(left, top), new Vector2(right - left, bottom - top), texture, Texture, Color) { BlendMode = BlendMode };
 	}
 }

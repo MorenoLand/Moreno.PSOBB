@@ -374,6 +374,22 @@ public sealed class GuiControlTests
 	}
 
 	[Fact]
+	public void EditBoxMasksRenderedTextWithoutChangingStoredText()
+	{
+		RecordingTextSurface text = new();
+		UiEditBox edit = CreateEditBox();
+		edit.MaskCharacter = '*';
+		edit.TextSurface = text;
+		edit.SetText("secret");
+		UiDrawList drawList = new();
+
+		edit.Draw(drawList);
+
+		Assert.Equal("secret", edit.Text);
+		Assert.Equal("******", Assert.Single(text.Draws).Text);
+	}
+
+	[Fact]
 	public void EditBoxEnforcesTheMaximumLength()
 	{
 		UiEditBox edit = CreateEditBox();

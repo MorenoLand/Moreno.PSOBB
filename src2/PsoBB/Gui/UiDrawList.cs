@@ -24,6 +24,9 @@ public sealed class UiDrawList
 	/// <summary>Gets the collected quads in submission order.</summary>
 	public IReadOnlyList<UiQuad> Quads => _quads;
 
+	/// <summary>Gets or sets the blend state used by quads that inherit their blend state.</summary>
+	public UiBlendMode DefaultBlendMode { get; set; }
+
 	/// <summary>
 	/// Adds a quad.
 	/// </summary>
@@ -48,12 +51,28 @@ public sealed class UiDrawList
 	{
 		ArgumentNullException.ThrowIfNull(renderer);
 		Span<byte> vertices = stackalloc byte[VertexStride * 6];
+		UiBlendMode? currentBlendMode = null;
 		foreach (UiQuad quad in _quads)
 		{
+			UiBlendMode blendMode = quad.BlendMode == UiBlendMode.Inherit ? DefaultBlendMode : quad.BlendMode;
+			if (blendMode != UiBlendMode.Inherit && currentBlendMode != blendMode)
+			{
+				SetBlend(renderer, blendMode);
+				currentBlendMode = blendMode;
+			}
 			renderer.SetTexture(0, quad.Texture);
 			WriteQuad(vertices, quad);
 			renderer.Draw(PrimitiveType.TriangleList, 2, vertices, VertexStride, VertexFormat);
 		}
+		if (currentBlendMode is not null && DefaultBlendMode != UiBlendMode.Inherit && currentBlendMode != DefaultBlendMode)
+			SetBlend(renderer, DefaultBlendMode);
+	}
+
+	private static void SetBlend(IRenderer renderer, UiBlendMode blendMode)
+	{
+		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
+		renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
+		renderer.SetRenderState(RenderStateId.DestinationBlend, blendMode == UiBlendMode.AdditiveAlpha ? RenderStateId.BlendOne : RenderStateId.BlendInverseSourceAlpha);
 	}
 
 	private static void WriteQuad(Span<byte> vertices, UiQuad quad)

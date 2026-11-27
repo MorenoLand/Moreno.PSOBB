@@ -285,11 +285,10 @@ public static class Scene2TitlePreview
 			dialog.Frame = new LoginDialogFrame
 			{
 				PanelTexture = panel,
-				RowTexture = panel,
-				RowColor = 0x80FFFFFFu,
+				RowTexture = rows,
+				RowColor = LoginDialogFrame.SkinColor,
 			};
 		}
-		rows?.Dispose();
 		return dialog;
 	}
 
@@ -376,7 +375,7 @@ public static class Scene2TitlePreview
 			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
 			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
 			renderer.SetRenderState(RenderStateId.Lighting, 0);
-			UiDrawList ui = new();
+			UiDrawList ui = new() { DefaultBlendMode = UiBlendMode.Alpha };
 			if (register is null)
 				dialog?.Draw(ui);
 			confirm?.Draw(ui);

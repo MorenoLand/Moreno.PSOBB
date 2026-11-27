@@ -2,6 +2,7 @@ using System.Numerics;
 using PsoBB.Data;
 using PsoBB.Graphics;
 using PsoBB.Imaging;
+using PsoBB.Mathematics;
 using PsoBB.Platform;
 using PsoBB.Scenes;
 
@@ -42,7 +43,7 @@ public sealed class TitleStartupTests : IDisposable
 	}
 
 	[Fact]
-	public void LoadingDrawUsesTheTwoHalvesTheEmblemRectAndTheSineColour()
+	public void LoadingDrawUsesTheOriginalElementBoundsRotationAndCosineColour()
 	{
 		Scene1.EnableTitleDrawing();
 		using DataFileRegistry files = Registry();
@@ -52,28 +53,37 @@ public sealed class TitleStartupTests : IDisposable
 		loading.Draw(draw);
 		Assert.Equal(NowLoadingScreen.RotationStep, loading.Rotation);
 		Assert.Equal(new Vector2(496f, 416f), NowLoadingScreen.EmblemPosition);
-		Assert.Equal(new Vector2(288f, 224f), draw.OverlayQuads[0].P0.Position);
-		Assert.Equal(new Vector2(352f, 288f), draw.OverlayQuads[0].P2.Position);
-		Assert.Equal(new Vector2(368f, 352f), draw.OverlayQuads[1].P0.Position);
-		Assert.Equal(new Vector2(497f, 480f), draw.OverlayQuads[1].P2.Position);
-		Assert.Equal(new Vector2(496f, 352f), draw.OverlayQuads[2].P0.Position);
-		Assert.Equal(new Vector2(624f, 480f), draw.OverlayQuads[2].P2.Position);
-		Assert.Equal(NowLoadingScreen.TextureCoordinates, new Vector4(draw.OverlayQuads[1].P0.TextureCoordinates.X, draw.OverlayQuads[1].P0.TextureCoordinates.Y, draw.OverlayQuads[1].P2.TextureCoordinates.X, draw.OverlayQuads[1].P2.TextureCoordinates.Y));
-		Assert.Equal(NowLoadingScreen.GetColor(NowLoadingScreen.RotationStep), draw.OverlayQuads[0].Color);
+		Assert.Equal(new Vector2(464f, 384f), NowLoadingScreen.EmblemDrawPosition);
+		double sine = FixedPointTrigonometry.Sine(loading.Rotation);
+		double cosine = FixedPointTrigonometry.Cosine(loading.Rotation);
+		Vector2 Transform(float x, float y) => new(
+			(float)(NowLoadingScreen.EmblemPosition.X + cosine * x + sine * y),
+			(float)(NowLoadingScreen.EmblemPosition.Y - sine * x + cosine * y));
+		TitleArtOverlayQuad emblem = draw.OverlayQuads[2];
+		Assert.Equal(Transform(-32f, -32f), emblem.P0.Position);
+		Assert.Equal(Transform(32f, -32f), emblem.P1.Position);
+		Assert.Equal(Transform(32f, 32f), emblem.P2.Position);
+		Assert.Equal(Transform(-32f, 32f), emblem.P3.Position);
+		Assert.Equal(new Vector2(368f, 352f), draw.OverlayQuads[0].P0.Position);
+		Assert.Equal(new Vector2(497f, 480f), draw.OverlayQuads[0].P2.Position);
+		Assert.Equal(new Vector2(496f, 352f), draw.OverlayQuads[1].P0.Position);
+		Assert.Equal(new Vector2(624f, 480f), draw.OverlayQuads[1].P2.Position);
+		Assert.Equal(NowLoadingScreen.TextureCoordinates, new Vector4(draw.OverlayQuads[0].P0.TextureCoordinates.X, draw.OverlayQuads[0].P0.TextureCoordinates.Y, draw.OverlayQuads[0].P2.TextureCoordinates.X, draw.OverlayQuads[0].P2.TextureCoordinates.Y));
+		Assert.Equal(NowLoadingScreen.GetColor(NowLoadingScreen.RotationStep), emblem.Color);
+		Assert.Equal(0xFFFFFFFFu, draw.OverlayQuads[0].Color);
 		Assert.Equal(0xFFFFFFFFu, draw.OverlayQuads[1].Color);
-		Assert.Equal(0xFFFFFFFFu, draw.OverlayQuads[2].Color);
-		Assert.Equal(TitleArtBlend.Additive, draw.OverlayQuads[0].Blend);
+		Assert.Equal(TitleArtBlend.Opaque, draw.OverlayQuads[0].Blend);
 		Assert.Equal(TitleArtBlend.Opaque, draw.OverlayQuads[1].Blend);
-		Assert.Equal(TitleArtBlend.Opaque, draw.OverlayQuads[2].Blend);
+		Assert.Equal(TitleArtBlend.AdditiveAlpha, emblem.Blend);
 	}
 
 	[Fact]
-	public void LoadingColourIsTheQuarterSinePlusHalfOffset()
+	public void LoadingColourIsTheQuarterCosinePlusHalfOffset()
 	{
-		Assert.Equal(0xBF000000u, NowLoadingScreen.GetColor(0) & 0xFF000000u);
-		Assert.Equal(0xFFFFFFFFu, NowLoadingScreen.GetColor(16384));
-		Assert.Equal(0x7F000000u, NowLoadingScreen.GetColor(49152) & 0xFF000000u);
-		Assert.Equal(0xFFFFFFFFu, NowLoadingScreen.GetColor(16384) | 0xFFFFFFu);
+		Assert.Equal(0xFF000000u, NowLoadingScreen.GetColor(0) & 0xFF000000u);
+		Assert.Equal(0xBFFFFFFFu, NowLoadingScreen.GetColor(16384));
+		Assert.Equal(0x7F000000u, NowLoadingScreen.GetColor(32768) & 0xFF000000u);
+		Assert.Equal(0xBFFFFFFFu, NowLoadingScreen.GetColor(49152));
 	}
 
 	[Fact]
@@ -114,7 +124,7 @@ public sealed class TitleStartupTests : IDisposable
 		Assert.Contains("State 27:1", renderer.Commands);
 		Assert.Contains("State 19:5", renderer.Commands);
 		Assert.Contains("State 20:6", renderer.Commands);
-		Assert.Contains("State 19:2", renderer.Commands);
+		Assert.Contains("State 19:5", renderer.Commands);
 		Assert.Contains("State 20:2", renderer.Commands);
 	}
 

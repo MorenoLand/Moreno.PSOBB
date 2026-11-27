@@ -209,7 +209,7 @@ internal static class Program
 			Directory.CreateDirectory(captureDirectory);
 			WriteBmp(Path.Combine(captureDirectory, $"{(menu ? "menu" : "title")}-{frame:D3}.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());
 		};
-		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), GameTextLocale.English, menu, capture);
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), GameTextLocale.English, menu, capture, network: CreateNetworkOptions());
 		host.RequestStop();
 	}
 
@@ -224,7 +224,7 @@ internal static class Program
 		Direct3D11Renderer renderer = new(window.Handle, new RenderSettings(window.ClientWidth, window.ClientHeight, true, 0, true));
 		using ClientHost host = new(new ClientOptions(dataFolder), files, clock, settings, input, dispatcher, audio, renderer);
 		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
-		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), GameTextLocale.English, true);
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), GameTextLocale.English, true, network: CreateNetworkOptions());
 		host.RequestStop();
 	}
 

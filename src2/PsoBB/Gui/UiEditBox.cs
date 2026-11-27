@@ -21,6 +21,9 @@ public class UiEditBox : UiControl
 	/// <summary>Gets or sets the maximum number of characters; zero means no limit.</summary>
 	public int MaxLength { get; set; }
 
+	/// <summary>Gets or sets the character used to mask rendered text.</summary>
+	public char? MaskCharacter { get; set; }
+
 	/// <summary>Gets a value indicating whether the box is accepting characters.</summary>
 	public bool IsEditing => _editing;
 
@@ -109,10 +112,11 @@ public class UiEditBox : UiControl
 	public override void Draw(UiDrawList drawList)
 	{
 		base.Draw(drawList);
-		DrawText(drawList, Text, TextColor, Size.X);
+		string displayText = MaskCharacter is char mask ? new string(mask, Text.Length) : Text;
+		DrawText(drawList, displayText, TextColor, Size.X);
 		if (!_editing || !IsFocused)
 			return;
-		float caret = TextSurface?.Measure(Text[..Math.Clamp(_caret, 0, Text.Length)]) ?? 0f;
+		float caret = TextSurface?.Measure(displayText[..Math.Clamp(_caret, 0, displayText.Length)]) ?? 0f;
 		float inset = MathF.Max(0f, CaretInset);
 		UiQuad quad = new UiQuad(
 			new Vector2(Position.X + TextOffset.X + caret, Position.Y + TextOffset.Y + inset),

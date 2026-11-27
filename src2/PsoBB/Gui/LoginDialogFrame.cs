@@ -151,7 +151,7 @@ public sealed class LoginDialogFrame : IDisposable
 	}
 
 	private void AddRow(UiDrawList drawList, Vector2 position, Vector2 size, float u0, float v0, float u1, float v1)
-		=> drawList.Add(new UiQuad(position, size, new Vector4(u0, v0, u1, v1), RowTexture, RowColor));
+		=> drawList.Add(new UiQuad(position, size, new Vector4(u0, v0, u1, v1), RowTexture, RowColor) { BlendMode = UiBlendMode.AdditiveAlpha });
 
 	private static void Add(UiDrawList drawList, Vector2 position, Vector2 size, float u0, float v0, float u1, float v1, ITexture? texture)
 		=> drawList.Add(new UiQuad(position, size, new Vector4(u0, v0, u1, v1), texture, SkinColor));

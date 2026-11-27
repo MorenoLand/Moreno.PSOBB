@@ -177,9 +177,9 @@ public sealed class Scene2TitleArtTests
 		Assert.Equal(new Vector2(0.35f, 0f), draw.OverlayQuads[2].P0.TextureCoordinates);
 		Assert.Equal(new Vector2(0.553125f, 0.203125f), draw.OverlayQuads[2].P2.TextureCoordinates);
 		Assert.All(draw.OverlayQuads, quad => Assert.Equal(0xFF005873u, quad.Color));
-		Assert.All(draw.OverlayQuads, quad => Assert.Equal(TitleArtBlend.Additive, quad.Blend));
+		Assert.All(draw.OverlayQuads, quad => Assert.Equal(TitleArtBlend.AdditiveAlpha, quad.Blend));
 		draw.Render(renderer);
-		Assert.Contains("State 19:2", renderer.Commands);
+		Assert.Contains("State 19:5", renderer.Commands);
 		Assert.Contains("State 20:2", renderer.Commands);
 		Assert.Equal(5, renderer.Commands.Count(command => command == "Draw TriangleList 2 28 144"));
 	}

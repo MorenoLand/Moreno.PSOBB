@@ -280,7 +280,7 @@ public sealed class Scene2TitleArt : IDisposable
 		TitleArtVertex p1 = new(origin + new Vector2(width, height), new Vector2(u + extent, v));
 		TitleArtVertex p2 = new(origin + new Vector2(width - height, height + width), new Vector2(u + extent, v + extent));
 		TitleArtVertex p3 = new(origin + new Vector2(-height, width), new Vector2(u, v + extent));
-		draw.AddOverlay(new TitleArtOverlayQuad(_textures[frame], p0, p1, p2, p3, color, depth, TitleArtBlend.Additive));
+		draw.AddOverlay(new TitleArtOverlayQuad(_textures[frame], p0, p1, p2, p3, color, depth, TitleArtBlend.AdditiveAlpha));
 	}
 
 	/// <summary>

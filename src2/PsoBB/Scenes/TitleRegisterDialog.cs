@@ -44,7 +44,7 @@ public sealed class TitleRegisterDialog : IDisposable
 		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), PanelPosition + new Vector2(10f, 22f), new Vector2(60f, 20f), surface);
 		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), PanelPosition + new Vector2(10f, 42f), new Vector2(60f, 20f), surface);
 		_userId = CreateField(PanelPosition + new Vector2(70f, 20f), new Vector2(PanelSize.X - 80f, 20f), surface);
-		_password = CreateField(PanelPosition + new Vector2(70f, 40f), new Vector2(PanelSize.X - 80f, 20f), surface);
+		_password = CreateField(PanelPosition + new Vector2(70f, 40f), new Vector2(PanelSize.X - 80f, 20f), surface, '*');
 		_buttons = new UiListWindow
 		{
 			Position = PanelPosition + new Vector2(10f, 62f),
@@ -138,13 +138,14 @@ public sealed class TitleRegisterDialog : IDisposable
 		return label;
 	}
 
-	private static UiEditBox CreateField(Vector2 position, Vector2 size, IUiTextSurface surface)
+	private static UiEditBox CreateField(Vector2 position, Vector2 size, IUiTextSurface surface, char? maskCharacter = null)
 	{
 		UiEditBox field = new()
 		{
 			Position = position,
 			Size = size,
 			MaxLength = 16,
+			MaskCharacter = maskCharacter,
 			Focusable = true,
 			TextSurface = surface,
 			TextOffset = new Vector2(2f, 2f),
