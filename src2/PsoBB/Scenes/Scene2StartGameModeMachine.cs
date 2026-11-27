@@ -126,6 +126,18 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets or sets the receiver for a confirmed character index.</summary>
 	public Action<int>? CharacterConfirmed { get; set; }
 
+	/// <summary>Gets or sets the patch-busy query used by the mode-14 entry.</summary>
+	public Func<bool>? PatchBusy { get; set; }
+
+	/// <summary>Gets or sets the character-file query used by the mode-14 entry.</summary>
+	public Func<bool>? CharacterFileReady { get; set; }
+
+	/// <summary>Gets or sets the patch-validation query used by the mode-15 entry.</summary>
+	public Func<int>? PatchValidation { get; set; }
+
+	/// <summary>Gets or sets the patch-release action used by the mode-16 entry.</summary>
+	public Action? PatchRelease { get; set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -167,6 +179,15 @@ public sealed class Scene2StartGameModeMachine
 				Mode = 6;
 				Timer = 0;
 				break;
+			case 14:
+				EnterMode14();
+				break;
+			case 15:
+				EnterMode15();
+				break;
+			case 16:
+				EnterMode16();
+				break;
 			case 0:
 			case 1:
 			case 2:
@@ -190,6 +211,47 @@ public sealed class Scene2StartGameModeMachine
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
 		}
+	}
+
+	[Original(0x00405670)]
+	private void EnterMode14()
+	{
+		if (SystemSave.BuildMode() <= 4095)
+		{
+			if (SystemSave.SaveBlock is not null)
+				SystemSave.Recreate();
+			if (PatchBusy?.Invoke() == true)
+			{
+				if (CharacterFileReady?.Invoke() == true)
+				{
+					ChangeMode(22);
+					return;
+				}
+				SystemSave.Pending = 15;
+				return;
+			}
+		}
+		ChangeMode(22);
+	}
+
+	[Original(0x00405600)]
+	private void EnterMode15()
+	{
+		if (SystemSave.BuildMode() <= 4095 && (PatchValidation?.Invoke() ?? 0) == 7)
+			return;
+		ChangeMode(22);
+	}
+
+	[Original(0x00405580)]
+	private void EnterMode16()
+	{
+		if (SystemSave.BuildMode() <= 4095)
+		{
+			PatchRelease?.Invoke();
+			SystemSave.Pending = 12;
+			return;
+		}
+		ChangeMode(22);
 	}
 
 	private void Dispatch()
