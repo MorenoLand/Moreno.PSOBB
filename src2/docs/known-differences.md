@@ -246,3 +246,7 @@ The writable globals at `0x00AAB378`-`0x00AAB3A8` and `0x00ACBE78`-`0x00ACBEE0` 
 between the shipped image pieces, which is the zero-filled uninitialised-data range. `GameState`
 initialises every member to the same zero constant the loader supplies. The retail image contains no
 non-zero value for this range, so no value is invented.
+
+## Case mapping in the C locale
+
+`PsoBB.Crt.CrtCharacters.ToLowerC` and `ToUpperC` port the C-locale branch of the original `___tolower_mt` (0x008598F9) and `___toupper_mt` (0x00858A24) and are checked against the machine code for every 0..256 input. The original's other branches (a non-zero locale structure, and characters of 0x100 and above) map case through the locale's ctype table or through `___crtLCMapStringW` (0x0086251E), which calls the Windows `LCMapStringW`. The port has no locale structure and uses no such seam; those branches are absorbed as CLR-replaced behaviour (see `absorbed.tsv`), so the wide-character case mapping in the port follows `char.ToLowerInvariant` and `char.ToUpperInvariant`.

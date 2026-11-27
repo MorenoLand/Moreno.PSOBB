@@ -147,3 +147,35 @@
 0x0085E6A1	Stream wrapper: ungets a character unless it is WEOF; the .NET file streams replace the original stream call.
 0x004C8BE4	SEH epilog continuation: it restores the frame and the fs:[0] exception chain; C# try and finally blocks replace that.
 0x006A6F68	Unnamed stub that only returns zero; the call graph has no caller and no callee for it, so the port has no counterpart.
+0x0085E5F8	The CLR character classification (char and CharUnicodeInfo) replaces the original ctype lookup behind isalpha, isdigit and the other ctype wrappers; the port has no such call sites.
+0x00858B4C	The CLR character classification replaces the original wide ctype lookup behind iswctype; the port has no call sites.
+0x0085A4B3	The CLR case mapping (char.ToLowerInvariant) replaces the original wide lower-case conversion through LCMapStringW; the port has no call sites.
+0x00859AD6	The CLR case mapping (char.ToUpperInvariant) replaces the original wide upper-case conversion through LCMapStringW; the port has no call sites.
+0x00869797	The CLR encodings replace the original multibyte lead-byte table lookup behind __ismbblead; the port's text is UTF-16 and has no multibyte call sites.
+0x00861667	The CLR encodings replace the original multibyte string search behind mbspbrk; the port's text is UTF-16 and has no call sites.
+0x00857E9D	The CLR encodings replace the original multibyte-to-wide string conversion behind mbstowcs; the port's text is UTF-16 and has no call sites.
+0x00866EBF	The CLR encodings replace the original multibyte character conversion behind mbtowc; the port's text is UTF-16 and has no call sites.
+0x00858467	The CLR encodings replace the original wide-to-multibyte conversion behind wcstombs and wcsftime; the port's text is UTF-16 and has no call sites.
+0x0085AD11	The CLR encodings replace the original wide-to-multibyte character conversion behind wctomb; the port's text is UTF-16 and has no call sites.
+0x008664A7	The CLR encodings and CultureInfo replace the original code-page switch behind setmbcp; the port selects no code page.
+0x0085D8BB	The CLR CultureInfo replaces the original thread locale table update behind setlocale; the port has no MSVC locale table.
+0x0085DFAF	The CLR CultureInfo replaces the original setlocale implementation; the port has no MSVC locale table and no setlocale call site.
+0x0085DB05	The CLR CultureInfo replaces the original category lookup behind setlocale; the port has no MSVC locale table.
+0x0085DD20	The CLR CultureInfo replaces the original category assignment behind setlocale; the port has no MSVC locale table.
+0x0085D9A0	The CLR CultureInfo replaces the original locale-name parser behind setlocale; the port has no MSVC locale table.
+0x0085DA7C	The CLR CultureInfo replaces the original locale-name formatter behind setlocale; the port has no MSVC locale table.
+0x00868455	The CLR CultureInfo replaces the original qualified-locale expansion behind setlocale; the port has no MSVC locale table.
+0x00858094	The CLR current directory API replaces the original drive-directory lookup behind getcwd; the port reads no drive-relative directories.
+0x008642A1	The CLR TimeZoneInfo replaces the original daylight-saving check behind mktime and localtime; the port uses DateTime.
+0x00863E41	The CLR TimeZoneInfo replaces the original time zone set-up behind mktime and localtime; the port uses DateTime.
+0x0085B329	The CLR DateTime replaces the original time_t construction behind mktime; the port uses DateTime.
+0x00861345	The CLR DateTime replaces the original local-time-to-time_t conversion behind stat; the port uses DateTime.
+0x00867045	The CLR CultureInfo replaces the original time-locale table set-up behind the CRT start-up time initializer; the port has no MSVC locale table.
+0x0086571B	The .NET string formatting replaces the original printf output store used by the time formatter; the port formats text in C#.
+0x0086573B	The .NET number formatting replaces the original printf output number store used by the time formatter; the port formats text in C#.
+0x00865A1A	The .NET string formatting replaces the original printf wide-string store used by the time formatter; the port formats text in C#.
+0x00869EEF	The .NET number formatting replaces the original long-double printf output used by the float formatter; the port formats text in C#.
+0x008C0B70	Start-up call thunk: it loads a static object's address into ecx and calls its initializer; the port has no such static object and the CLR runs no _atexit handlers.
+0x008C9900	Start-up call thunk: it loads a static object's address into ecx and calls its initializer; the port has no such static object and the CLR runs no _atexit handlers.
+0x00790149	Continuation of the multibyte and locale table builder (locale pointer at 0xA9CCCC, lead-byte scan); the CLR Encoding and CultureInfo replace that build and no caller reaches this entry.
+0x00792A77	Continuation of the multibyte and locale table builder (locale pointer at 0xA9CCCC, lead-byte scan); the CLR Encoding and CultureInfo replace that build and no caller reaches this entry.
