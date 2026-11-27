@@ -109,7 +109,7 @@ public static class Scene2TitlePreview
 						new byte[CharacterSaveLoad.SaveLength],
 						new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
 					GuildSave.Attach(new byte[4096], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
-					machine = new Scene2StartGameModeMachine(files) { PumpSave = SystemSave.Pump };
+					machine = new Scene2StartGameModeMachine(files) { PumpSave = SystemSave.Pump, TextSurface = textSurface };
 				}
 				controller ??= new ControllerButtonState();
 			}

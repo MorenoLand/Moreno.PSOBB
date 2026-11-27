@@ -46,6 +46,28 @@ public static class Scene2CellGrid
 	]);
 
 	/// <summary>
+	/// Builds a one-row template whose first cell is type 3 and whose remaining cells are type 0.
+	/// </summary>
+	/// <param name="columns">The cell count.</param>
+	/// <returns>The grid words.</returns>
+	public static int[] SingleRow(int columns)
+	{
+		if (columns <= 0)
+			return [1, 0];
+		int offset = 2 + 7;
+		int[] words = new int[offset + (columns - 1) * 5 + 8];
+		words[0] = 1;
+		words[1] = columns;
+		words[2] = 3;
+		for (int index = 1; index < columns; index++)
+		{
+			words[offset] = 0;
+			offset += 5;
+		}
+		return words;
+	}
+
+	/// <summary>
 	/// Builds the cell states for every grid entry.
 	/// </summary>
 	/// <param name="words">The row word, column word, then the cell words.</param>

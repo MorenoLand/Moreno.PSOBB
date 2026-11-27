@@ -33,7 +33,7 @@ public sealed class Scene2TextWindowTests : IDisposable
 	{
 		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(2), 0, 2);
 		window.Base.Fields[38] = 9;
-		BinaryPrimitives.WriteInt32LittleEndian(window.Cells[0].Data.AsSpan(32), 1);
+		window.Cells[0].Text = "x";
 		BinaryPrimitives.WriteInt32LittleEndian(window.Records.AsSpan(0), 0x18);
 
 		window.RefreshChildren();
