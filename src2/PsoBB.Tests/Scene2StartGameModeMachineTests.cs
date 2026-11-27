@@ -1,5 +1,7 @@
+using System.Buffers.Binary;
 using PsoBB.Data;
 using PsoBB.Game;
+using PsoBB.Gui;
 using PsoBB.Input;
 using PsoBB.Save;
 using PsoBB.Scenes;
@@ -117,6 +119,54 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		machine.Advance();
 
 		Assert.Equal(3u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwentyRoutesTheScrollSelectionToOneOrTwentyThree()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		Scene2TextControl control = new(2) { Flags132 = 2, Count = 1 };
+		machine.ScrollControl = control;
+		machine.SetMode(20);
+		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), 0);
+
+		machine.Advance();
+		Assert.Equal(1u, machine.Mode);
+		Assert.Equal(1, machine.Flag32);
+
+		machine.SetMode(20);
+		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), 1);
+		machine.Advance();
+		Assert.Equal(23u, machine.Mode);
+		Assert.Equal(1, machine.EntryState);
+	}
+
+	[Fact]
+	public void ModeTwentyEightConfirmsTheCharacterOrReturns()
+	{
+		Scene2StartGameModeMachine machine = new(_files) { ScreenFlags = 2 };
+		Scene2TextControl control = new(2) { Count = 1 };
+		machine.ScrollControl = control;
+		machine.SetMode(28);
+		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), -1);
+
+		machine.Advance();
+		Assert.Equal(23u, machine.Mode);
+		Assert.Equal(1, machine.EntryState);
+
+		int confirmed = -1;
+		machine.SetMode(28);
+		machine.ScreenFlags = 2;
+		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), 5);
+		machine.CharacterConfirmed = index => confirmed = index;
+		machine.Advance();
+		Assert.Equal(5, confirmed);
+		Assert.Equal(26u, machine.Mode);
+
+		machine.SetMode(28);
+		machine.ScreenFlags = 4;
+		machine.Advance();
+		Assert.Equal(23u, machine.Mode);
 	}
 
 	[Fact]
@@ -454,6 +504,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
+
 
 
 

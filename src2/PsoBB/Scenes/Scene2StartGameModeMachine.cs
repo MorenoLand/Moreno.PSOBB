@@ -1,5 +1,6 @@
 using PsoBB.Data;
 using PsoBB.Game;
+using PsoBB.Gui;
 using PsoBB.Input;
 using PsoBB.Save;
 
@@ -116,6 +117,15 @@ public sealed class Scene2StartGameModeMachine
 	[OriginalGlobal(0x00A3A938)]
 	public static int GlobalA3A938 { get; set; }
 
+	/// <summary>Gets or sets the screen flag word modes 20 and 28 read.</summary>
+	public int ScreenFlags { get; set; }
+
+	/// <summary>Gets or sets the scroll control the confirm handlers read.</summary>
+	public Scene2TextControl? ScrollControl { get; set; }
+
+	/// <summary>Gets or sets the receiver for a confirmed character index.</summary>
+	public Action<int>? CharacterConfirmed { get; set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -173,7 +183,9 @@ public sealed class Scene2StartGameModeMachine
 			case 17:
 			case 18:
 			case 19:
+			case 20:
 			case 23:
+			case 28:
 				break;
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
@@ -228,6 +240,12 @@ public sealed class Scene2StartGameModeMachine
 				break;
 			case 19:
 				Mode19();
+				break;
+			case 20:
+				Mode20();
+				break;
+			case 28:
+				Mode28();
 				break;
 			case 27:
 				Mode27();
@@ -524,6 +542,48 @@ public sealed class Scene2StartGameModeMachine
 		{
 			EntryState = 0;
 			ChangeMode(24);
+		}
+	}
+
+	[Original(0x00404450)]
+	private void Mode20()
+	{
+		if (ScrollControl is null || (ScrollControl.Flags132 & 2) == 0)
+			return;
+		int value = ScrollControl.SelectedValue();
+		if (value == 0)
+		{
+			Flag32 = 1;
+			SetMode(1);
+		}
+		else if (value == 1)
+		{
+			EntryState = 1;
+			SetMode(23);
+		}
+	}
+
+	[Original(0x004048E8)]
+	private void Mode28()
+	{
+		if ((ScreenFlags & 2) != 0)
+		{
+			int value = ScrollControl?.SelectedValue() ?? -1;
+			if (value == -1)
+			{
+				EntryState = 1;
+				SetMode(23);
+			}
+			else
+			{
+				CharacterConfirmed?.Invoke(value);
+				ChangeMode(26);
+			}
+		}
+		else if ((ScreenFlags & 4) != 0)
+		{
+			EntryState = 1;
+			SetMode(23);
 		}
 	}
 
