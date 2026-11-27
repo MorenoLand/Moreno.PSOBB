@@ -276,7 +276,7 @@ public sealed class LoginDialog : IDisposable
 		if (_closed)
 			return;
 		SelectorFrameDraw?.Invoke(drawList);
-		Frame?.Draw(drawList, _menu.SelectedIndex, hovered: true);
+		Frame?.Draw(drawList, _menu.SelectedIndex);
 		_header.Draw(drawList);
 		_menu.Draw(drawList);
 	}

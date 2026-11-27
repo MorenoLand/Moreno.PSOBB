@@ -59,6 +59,21 @@ public sealed class LoginDialogFrame : IDisposable
 	/// <summary>The white diffuse colour used by the row draw.</summary>
 	public const uint SkinColor = 0xFFFFFFFF;
 
+	/// <summary>Gets or sets the diffuse colour applied to the selected-row slices.</summary>
+	public uint RowColor { get; set; } = SkinColor;
+
+	/// <summary>Gets or sets the panel origin.</summary>
+	public Vector2 Position { get; set; } = TitlePanelPosition;
+
+	/// <summary>Gets or sets the panel size.</summary>
+	public Vector2 Size { get; set; } = TitlePanelSize;
+
+	/// <summary>Gets or sets the orange header width.</summary>
+	public float PanelHeaderWidth { get; set; } = HeaderWidth;
+
+	/// <summary>Gets or sets whether the frame releases its installed textures.</summary>
+	public bool OwnsTextures { get; set; } = true;
+
 	/// <summary>The skin page that holds the panel body and the header strip.</summary>
 	public ITexture? PanelTexture { get; set; }
 
@@ -86,8 +101,8 @@ public sealed class LoginDialogFrame : IDisposable
 
 	private void DrawPanel(UiDrawList drawList)
 	{
-		Vector2 position = TitlePanelPosition;
-		Vector2 size = TitlePanelSize;
+		Vector2 position = Position;
+		Vector2 size = Size;
 		float inset = PanelInset;
 		Vector4 source = PanelSource;
 		float left = Atlas(source.X);
@@ -117,8 +132,8 @@ public sealed class LoginDialogFrame : IDisposable
 		float right = Atlas(source.Z);
 		float capLeft = Atlas(source.X + cap);
 		float capRight = Atlas(source.Z - cap);
-		Vector2 position = TitlePanelPosition;
-		float width = HeaderWidth;
+		Vector2 position = Position;
+		float width = PanelHeaderWidth;
 		Add(drawList, position, new Vector2(cap, HeaderHeight), Atlas(source.X), v0, capLeft, v1, PanelTexture);
 		Add(drawList, position + new Vector2(width - cap, 0f), new Vector2(cap, HeaderHeight), capRight, v0, right, v1, PanelTexture);
 		Add(drawList, position + new Vector2(cap, 0f), new Vector2(width - cap * 2f, HeaderHeight), capLeft, v0, capRight, v1, PanelTexture);
@@ -126,14 +141,17 @@ public sealed class LoginDialogFrame : IDisposable
 
 	private void DrawRow(UiDrawList drawList, int selectedIndex, bool hovered)
 	{
-		Vector2 position = new(TitlePanelPosition.X, TitlePanelPosition.Y + HeaderHeight + selectedIndex * RowHeight);
-		float width = TitlePanelSize.X;
+		Vector2 position = new(Position.X, Position.Y + HeaderHeight + selectedIndex * RowHeight);
+		float width = Size.X;
 		float v0 = hovered ? HoverRowV : RowLeftSource.Y;
 		float v1 = v0 + RowStripHeight;
-		Add(drawList, position - new Vector2(2f, 0f), new Vector2(16f, RowStripHeight), Atlas(RowLeftSource.X), Atlas(v0), Atlas(RowLeftSource.Z), Atlas(v1), RowTexture);
-		Add(drawList, position + new Vector2(width - 14f, 0f), new Vector2(16f, RowStripHeight), Atlas(RowRightSource.X), Atlas(v0), Atlas(RowRightSource.Z), Atlas(v1), RowTexture);
-		Add(drawList, position + new Vector2(14f, 0f), new Vector2(width - 28f, RowStripHeight), Atlas(RowMiddleSource.X), Atlas(v0), Atlas(RowMiddleSource.Z), Atlas(v1), RowTexture);
+		AddRow(drawList, position - new Vector2(2f, 0f), new Vector2(16f, RowStripHeight), Atlas(RowLeftSource.X), Atlas(v0), Atlas(RowLeftSource.Z), Atlas(v1));
+		AddRow(drawList, position + new Vector2(width - 14f, 0f), new Vector2(16f, RowStripHeight), Atlas(RowRightSource.X), Atlas(v0), Atlas(RowRightSource.Z), Atlas(v1));
+		AddRow(drawList, position + new Vector2(14f, 0f), new Vector2(width - 28f, RowStripHeight), Atlas(RowMiddleSource.X), Atlas(v0), Atlas(RowMiddleSource.Z), Atlas(v1));
 	}
+
+	private void AddRow(UiDrawList drawList, Vector2 position, Vector2 size, float u0, float v0, float u1, float v1)
+		=> drawList.Add(new UiQuad(position, size, new Vector4(u0, v0, u1, v1), RowTexture, RowColor));
 
 	private static void Add(UiDrawList drawList, Vector2 position, Vector2 size, float u0, float v0, float u1, float v1, ITexture? texture)
 		=> drawList.Add(new UiQuad(position, size, new Vector4(u0, v0, u1, v1), texture, SkinColor));
@@ -150,6 +168,8 @@ public sealed class LoginDialogFrame : IDisposable
 		ITexture? rows = RowTexture;
 		PanelTexture = null;
 		RowTexture = null;
+		if (!OwnsTextures)
+			return;
 		panel?.Dispose();
 		if (!ReferenceEquals(panel, rows))
 			rows?.Dispose();

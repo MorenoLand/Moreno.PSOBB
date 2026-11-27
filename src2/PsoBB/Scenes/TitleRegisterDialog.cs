@@ -18,6 +18,7 @@ public sealed class TitleRegisterDialog : IDisposable
 	/// <summary>The observed dialog size from the data image at <c>0x00974E28</c>.</summary>
 	public static readonly Vector2 PanelSize = new(360f, 100f);
 
+	private readonly LoginDialogFrame? _frame;
 	private readonly UiLabel _header;
 	private readonly UiLabel _userIdLabel;
 	private readonly UiLabel _passwordLabel;
@@ -32,21 +33,23 @@ public sealed class TitleRegisterDialog : IDisposable
 	/// </summary>
 	/// <param name="text">The account text table.</param>
 	/// <param name="surface">The surface that measures and draws the text.</param>
+	/// <param name="frame">The optional title skin installed over the dialog rectangle.</param>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
-	public TitleRegisterDialog(GameText text, IUiTextSurface surface)
+	public TitleRegisterDialog(GameText text, IUiTextSurface surface, LoginDialogFrame? frame = null)
 	{
 		ArgumentNullException.ThrowIfNull(text);
 		ArgumentNullException.ThrowIfNull(surface);
-		_header = CreateLabel(text.GetLoginScreenText(LoginScreenText.InputUserId), PanelPosition + new Vector2(10f, 6f), new Vector2(PanelSize.X - 20f, 20f), surface);
-		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), PanelPosition + new Vector2(10f, 30f), new Vector2(60f, 20f), surface);
-		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), PanelPosition + new Vector2(10f, 50f), new Vector2(60f, 20f), surface);
-		_userId = CreateField(PanelPosition + new Vector2(70f, 30f), new Vector2(PanelSize.X - 80f, 20f), surface);
-		_password = CreateField(PanelPosition + new Vector2(70f, 50f), new Vector2(PanelSize.X - 80f, 20f), surface);
+		_frame = frame;
+		_header = CreateLabel(text.GetLoginScreenText(LoginScreenText.InputUserId), PanelPosition + new Vector2(10f, 2f), new Vector2(PanelSize.X - 20f, 20f), surface);
+		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), PanelPosition + new Vector2(10f, 22f), new Vector2(60f, 20f), surface);
+		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), PanelPosition + new Vector2(10f, 42f), new Vector2(60f, 20f), surface);
+		_userId = CreateField(PanelPosition + new Vector2(70f, 20f), new Vector2(PanelSize.X - 80f, 20f), surface);
+		_password = CreateField(PanelPosition + new Vector2(70f, 40f), new Vector2(PanelSize.X - 80f, 20f), surface);
 		_buttons = new UiListWindow
 		{
-			Position = PanelPosition + new Vector2(10f, 72f),
-			Size = new Vector2(PanelSize.X - 20f, 20f),
-			ItemHeight = 20f,
+			Position = PanelPosition + new Vector2(10f, 62f),
+			Size = new Vector2(PanelSize.X - 20f, 38f),
+			ItemHeight = 19f,
 			ScrollBarWidth = 0f,
 			SelectionColor = 0x60000000u,
 			SelectedTextColor = 0xFFFFCC33u,
@@ -100,7 +103,10 @@ public sealed class TitleRegisterDialog : IDisposable
 	public void Draw(UiDrawList draw)
 	{
 		ArgumentNullException.ThrowIfNull(draw);
-		draw.Add(new UiQuad(PanelPosition, PanelSize, new Vector4(0f, 0f, 1f, 1f), null, 0xE0101010u));
+		if (_frame is not null)
+			_frame.Draw(draw, -1);
+		else
+			draw.Add(new UiQuad(PanelPosition, PanelSize, new Vector4(0f, 0f, 1f, 1f), null, 0xE0101010u));
 		_header.Draw(draw);
 		_userIdLabel.Draw(draw);
 		_passwordLabel.Draw(draw);
@@ -115,6 +121,7 @@ public sealed class TitleRegisterDialog : IDisposable
 		if (_disposed)
 			return;
 		_disposed = true;
+		_frame?.Dispose();
 		_header.Dispose();
 		_userIdLabel.Dispose();
 		_passwordLabel.Dispose();

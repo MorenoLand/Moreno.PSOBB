@@ -144,7 +144,19 @@ public static class Scene2TitlePreview
 			}
 			if (action == LoginDialogAction.RegisterUserId && register is null && menu is not null && textSurface is not null)
 			{
-				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface);
+				LoginDialogFrame? registerFrame = null;
+				if (menu.Dialog.Frame?.PanelTexture is { } panelTexture)
+				{
+					registerFrame = new LoginDialogFrame
+					{
+						PanelTexture = panelTexture,
+						Position = TitleRegisterDialog.PanelPosition,
+						Size = TitleRegisterDialog.PanelSize,
+						PanelHeaderWidth = 200f,
+						OwnsTextures = false,
+					};
+				}
+				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface, registerFrame);
 				menu.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.PatchDownload && patch is null && network is not null && textSurface is not null)
@@ -273,9 +285,11 @@ public static class Scene2TitlePreview
 			dialog.Frame = new LoginDialogFrame
 			{
 				PanelTexture = panel,
-				RowTexture = rows,
+				RowTexture = panel,
+				RowColor = 0x80FFFFFFu,
 			};
 		}
+		rows?.Dispose();
 		return dialog;
 	}
 
@@ -356,14 +370,15 @@ public static class Scene2TitlePreview
 				art.DrawSelectorStrip(draw);
 			draw.Render(renderer);
 		}
-		if (!hidden && dialog is not null)
+		if (!hidden && (dialog is not null || confirm is not null || register is not null || patch is not null))
 		{
 			renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
 			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
 			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
 			renderer.SetRenderState(RenderStateId.Lighting, 0);
 			UiDrawList ui = new();
-			dialog.Draw(ui);
+			if (register is null)
+				dialog?.Draw(ui);
 			confirm?.Draw(ui);
 			register?.Draw(ui);
 			if (patch is not null && textSurface is not null)
