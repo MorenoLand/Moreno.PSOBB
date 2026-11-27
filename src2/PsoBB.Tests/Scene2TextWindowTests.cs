@@ -69,6 +69,64 @@ public sealed class Scene2TextWindowTests : IDisposable
 		Assert.Equal(0f, window.Scroll);
 	}
 
+	[Fact]
+	public void TheLineAssemblyStoresTheRecordAndAdvancesThePosition()
+	{
+		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(2), 0, 2);
+		window.MaxWidth = 100f;
+		window.RecordValue = 5;
+
+		Assert.True(window.AddLine("abc", 0, 9, new FixedSurface(10f)));
+
+		Assert.Equal("abc", window.Cells[0].Text);
+		Assert.Equal(30f, window.Cells[0].TextWidth);
+		Assert.Equal(14f, window.Cells[0].TextHeight);
+		Assert.Equal(0f, window.Cells[0].TextPosition);
+		Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(window.Records.AsSpan(0)));
+		Assert.Equal(5, BinaryPrimitives.ReadInt32LittleEndian(window.Records.AsSpan(4)));
+		Assert.Equal(1, window.CurrentLine);
+		Assert.Equal(20f, window.LinePosition);
+		Assert.Equal(40f, window.Tail);
+	}
+
+	[Fact]
+	public void TheSecondLineUsesTheNextCellAndTheOffsetFlag()
+	{
+		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(2), 0, 2);
+		window.MaxWidth = 100f;
+		window.AddLine("abc", 0, 0, new FixedSurface(10f));
+
+		window.AddLine("de", 0x202, 0, new FixedSurface(10f));
+
+		Assert.Equal("de", window.Cells[1].Text);
+		Assert.Equal((int)(80f - 20f), window.Cells[1].TextOffset28);
+		Assert.Equal(0, window.CurrentLine);
+	}
+
+	[Fact]
+	public void AZeroTextIsRejectedAndAMissingCellThrows()
+	{
+		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(1), 0, 2);
+		window.MaxWidth = 100f;
+
+		Assert.False(window.AddLine(null, 0, 0, new FixedSurface(10f)));
+		window.CurrentLine = 5;
+		Assert.Throws<InvalidOperationException>(() => window.AddLine("x", 0, 0, new FixedSurface(10f)));
+	}
+
+	private sealed class FixedSurface : IUiTextSurface
+	{
+		private readonly float _advance;
+
+		public FixedSurface(float advance) => _advance = advance;
+
+		public float Measure(string? text) => (text?.Length ?? 0) * _advance;
+
+		public void Draw(UiDrawList drawList, string? text, System.Numerics.Vector2 position, uint color, float maxWidth = 0f)
+		{
+		}
+	}
+
 	private static int[] Grid(int cells)
 	{
 		int[] words = new int[2 + cells * 5];
