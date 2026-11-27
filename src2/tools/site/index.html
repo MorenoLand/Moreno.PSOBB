@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSOBB progress</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: rgba(13,18,19,0.82); --panel2: rgba(34,42,48,0.85); --line: #2a323d; --text: #e6edf3; --dim: #8b98a8;
+    --done: #3fb97c; --absorbed: #4aa3ff; --missing: #3a4350; --warn: #e3a33b; --accent: #b388ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #05080b; color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 36px 24px 12px; max-width: 1180px; margin: 0 auto; display: flex; gap: 16px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: -.5px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--dim); margin-top: 4px; }
+  #live { display: inline-flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 6px 14px; font-size: 13px; color: var(--dim); white-space: nowrap; }
+  #live i { width: 9px; height: 9px; border-radius: 50%; background: var(--done); box-shadow: 0 0 0 0 rgba(63,185,124,.6); animation: pulse 2s infinite; }
+  #live.off i { background: var(--warn); animation: none; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 9px rgba(63,185,124,0); } 100% { box-shadow: 0 0 0 0 rgba(63,185,124,0); } }
+  main { max-width: 1180px; margin: 0 auto; padding: 8px 24px 60px; display: grid; gap: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; transition: border-color .4s, background .4s; }
+  .card.flash { border-color: var(--done); background: var(--panel2); }
+  .card .k { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  .card .v { font-size: 34px; font-weight: 700; margin-top: 2px; letter-spacing: -1px; }
+  .card .n { color: var(--dim); font-size: 13px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  section h2 { margin: 0 0 4px; font-size: 17px; }
+  section p.note { margin: 0 0 14px; color: var(--dim); font-size: 13px; }
+  .two { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 20px; align-items: center; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr !important; } }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--dim); font-size: 13px; margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+  .bar { display: flex; height: 12px; border-radius: 7px; overflow: hidden; background: var(--missing); }
+  .bar b { display: block; height: 100%; transition: width .9s cubic-bezier(.2,.8,.2,1); }
+  .row { display: grid; grid-template-columns: 170px 1fr 70px; gap: 12px; align-items: center; padding: 6px 0; }
+  .row .name { font-weight: 600; }
+  .row .pct { text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:hover td { background: var(--panel2); }
+  input[type=search] { width: 100%; max-width: 320px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; font: inherit; margin-bottom: 10px; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px; color: var(--accent); }
+  .ok { color: var(--done); } .miss { color: var(--warn); }
+  svg text { fill: var(--dim); font-size: 11px; }
+  footer { text-align: center; color: var(--dim); font-size: 12px; padding-bottom: 30px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>PSO<span>BB</span> progress</h1>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div id="live" class="off"><i></i><span id="livetext">connecting</span></div>
+</header>
+<main>
+<div class="cards" id="cards"></div>
+
+<section>
+  <h2>Where the code stands</h2>
+  <p class="note">Share of the original code bytes: ported with a C# member that carries the original address, absorbed because the .NET runtime replaces it, or still missing.</p>
+  <div class="two">
+    <div id="donut"></div>
+    <div id="kinds"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Trend</h2>
+  <p class="note">Share of the original code bytes that is ported or absorbed, after each refresh of this report.</p>
+  <div id="trend"></div>
+</section>
+
+<section>
+  <h2>By part of the program</h2>
+  <p class="note">Bytes ported (green), absorbed (blue) or missing (grey) in each part. The C runtime labels come from IDA and are checked function by function before they count.</p>
+  <table id="groups"><thead></thead><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>Largest game functions still missing</h2>
+  <table id="largest"><thead></thead><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>Easy next steps</h2>
+  <p class="note">Small game functions still missing, most-called first. Porting one shows up everywhere it is called.</p>
+  <input type="search" id="q" placeholder="filter by name or address">
+  <table id="easy"><thead></thead><tbody></tbody></table>
+</section>
+</main>
+<footer>Generated by <code>src2/tools/progress_site.py --site &lt;folder&gt;</code>. This page updates itself: no reload needed.</footer>
+
+<script src="data.js"></script>
+<script src="history.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (n) { return Number(n).toLocaleString("en-US"); };
+  var pct = function (a, b) { return b ? 100 * a / b : 0; };
+  var colors = { ported: "var(--done)", absorbed: "var(--absorbed)", missing: "var(--missing)" };
+  var labels = { ported: "ported", absorbed: "absorbed", missing: "missing" };
+  var order = ["ported", "absorbed", "missing"];
+  var D = window.PROGRESS, H = window.HISTORY || [], lastCards = {}, first = true;
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function render() {
+    var K = D.kinds, T = D.total;
+    $("sub").textContent = "updated " + D.generated + " · " + fmt(T.functions) + " functions · " + fmt(T.bytes) + " bytes of original code";
+
+    var cards = [
+      ["Code bytes done", D.done.share.toFixed(3) + "%", fmt(D.done.bytes) + " of " + fmt(T.bytes) + " bytes ported or absorbed"],
+      ["Ported", fmt(K.ported.functions), fmt(K.ported.bytes) + " bytes with a C# member and its original address"],
+      ["Absorbed", fmt(K.absorbed.functions), fmt(K.absorbed.bytes) + " bytes replaced by the .NET runtime"],
+      ["Missing", fmt(K.missing.functions), fmt(K.missing.bytes) + " bytes still to port or absorb"],
+      ["src/misc goal", fmt(D.scope.open), "of " + fmt(D.scope.functions) + " src/misc functions still open"],
+      ["Golden fixtures", fmt(D.golden), "machine-code vector files under PsoBB.Tests"]
+    ];
+    var changed = {};
+    $("cards").innerHTML = cards.map(function (c) {
+      var flash = !first && lastCards[c[0]] !== undefined && lastCards[c[0]] !== c[1];
+      changed[c[0]] = c[1];
+      return '<div class="card' + (flash ? " flash" : "") + '"><div class="k">' + c[0] + '</div><div class="v">' + c[1] + '</div><div class="n">' + c[2] + '</div></div>';
+    }).join("");
+    lastCards = changed;
+    setTimeout(function () { Array.prototype.forEach.call(document.querySelectorAll(".card.flash"), function (e) { e.classList.remove("flash"); }); }, 2500);
+
+    var R = 70, C = 2 * Math.PI * R, off = 0, arcs = "";
+    order.forEach(function (k) {
+      var len = K[k].bytes / T.bytes * C;
+      if (len > 0) arcs += '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="' + colors[k] + '" stroke-width="22" stroke-dasharray="' + Math.max(len, 0.8) + ' ' + C + '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 90 90)"/>';
+      off += len;
+    });
+    $("donut").innerHTML = '<svg viewBox="0 0 180 180" width="100%" style="max-width:260px;display:block;margin:auto">' + arcs +
+      '<text x="90" y="88" text-anchor="middle" style="font-size:26px;font-weight:700;fill:var(--text)">' + D.done.share.toFixed(2) + '%</text>' +
+      '<text x="90" y="108" text-anchor="middle">done</text></svg>';
+    $("kinds").innerHTML = order.map(function (k) {
+      var p = pct(K[k].bytes, T.bytes);
+      return '<div class="row" style="grid-template-columns:120px 1fr 70px"><div class="name"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:' + colors[k] + '"></i>' + labels[k] + '</div>' +
+        '<div class="bar"><b style="width:' + p + '%;background:' + colors[k] + '"></b></div><div class="pct">' + p.toFixed(2) + '%</div></div>' +
+        '<div class="sub" style="margin:-4px 0 6px 18px;font-size:12px">' + fmt(K[k].functions) + ' functions · ' + fmt(K[k].bytes) + ' bytes</div>';
+    }).join("");
+
+    if (H.length < 2) {
+      $("trend").innerHTML = '<p class="note">The trend appears after the second refresh of the report.</p>';
+    } else {
+      var w = 1100, h = 190, pl = 48, pr = 12, pt = 10, pb = 24;
+      var max = Math.max.apply(null, H.map(function (x) { return x.done; })) * 1.15 || 1;
+      var x = function (i) { return pl + (w - pl - pr) * i / (H.length - 1); };
+      var y = function (v) { return pt + (h - pt - pb) * (1 - v / max); };
+      var grid = [0, .5, 1].map(function (g) {
+        var v = max * g; return '<line x1="' + pl + '" x2="' + (w - pr) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)"/><text x="4" y="' + (y(v) + 4) + '">' + v.toFixed(2) + '%</text>';
+      }).join("");
+      $("trend").innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%">' + grid +
+        '<polyline fill="none" stroke="var(--done)" stroke-width="2.5" points="' + H.map(function (p, i) { return x(i) + "," + y(p.done); }).join(" ") + '"/>' +
+        '<text x="' + pl + '" y="' + (h - 6) + '">' + esc(H[0].t) + '</text><text x="' + (w - pr) + '" y="' + (h - 6) + '" text-anchor="end">' + esc(H[H.length - 1].t) + '</text></svg>';
+    }
+
+    $("groups").tHead.innerHTML = "<tr><th>Part</th><th class='num'>Functions</th><th class='num'>Bytes</th><th>Ported / absorbed / missing</th><th class='num'>Done</th></tr>";
+    $("groups").tBodies[0].innerHTML = D.groups.map(function (g) {
+      var t = g.bytes || 1, done = g.ported.bytes + g.absorbed.bytes;
+      var bar = '<div class="bar"><b style="width:' + pct(g.ported.bytes, t) + '%;background:var(--done)"></b><b style="width:' + pct(g.absorbed.bytes, t) + '%;background:var(--absorbed)"></b></div>';
+      return "<tr><td>" + esc(g.name) + "</td><td class='num'>" + fmt(g.functions) + "</td><td class='num'>" + fmt(g.bytes) + "</td><td style='min-width:260px'>" + bar +
+        "<span style='color:var(--dim);font-size:12px'>" + fmt(g.ported.functions) + " / " + fmt(g.absorbed.functions) + " / " + fmt(g.missing.functions) + "</span></td>" +
+        "<td class='num'>" + pct(done, t).toFixed(2) + "%</td></tr>";
+    }).join("");
+
+    $("largest").tHead.innerHTML = "<tr><th>Address</th><th>Name</th><th class='num'>Bytes</th><th class='num'>Callers</th></tr>";
+    $("largest").tBodies[0].innerHTML = D.largest.map(function (f) {
+      return "<tr><td><code>0x" + f.address + "</code></td><td>" + esc(f.name) + "</td><td class='num'>" + fmt(f.bytes) + "</td><td class='num'>" + fmt(f.callers) + "</td></tr>";
+    }).join("");
+
+    renderEasy();
+    first = false;
+  }
+
+  function renderEasy() {
+    var q = ($("q").value || "").toLowerCase();
+    var list = D.easy.filter(function (e) { return !q || (e.name + " " + e.address).toLowerCase().indexOf(q) >= 0; });
+    $("easy").tHead.innerHTML = "<tr><th>Address</th><th>Name</th><th class='num'>Bytes</th><th class='num'>Callers</th><th class='num'>Callees</th></tr>";
+    $("easy").tBodies[0].innerHTML = list.slice(0, 200).map(function (e) {
+      return "<tr><td><code>0x" + e.address + "</code></td><td>" + esc(e.name) + "</td><td class='num'>" + fmt(e.bytes) + "</td><td class='num'>" + fmt(e.callers) + "</td><td class='num'>" + fmt(e.callees) + "</td></tr>";
+    }).join("");
+  }
+  $("q").oninput = renderEasy;
+
+  render();
+
+  // live updates: poll the two json files the generator rewrites, redraw only when something changed
+  var lastData = JSON.stringify(D), lastHist = JSON.stringify(H), lastOk = null;
+  function ago(ms) { var s = Math.round(ms / 1000); return s < 90 ? s + "s" : Math.round(s / 60) + " min"; }
+  function status() {
+    var box = $("live");
+    if (lastOk === null) return;
+    var age = Date.now() - lastOk;
+    box.className = age < 20000 ? "" : "off";
+    $("livetext").textContent = age < 20000 ? "live · checked " + ago(age) + " ago" : "offline · last checked " + ago(age) + " ago";
+  }
+  function poll() {
+    var t = "?t=" + Date.now();
+    Promise.all([
+      fetch("data.json" + t, { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.text(); }),
+      fetch("history.json" + t, { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : "[]"; })
+    ]).then(function (res) {
+      lastOk = Date.now();
+      if (res[0] !== lastData || res[1] !== lastHist) {
+        lastData = res[0]; lastHist = res[1];
+        D = JSON.parse(res[0]); H = JSON.parse(res[1]);
+        render();
+      }
+      status();
+    }).catch(status);
+  }
+  setInterval(poll, 5000);
+  setInterval(status, 1000);
+  poll();
+})();
+</script>
+</body>
+</html>
