@@ -116,6 +116,43 @@ public sealed class Scene2CellStateTests : IDisposable
 		Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(state.Data.AsSpan(28)));
 	}
 
+	[Fact]
+	public void TheTextStoreKeepsTheCopyFlagAndMergesTheLowBits()
+	{
+		Scene2CellState state = Scene2CellState.Create(0, Cell(0), 0);
+
+		state.SetText("abc", 0x20);
+
+		Assert.Equal("abc", state.Text);
+		Assert.Equal(0x20, state.Flags & 0x20);
+
+		state.SetText("next", 0x2C1);
+		Assert.Equal("next", state.Text);
+		Assert.Equal(0x2C1, state.Flags & 0x2C1);
+	}
+
+	[Fact]
+	public void TheTextStoreResetsTheOffsetWhenThePositionIsPositive()
+	{
+		Scene2CellState state = Scene2CellState.Create(0, Cell(0), 0);
+		state.TextOffset28 = 5;
+		state.TextPosition = 1f;
+
+		state.SetText(null, 0);
+
+		Assert.Equal(0, state.TextOffset28);
+		Assert.Null(state.Text);
+	}
+
+	[Fact]
+	public void TheMarkupPathStopsWithTheAddress()
+	{
+		Scene2CellState state = Scene2CellState.Create(0, Cell(0), 0);
+
+		NotSupportedException error = Assert.Throws<NotSupportedException>(() => state.SetText("x", 0x400));
+		Assert.Contains("0072DB60", error.Message);
+	}
+
 	private static int[] Cell(int type)
 	{
 		int[] cell = new int[20];

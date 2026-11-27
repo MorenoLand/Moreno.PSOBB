@@ -69,11 +69,58 @@ public sealed class Scene2CellState
 		return state;
 	}
 
+	/// <summary>Gets or sets the flag word at offset four.</summary>
+	public ushort Flags
+	{
+		get => BinaryPrimitives.ReadUInt16LittleEndian(Data.AsSpan(FlagsOffset));
+		set => BinaryPrimitives.WriteUInt16LittleEndian(Data.AsSpan(FlagsOffset), value);
+	}
+
+	/// <summary>Gets or sets the text at offset 32.</summary>
+	public string? Text { get; set; }
+
+	/// <summary>Gets or sets the value at offset 28.</summary>
+	public int TextOffset28 { get; set; }
+
+	/// <summary>Gets or sets the position float at offset 40.</summary>
+	public float TextPosition { get; set; }
+
 	/// <summary>
 	/// Writes the 900000 value at offset 28, as <c>0x0072E0E4</c> does.
 	/// </summary>
 	[Original(0x0072E0E4)]
 	public void ResetValue() => SetFloat(28, 900000f);
+
+	/// <summary>
+	/// Stores the text and merges the flags at <c>0x0072DB60</c>.
+	/// </summary>
+	/// <param name="text">The text, or <see langword="null"/>.</param>
+	/// <param name="flags">The caller flags.</param>
+	/// <exception cref="NotSupportedException">The 0x400 markup path is not ported.</exception>
+	[Original(0x0072DB60)]
+	public void SetText(string? text, int flags)
+	{
+		int stored = flags;
+		if (Text is not null && (Flags & 0x20) != 0)
+		{
+			Text = null;
+			Flags = (ushort)(Flags & ~0x20);
+		}
+		if ((flags & 0x400) != 0)
+			throw new NotSupportedException("The 0x0072DB60 markup path is not ported.");
+		if (text is not null && (stored & 0x20) != 0)
+		{
+			Text = text;
+			Flags = (ushort)(Flags | 0x20);
+		}
+		else
+		{
+			Text = text;
+		}
+		if (TextPosition > 0f)
+			TextOffset28 = 0;
+		Flags = (ushort)((stored & 0x2C1) | (Flags & 0xF52E));
+	}
 
 	private int Int(int offset) => BinaryPrimitives.ReadInt32LittleEndian(Data.AsSpan(offset));
 	private void SetInt(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(Data.AsSpan(offset), value);
