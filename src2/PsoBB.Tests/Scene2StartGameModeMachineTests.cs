@@ -239,6 +239,25 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void TheConfirmAtModeTwentySixReachesTheLobbyState()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		ControllerButtonState controller = new() { Buttons = 0x101 };
+		machine.Controller = controller;
+		machine.GameEvent = () => 0xF;
+
+		machine.Advance();
+		Assert.Equal(24u, machine.Mode);
+
+		machine.Advance();
+		Assert.Equal(23u, machine.Mode);
+
+		GameState.Reset();
+		machine.Advance();
+		Assert.Equal(6u, GameState.SceneScreenState);
+	}
+
+	[Fact]
 	public void ModeTwentySixRotatesTheCameraFromTheController()
 	{
 		Scene2StartGameModeMachine machine = new(_files) { Flag27 = 1, Controller = new ControllerButtonState { Buttons = 0x00010000 } };
