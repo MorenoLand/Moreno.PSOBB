@@ -238,6 +238,65 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void TheConstructorCreatesTheModeTwentySixObject()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+
+		Assert.NotNull(machine.Mode26Object);
+		Assert.Equal(0x244, machine.Mode26Object!.Data.Length);
+		Assert.Equal(0, machine.Mode26Object.State(0x228));
+		Assert.Equal(1, machine.InterfaceObject1288);
+		Assert.Equal(0, machine.InterfaceObject1185);
+	}
+
+	[Fact]
+	public void TheModeTwentySixEntryBindsTheHostNetworkClient()
+	{
+		bool started = false;
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.StartNetworkClient = () => { started = true; return true; };
+		machine.SetMode(25);
+
+		machine.SetMode(26);
+
+		Assert.True(started);
+		Assert.True(machine.NetworkClientActive);
+		Assert.Equal(1, machine.InterfaceObject1185);
+		Assert.Equal(1, machine.InterfaceObject1288);
+	}
+
+	[Fact]
+	public void TheModeTwentyFourEntryBindsTheHostNetworkClient()
+	{
+		bool started = false;
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.StartNetworkClient = () => { started = true; return true; };
+
+		machine.SetMode(24);
+
+		Assert.True(started);
+		Assert.True(machine.NetworkClientActive);
+	}
+
+	[Fact]
+	public void TheModeTwentyEightEntryParsesTheWorldListAndReleasesChildren()
+	{
+		Scene2StartGameModeMachine machine = new(_files)
+		{
+			WorldListLines = ["A B 1 C 2 3 0", "D E 1 F 2 3 4"],
+		};
+
+		machine.SetMode(28);
+
+		Assert.NotNull(machine.WorldList);
+		Assert.Equal(1, machine.WorldList!.Count);
+		Assert.Equal("A", machine.WorldList.Rows[0].Name1);
+		Assert.Equal(0, machine.WorldList.FirstListFlags);
+		Assert.Null(machine.Children.Element);
+		Assert.Null(machine.Children.Cursor);
+	}
+
+	[Fact]
 	public void TheModeTwentyOneEntryHasNoReachableBody()
 	{
 		Scene2StartGameModeMachine machine = new(_files);
@@ -860,8 +919,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	{
 		Scene2StartGameModeMachine machine = new(_files);
 
-		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(24));
-		Assert.Contains("24", error.Message);
+		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(29));
+		Assert.Contains("29", error.Message);
 	}
 
 	private sealed class NoopSurface : IUiTextSurface
@@ -896,6 +955,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
+
 
 
 
