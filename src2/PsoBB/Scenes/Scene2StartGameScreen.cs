@@ -112,6 +112,7 @@ public sealed class Scene2StartGameScreen : IDisposable
 			Position = new Vector2(RowX, RowY),
 			Size = RowAreaSize,
 			ItemHeight = RowStep,
+			SelectionHeight = RowHeight,
 			ScrollBarWidth = 0f,
 		};
 		_menu.SetItems(BuildRows(text, save));
