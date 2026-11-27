@@ -2,8 +2,10 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using PsoBB.Client;
 using PsoBB.Compression;
+using PsoBB.Core;
 using PsoBB.Data;
 using PsoBB.Graphics;
+using PsoBB.Net;
 using PsoBB.Gui;
 using PsoBB.Imaging;
 using PsoBB.Platform.Windows;
@@ -117,8 +119,30 @@ internal static class Program
 			Directory.CreateDirectory(captureDirectory);
 			WriteBmp(Path.Combine(captureDirectory, $"start-{frame:D3}.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());
 		};
-		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), capture: capture, startGameDiagnostic: startGame);
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), capture: capture, startGameDiagnostic: startGame, network: CreateNetworkOptions());
 		host.RequestStop();
+	}
+
+	private static SceneNetworkOptions? CreateNetworkOptions()
+	{
+		string? host = Environment.GetEnvironmentVariable("PSOBB_LOGIN_HOST");
+		string? portText = Environment.GetEnvironmentVariable("PSOBB_LOGIN_PORT");
+		if (string.IsNullOrWhiteSpace(host) || !int.TryParse(portText, out int port) || port <= 0 || port > ushort.MaxValue)
+			return null;
+		string user = Environment.GetEnvironmentVariable("PSOBB_LOGIN_USER") ?? string.Empty;
+		string password = Environment.GetEnvironmentVariable("PSOBB_LOGIN_PASSWORD") ?? string.Empty;
+		ServerHostTable hosts = new(host, host, host, host, host, host, host);
+		ClientLoginPacket login = new()
+		{
+			Username = ByteString.FromText(user) ?? ByteString.Empty,
+			Password = ByteString.FromText(password) ?? ByteString.Empty,
+		};
+		return new SceneNetworkOptions(hosts, login, () => new WindowsGameConnection())
+		{
+			ClientMode = 1,
+			RuntimeHost = host,
+			RuntimePort = (ushort)port,
+		};
 	}
 
 	private static void RunNowLoading(GameWindow window, string dataFolder)

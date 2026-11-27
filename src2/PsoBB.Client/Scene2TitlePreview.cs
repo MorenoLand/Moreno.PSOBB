@@ -29,7 +29,7 @@ public static class Scene2TitlePreview
 	/// <param name="showMenu">Whether the account panel is shown instead of the press-enter strip.</param>
 	/// <exception cref="ArgumentNullException">A required parameter is null.</exception>
 	/// <exception cref="FileNotFoundException">The title archive is missing.</exception>
-	public static void Run(ClientHost host, Func<bool> pump, IUiTextSurface? textSurface = null, GameTextLocale locale = GameTextLocale.English, bool showMenu = false, Action<int>? capture = null, bool startGameDiagnostic = false)
+	public static void Run(ClientHost host, Func<bool> pump, IUiTextSurface? textSurface = null, GameTextLocale locale = GameTextLocale.English, bool showMenu = false, Action<int>? capture = null, bool startGameDiagnostic = false, SceneNetworkOptions? network = null)
 	{
 		ArgumentNullException.ThrowIfNull(host);
 		ArgumentNullException.ThrowIfNull(pump);
@@ -127,7 +127,7 @@ public static class Scene2TitlePreview
 				if (machine.Mode == 23 && machine.EntryState == 0)
 				{
 					Scene2.SelectLobbyScreenState();
-					directory ??= new SceneDirectory(files, host.Renderer);
+					directory ??= new SceneDirectory(files, host.Renderer, network);
 					online ??= directory.Create(OnlineScene.SceneNumber);
 				}
 			}
