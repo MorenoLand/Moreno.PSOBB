@@ -45,6 +45,30 @@ public sealed class Scene2TextWindowTests : IDisposable
 		Assert.Equal(900000f, BinaryPrimitives.ReadSingleLittleEndian(window.Cells[0].Data.AsSpan(28)));
 	}
 
+	[Fact]
+	public void TheScrollClampKeepsTheValueBetweenZeroAndThePointLimit()
+	{
+		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(1), 0, 1);
+
+		Assert.False(window.UpdateScroll());
+		Assert.Equal(0f, window.Scroll);
+
+		window.Scroll = 30f;
+		window.ScrollLimitSource = 7f;
+		Assert.True(window.UpdateScroll());
+		Assert.Equal(20f, window.Scroll);
+		Assert.Equal(7f, window.ScrollCopy);
+
+		window.Scroll = -5f;
+		Assert.True(window.UpdateScroll());
+		Assert.Equal(0f, window.Scroll);
+
+		window.Offset76 = 100f;
+		window.Scroll = 5f;
+		Assert.True(window.UpdateScroll());
+		Assert.Equal(0f, window.Scroll);
+	}
+
 	private static int[] Grid(int cells)
 	{
 		int[] words = new int[2 + cells * 5];
