@@ -312,7 +312,7 @@ rows remain unported; the screen draws only the default four rows.
 
 Ported entry callbacks: `0x00405734` (5), `0x00405670` (14), `0x00405600` (15),
 `0x00405580` (16), `0x004054C0` (20), `0x0040544C` (21), `0x004053E0` (22),
-`0x00405168` (25) and `0x00404DFC` (27). The mode-20 callback uses the nine-flag condition at
+`0x00405358` (24), `0x00404E28` (26), `0x00404DFC` (27) and `0x00404CD8` (28). The mode-20 callback uses the nine-flag condition at
 `0x00404ADC` to select unitxt list 29 strings 23/24 or 25/26, with 20 and 21 as the option labels.
 The mode-21 callback returns without building text because `0x00403770` is the constant
 `90 - 50000`, so its `budget > 0` body is unreachable. The mode-22 callback selects list 29 strings
@@ -321,10 +321,17 @@ The mode-21 callback returns without building text because `0x00403770` is the c
 the base-window draw and glyph path remain host seams. `0x00403784` and `0x00404A34` create and
 release the element and cursor slots and are ported.
 
+The mode-24 entry binds `0x00481FF0` to the host `GameSession`/`GameServerFlow` through
+`StartNetworkClient`; the lifted constructor's live Winsock path is not recreated. The mode-26 entry
+creates the portable `0x0070CC78` 0x244-byte object at slot 0x1288 and represents the 0x1A9A0
+network object by `InterfaceObject1185` plus the host pump. The mode-28 entry parses the
+`worldlist.prc` row format at `0x004170AC` into `Scene2WorldList`; the `0x005B9780` file loader and
+the `0x00417390`/`0x00417414`/`0x00415154` UI constructors are host seams.
+
 All update handlers in the `0x009A2DA4` table except the entry-only mode 5 are now ported; mode 18
 was recovered from a headless Ghidra dossier because the existing lift had no entry for
-`0x00403FB4`. Remaining boundary: the mode-24, mode-26 and mode-28 entry callbacks
-(`0x00405358`, `0x00404E28`, `0x00404CD8`) need the unported network/world-list objects. The
+`0x00403FB4`. Remaining boundary: the live Winsock client at `0x00481FF0`, the 0x1A9A0 network
+object in mode 26 and the `0x004170AC` UI list constructors remain host seams; the
 `0x00402F0C` composition is now ported: the thirty-line window uses the descriptors at
 `0x008F87CC`/`0x008F87D4`, the optional two-record control uses capacity two, and the template
 column words are written at runtime by `0x007354FC`/`0x00735708`/`0x00735884` (`0x009F30EC`) and

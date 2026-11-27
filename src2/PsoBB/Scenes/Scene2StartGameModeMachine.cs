@@ -43,6 +43,7 @@ public sealed class Scene2StartGameModeMachine
 		ArgumentNullException.ThrowIfNull(files);
 		_files = files;
 		Mode = InitialMode;
+		EnterMode(InitialMode);
 	}
 
 	/// <summary>Gets the current mode word.</summary>
@@ -104,6 +105,18 @@ public sealed class Scene2StartGameModeMachine
 
 	/// <summary>Gets or sets the network pump mode 26 runs while its object is present.</summary>
 	public Action? PumpNetwork { get; set; }
+
+	/// <summary>Gets or sets the host action that starts the existing network stack for entries 24 and 26.</summary>
+	public Func<bool>? StartNetworkClient { get; set; }
+
+	/// <summary>Gets a value indicating whether the host network client was requested.</summary>
+	public bool NetworkClientActive { get; private set; }
+
+	/// <summary>Gets the mode-26 0x244-byte object, or <see langword="null"/>.</summary>
+	public Scene2Mode26Object? Mode26Object { get; private set; }
+
+	/// <summary>Gets the mode-26 object slot at byte offset 0x1288.</summary>
+	public int InterfaceObject1288 { get; private set; }
 
 	/// <summary>Gets or sets the camera angle at offset 0xA4.</summary>
 	public float CameraRotation { get; set; }
@@ -208,6 +221,15 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets the mode-27 message box, or <see langword="null"/>.</summary>
 	public Scene2TextBox? Mode27Box { get; private set; }
 
+	/// <summary>Gets or sets the world-list lines the mode-28 entry parses.</summary>
+	public IEnumerable<string>? WorldListLines { get; set; }
+
+	/// <summary>Gets or sets whether the Episode 4 filter is selected.</summary>
+	public bool Episode4 { get; set; }
+
+	/// <summary>Gets the mode-28 world-list object, or <see langword="null"/>.</summary>
+	public Scene2WorldList? WorldList { get; private set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -274,11 +296,20 @@ public sealed class Scene2StartGameModeMachine
 			case 23:
 				Children.Release();
 				break;
+			case 24:
+				EnterMode24();
+				break;
 			case 25:
 				EnterMode25();
 				break;
+			case 26:
+				EnterMode26();
+				break;
 			case 27:
 				EnterMode27();
+				break;
+			case 28:
+				EnterMode28();
 				break;
 			case 0:
 			case 1:
@@ -299,6 +330,39 @@ public sealed class Scene2StartGameModeMachine
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
 		}
+	}
+
+	/// <summary>
+	/// Starts the host network client for the mode-24 entry at <c>0x00405358</c>.
+	/// </summary>
+	/// <remarks>
+	/// The lifted constructor <c>0x00481FF0</c> owns a live Winsock client; this port binds the same
+	/// lifecycle to the host's <c>GameSession</c>/<c>GameServerFlow</c> through <see cref="StartNetworkClient"/>.
+	/// </remarks>
+	[Original(0x00405358)]
+	private void EnterMode24()
+	{
+		NetworkClientActive = StartNetworkClient?.Invoke() == true;
+	}
+
+	/// <summary>
+	/// Creates the mode-26 object and binds the host network client at <c>0x00404E28</c>.
+	/// </summary>
+	/// <remarks>
+	/// <c>0x0070CC78</c> is the 0x244-byte object at byte offset 0x1288. The 0x1A9A0-byte network
+	/// object at offset 0x1284 is represented by <see cref="InterfaceObject1185"/> and the host pump.
+	/// </remarks>
+	[Original(0x00404E28)]
+	private void EnterMode26()
+	{
+		Mode26Object = new Scene2Mode26Object(this);
+		InterfaceObject1288 = 1;
+		NetworkClientActive = StartNetworkClient?.Invoke() == true;
+		InterfaceObject1185 = NetworkClientActive ? 1 : 0;
+		InterfaceObject1186 = 0;
+		InterfaceObject1187 = 0;
+		GlobalA3A938 = 0;
+		GlobalA3A940 = 0;
 	}
 
 	/// <summary>
@@ -441,6 +505,22 @@ public sealed class Scene2StartGameModeMachine
 		Mode27Text = MessageText;
 		Mode27Ready = Mode27Text.Length > 0;
 		Mode27Box = EnsureMessageBox(Mode27Text, -1, null, null);
+	}
+
+	/// <summary>
+	/// Builds the world-list object at <c>0x00404CD8</c> and releases the child slots.
+	/// </summary>
+	/// <remarks>
+	/// The <c>0x005B9780</c> file loader and the two UI list constructors are host seams; the row
+	/// parser and the 0x824-byte object are ported.
+	/// </remarks>
+	[Original(0x00404CD8)]
+	private void EnterMode28()
+	{
+		Children.Ensure(this);
+		Children.Release();
+		WorldList = Scene2WorldList.Create(WorldListLines ?? [], Episode4);
+		ScreenFlags = WorldList.FirstListFlags;
 	}
 
 	[Original(0x00405670)]
