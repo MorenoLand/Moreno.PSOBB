@@ -29,6 +29,21 @@ public sealed class Scene2TextWindowTests : IDisposable
 	}
 
 	[Fact]
+	public void TheDefaultFactoryUsesTheTwoShippedDescriptorsInOrder()
+	{
+		Scene2TextWindow window = Scene2TextWindow.CreateDefault(2);
+
+		Assert.Equal(2, window.Cells.Length);
+		Assert.Equal(577f, BitConverter.Int32BitsToSingle(window.Base.Fields[12]));
+		Assert.Equal(184f, BitConverter.Int32BitsToSingle(window.Base.Fields[13]));
+		Assert.Equal(31f, BitConverter.Int32BitsToSingle(window.Base.Fields[14]));
+		Assert.Equal(20f, BitConverter.Int32BitsToSingle(window.Base.Fields[15]));
+		Assert.Equal(50000f, BitConverter.Int32BitsToSingle(window.Base.Fields[7]));
+		Assert.Equal(0x83, window.Base.Fields[11]);
+		Assert.Equal(11f, window.Point.X);
+	}
+
+	[Fact]
 	public void TheRefreshMovesTheTailWordAndAppliesTheValueReset()
 	{
 		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(2), 0, 2);
