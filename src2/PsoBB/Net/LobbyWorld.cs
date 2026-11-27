@@ -81,19 +81,40 @@ public sealed class LobbyWorld
 	/// <summary>Gets the last command 0x83 lobby-menu reply, or <see langword="null"/> before one arrives.</summary>
 	public LobbyMenuPacket? LobbyMenu { get; private set; }
 
+	/// <summary>Gets the last command 0x07 menu list, or <see langword="null"/> before one arrives.</summary>
+	public MenuPacket? Menu { get; private set; }
+
+	/// <summary>Gets the last command 0xE7 save-file sync payload, or empty bytes before one arrives.</summary>
+	public ReadOnlyMemory<byte> SaveFiles { get; private set; }
+
+	/// <summary>Gets the command 0xB1 server time string, or <see langword="null"/> before one arrives.</summary>
+	public string? ServerTime { get; private set; }
+
+	/// <summary>Gets the last command 0xC5 player-record payload, or empty bytes before one arrives.</summary>
+	public ReadOnlyMemory<byte> PlayerRecords { get; private set; }
+
 	/// <summary>
 	/// Sends the base 0x10 main-menu selection through the redirected session.
 	/// </summary>
 	/// <param name="itemId">The selected item identifier.</param>
 	/// <returns><see langword="true"/> when the selection was queued.</returns>
 	/// <exception cref="InvalidOperationException">The world has no session.</exception>
-	public bool SelectMainMenuItem(uint itemId)
+	public bool SelectMainMenuItem(uint itemId) => SelectMenuItem(MenuSelectionPacket.MainMenuId, itemId);
+
+	/// <summary>
+	/// Sends the base 0x10 menu selection through the redirected session.
+	/// </summary>
+	/// <param name="menuId">The menu identifier from the 0x07 record.</param>
+	/// <param name="itemId">The item identifier from the 0x07 record.</param>
+	/// <returns><see langword="true"/> when the selection was queued.</returns>
+	/// <exception cref="InvalidOperationException">The world has no session.</exception>
+	public bool SelectMenuItem(uint menuId, uint itemId)
 	{
 		if (_session is null)
 			throw new InvalidOperationException("The world has no session to send the menu selection on.");
 		if (_session.State != GameSessionState.Ready)
 			return false;
-		_session.Send(new MenuSelectionPacket { MenuId = MenuSelectionPacket.MainMenuId, ItemId = itemId }.ToPacket());
+		_session.Send(new MenuSelectionPacket { MenuId = menuId, ItemId = itemId }.ToPacket());
 		_session.FlushSends();
 		return _session.State is not (GameSessionState.Failed or GameSessionState.Disconnected);
 	}
@@ -200,6 +221,26 @@ public sealed class LobbyWorld
 			LobbyMenu = LobbyMenuPacket.Read(packet.Payload.Span, packet.Header.Flags);
 			return true;
 		}
+		if (packet.IsCommand(PacketCommand.Menu))
+		{
+			Menu = MenuPacket.Read(packet.Payload.Span, packet.Header.Flags);
+			return true;
+		}
+		if (packet.IsCommand(PacketCommand.SyncSaveFiles))
+		{
+			SaveFiles = packet.Payload;
+			return true;
+		}
+		if (packet.IsCommand(PacketCommand.ServerTime))
+		{
+			ServerTime = ReadServerTime(packet.Payload.Span);
+			return true;
+		}
+		if (packet.IsCommand(PacketCommand.PlayerRecords))
+		{
+			PlayerRecords = packet.Payload;
+			return true;
+		}
 		if (packet.IsCommand(PacketCommand.GameJoin))
 		{
 			ApplyGameJoin(packet.Payload.Span);
@@ -280,6 +321,10 @@ public sealed class LobbyWorld
 		LeaderId = null;
 		Variations = ReadOnlyMemory<byte>.Empty;
 		LobbyMenu = null;
+		Menu = null;
+		SaveFiles = ReadOnlyMemory<byte>.Empty;
+		ServerTime = null;
+		PlayerRecords = ReadOnlyMemory<byte>.Empty;
 		_simpleMails.Clear();
 		DisableUdp = null;
 		Difficulty = null;
@@ -402,6 +447,16 @@ public sealed class LobbyWorld
 	}
 
 	[Original(0x00698B74, "HandleStopMoving")]
+	/// <summary>Reads the 0xB1 ASCII time string from the payload.</summary>
+	/// <param name="payload">The 0x1C server-time payload.</param>
+	/// <returns>The time string without its terminator.</returns>
+	private static string ReadServerTime(ReadOnlySpan<byte> payload)
+	{
+		int length = Math.Min(payload.Length, 0x19);
+		int end = payload[..length].IndexOf((byte)0);
+		return System.Text.Encoding.ASCII.GetString(payload[..(end < 0 ? length : end)]);
+	}
+
 	private static void ApplyStopAtPosition(LobbyWorld world, ReadOnlySpan<byte> record)
 	{
 		RequireLength(record, 0x18, "stop-at-position");

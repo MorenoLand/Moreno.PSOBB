@@ -109,9 +109,9 @@ The real Blue Burst exchange adds four pieces the earlier connection did not mod
   instead of reaching the data-server phase.
 - Command 0x00E4 is the empty-slot answer and 0x00E5 is the existing-character preview. The preview
   selects the slot; the client then opens a new connection and sends the same login with
-  `CharacterSlot` set and `ConnectionPhase` 1. Command 0x00E2 stores the server system file and is
-  answered with the same payload; only the following 0x00E1 created notice moves the flow to
-  character selection.
+  `CharacterSlot` set and `ConnectionPhase` 4, the login-server phase. Command 0x00E2 stores the
+  server system file and is answered with the same payload; only the following 0x00E1 created notice
+  moves the flow to character selection.
 
 The Windows client was run against a local newserv instance (real server, no fabricated protocol)
 with `PSOBB_LOGIN_HOST=127.0.0.1`, `PSOBB_LOGIN_PORT=12000`, user `portchar` and a character file
@@ -119,15 +119,15 @@ copied from the server's existing account. The verified packet sequence was:
 
 1. Phase-0 login: `93`, `03`, `E6`, `E0`, `19`.
 2. Data server: `03`, `E6`, `E0`, `E2`, client `E2`, `E1`, `E3`, `E5`.
-3. Phase-1 login with slot 0: `03`, `E6`, `E0`, `E2`, client `E2`, `E1`, `1D`, client `1D`.
+3. Phase-4 login with slot 0: `03`, `E6`, `E0`, `E2`, client `E2`, `E1`, `B1`, `E7`, `07`, `83`,
+   `C5`, `67`.
 
-The server kept the phase-1 connection open and pinged it. It had not sent the save-file sync
-(0xE7), player list or lobby join (0x64/0x67) at the end of the run, so those remain unconfirmed.
-`--startgame` automatically requests slot 0 at the character-select state.
+`07` is the main menu, `83` the lobby list, `C5` the player challenge/battle records and `67` the
+lobby join. The `--startgame` diagnostic selects the `0x11222211` "Go to lobby" record with command
+0x10; the server answered with the lobby list and join. The resulting `LobbyWorld` state is `Lobby`
+with one entity and local player index 0, and the game-server flow state is `Lobby`.
 
-The main menu uses command 0x83 with menu id `0x11000011` and item id `0x11222211` for "Go to
-lobby". `MenuSelectionPacket` writes the base command 0x10 selection and
-`LobbyWorld.SelectMainMenuItem` sends it through the redirected session. The `--startgame`
-diagnostic selects that item when the main menu arrives; the server had not sent the menu in the
-verified run, so the lobby join is still unconfirmed.
+Rendering is still the boundary: `SceneDirectory` has no lobby host factory, so the scene-11 screen
+does not create a `LobbyScene`, draw the lobby map, camera or player. The frame remains the black
+scene-11 surface even though the lobby world is populated.
 

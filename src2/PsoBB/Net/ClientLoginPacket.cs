@@ -102,7 +102,7 @@ public sealed class ClientLoginPacket
 	};
 
 	/// <summary>
-	/// Copies the login with the chosen character slot and the phase-one connection marker.
+	/// Copies the login with the chosen character slot and the phase-four login-server marker.
 	/// </summary>
 	/// <param name="characterSlot">The chosen zero-based character slot.</param>
 	/// <returns>The login for the game-server connection.</returns>
@@ -113,7 +113,7 @@ public sealed class ClientLoginPacket
 		SubVersion = SubVersion,
 		Language = Language,
 		CharacterSlot = unchecked((sbyte)characterSlot),
-		ConnectionPhase = 1,
+		ConnectionPhase = 4,
 		ClientCode = ClientCode,
 		SecurityToken = SecurityToken,
 		Username = Username,

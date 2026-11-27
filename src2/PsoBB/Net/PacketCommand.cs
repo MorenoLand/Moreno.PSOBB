@@ -17,6 +17,10 @@ public enum PacketCommand : ushort
 	/// <summary>Client menu selection with a menu identifier and an item identifier.</summary>
 	MenuSelection = 0x0010,
 
+	/// <summary>Server menu list; the header flag is the entry count minus one.</summary>
+	Menu = 0x0007,
+
+
 	/// <summary>Keepalive request and response; both carry no payload.</summary>
 	Ping = 0x001D,
 	/// <summary>Broadcast wrapper for one or more 0x60 subcommand records.</summary>
@@ -77,7 +81,15 @@ public enum PacketCommand : ushort
 
 	/// <summary>Server preview of an existing character.</summary>
 	PlayerPreview = 0x00E5,
-
 	/// <summary>Server initialization of the guild card number and client configuration.</summary>
 	ClientInit = 0x00E6,
+
+	/// <summary>Server save-file sync with the character, system and team records.</summary>
+	SyncSaveFiles = 0x00E7,
+
+	/// <summary>Server wall-clock time with three flag bytes.</summary>
+	ServerTime = 0x00B1,
+
+	/// <summary>Server player challenge and battle record list.</summary>
+	PlayerRecords = 0x00C5,
 }
