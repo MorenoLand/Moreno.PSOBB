@@ -16,7 +16,7 @@ public sealed class Scene2TextWindowTests : IDisposable
 	[Fact]
 	public void TheWindowAllocatesOneRecordPerLineAndSetsTheBaseWords()
 	{
-		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [3, 4], Grid(2), 5, 2);
+		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [BitConverter.SingleToInt32Bits(3f), 4], Grid(2), 5, 2);
 
 		Assert.Equal(2, window.Count);
 		Assert.Equal(2, window.Cells.Length);
@@ -25,7 +25,7 @@ public sealed class Scene2TextWindowTests : IDisposable
 		Assert.Equal(180, window.Base.Fields[35]);
 		Assert.Equal(2, window.Base.Fields[40]);
 		Assert.Equal(0x80, window.Base.Fields[11] & 0x80);
-		Assert.Equal(3 - 20 + 0, window.Point.X);
+		Assert.Equal(-17f, window.Point.X);
 	}
 
 	[Fact]
@@ -43,6 +43,26 @@ public sealed class Scene2TextWindowTests : IDisposable
 		Assert.Equal(0x10, BinaryPrimitives.ReadInt32LittleEndian(window.Records.AsSpan(0)));
 		Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(window.Cells[0].Data.AsSpan(4)) & 8);
 		Assert.Equal(900000f, BinaryPrimitives.ReadSingleLittleEndian(window.Cells[0].Data.AsSpan(28)));
+	}
+
+	[Fact]
+	public void ThePositionUsesThePreviousLineAndUpdatesTheScroll()
+	{
+		Scene2TextWindow window = Scene2TextWindow.Create([0, 0, 0, 0, 0], [0, 0], Grid(2), 0, 2);
+		window.MaxWidth = 100f;
+		window.CurrentLine = 1;
+		window.Cells[0].TextHeight = 14f;
+		window.Cells[1].TextPosition = 20f;
+		window.Cells[1].TextHeight = 14f;
+
+		window.UpdatePosition();
+
+		Assert.Equal(81f, window.Point.X);
+		Assert.Equal(-6f, window.Point.Y);
+
+		window.Scroll = 20f;
+		window.UpdatePosition();
+		Assert.Equal(14f, window.Scroll);
 	}
 
 	[Fact]
@@ -135,3 +155,5 @@ public sealed class Scene2TextWindowTests : IDisposable
 		return words;
 	}
 }
+
+
