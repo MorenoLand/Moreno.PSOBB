@@ -85,6 +85,12 @@ public sealed class Scene2CellState
 	/// <summary>Gets or sets the position float at offset 40.</summary>
 	public float TextPosition { get; set; }
 
+	/// <summary>Gets or sets the measured width at offset 16.</summary>
+	public float TextWidth { get; set; }
+
+	/// <summary>Gets or sets the measured height at offset 20.</summary>
+	public float TextHeight { get; set; }
+
 	/// <summary>
 	/// Writes the 900000 value at offset 28, as <c>0x0072E0E4</c> does.
 	/// </summary>
