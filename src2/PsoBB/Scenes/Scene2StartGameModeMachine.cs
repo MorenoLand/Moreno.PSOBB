@@ -3,6 +3,7 @@ using PsoBB.Game;
 using PsoBB.Gui;
 using PsoBB.Input;
 using PsoBB.Save;
+using PsoBB.Text;
 
 namespace PsoBB.Scenes;
 
@@ -138,6 +139,18 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets or sets the patch-release action used by the mode-16 entry.</summary>
 	public Action? PatchRelease { get; set; }
 
+	/// <summary>Gets or sets the event-code query used by the mode-25 entry.</summary>
+	public Func<int>? EventCode { get; set; }
+
+	/// <summary>Gets or sets the unitxt table the mode-25 text comes from.</summary>
+	public UnitxtTable? TextTable { get; set; }
+
+	/// <summary>Gets the selected mode-25 text, or <see langword="null"/>.</summary>
+	public string? Mode25Text { get; private set; }
+
+	/// <summary>Gets a value indicating whether mode 25 selected non-empty text.</summary>
+	public bool Mode25Ready { get; private set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -188,6 +201,9 @@ public sealed class Scene2StartGameModeMachine
 			case 16:
 				EnterMode16();
 				break;
+			case 25:
+				EnterMode25();
+				break;
 			case 0:
 			case 1:
 			case 2:
@@ -211,6 +227,35 @@ public sealed class Scene2StartGameModeMachine
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
 		}
+	}
+
+	[Original(0x00405168)]
+	private void EnterMode25()
+	{
+		Mode25Text = null;
+		Mode25Ready = false;
+		int code = EventCode?.Invoke() ?? -1;
+		if (code is < 0 or > 13 || TextTable is null)
+			return;
+		int index = code switch
+		{
+			0 => 5,
+			1 => 6,
+			2 => 7,
+			3 => 8,
+			4 => 9,
+			5 => 10,
+			6 => 11,
+			7 => 14,
+			8 => 15,
+			9 => 16,
+			10 => 17,
+			11 => 18,
+			12 => 19,
+			_ => 20,
+		};
+		Mode25Text = TextTable.GetString(71, index);
+		Mode25Ready = Mode25Text.Length > 0;
 	}
 
 	[Original(0x00405670)]
@@ -804,6 +849,7 @@ public sealed class Scene2StartGameModeMachine
 		}
 	}
 }
+
 
 
 
