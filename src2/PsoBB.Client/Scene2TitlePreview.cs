@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Numerics;
 using PsoBB.Compression;
 using PsoBB.Core;
 using PsoBB.Data;
@@ -63,6 +64,12 @@ public static class Scene2TitlePreview
 		LoginDialogAction? previousAction = null;
 		bool wasClosed = false;
 		bool menuVisible = showMenu;
+		Action<int>? soundPlayer = audio is null ? null : audio.Play;
+		UiWindowTransition menuWindow = new() { SoundPlayer = soundPlayer };
+		UiWindowTransition? confirmWindow = null;
+		UiWindowTransition? registerWindow = null;
+		List<(IDisposable Dialog, UiWindowTransition Window, Vector2 Center, Action<UiDrawList> Draw)> closing = [];
+		bool menuWindowShown = false;
 		uint fade = TitleFade.Initial;
 		while (pump())
 		{
@@ -75,6 +82,23 @@ public static class Scene2TitlePreview
 			accumulator -= FrameSeconds;
 			input.Update(TimeSpan.FromSeconds(FrameSeconds));
 			bool hidden = TitleFade.Advance(ref fade);
+			if (menuVisible && !menuWindowShown)
+			{
+				menuWindow.Show();
+				menuWindowShown = true;
+			}
+			menuWindow.Update();
+			confirmWindow?.Update();
+			registerWindow?.Update();
+			for (int index = closing.Count - 1; index >= 0; index--)
+			{
+				closing[index].Window.Update();
+				if (!closing[index].Window.IsVisible)
+				{
+					closing[index].Dialog.Dispose();
+					closing.RemoveAt(index);
+				}
+			}
 			LoginDialogAction? action = null;
 			if (confirm is not null)
 			{
@@ -86,26 +110,33 @@ public static class Scene2TitlePreview
 				}
 				if (confirm.Cancelled)
 				{
-					confirm.Dispose();
+					confirmWindow?.Close();
+					if (confirmWindow is not null)
+						closing.Add((confirm, confirmWindow, TitleExitConfirm.PanelPosition + TitleExitConfirm.PanelSize / 2f, confirm.Draw));
+					else
+						confirm.Dispose();
 					confirm = null;
+					confirmWindow = null;
 					menu?.Dialog.ClearRequest();
+					menuWindow.Show();
 				}
 			}
 			else if (register is not null)
 			{
 				register.Update(input);
-				if (register.Confirmed)
+				if (register.Confirmed || register.Cancelled)
 				{
-					ApplyCredentials(network, register);
-					register.Dispose();
+					if (register.Confirmed)
+						ApplyCredentials(network, register);
+					registerWindow?.Close();
+					if (registerWindow is not null)
+						closing.Add((register, registerWindow, TitleRegisterDialog.PanelPosition + TitleRegisterDialog.PanelSize / 2f, register.Draw));
+					else
+						register.Dispose();
 					register = null;
+					registerWindow = null;
 					menu?.Dialog.ClearRequest();
-				}
-				else if (register.Cancelled)
-				{
-					register.Dispose();
-					register = null;
-					menu?.Dialog.ClearRequest();
+					menuWindow.Show();
 				}
 			}
 			else if (patch is not null)
@@ -116,6 +147,7 @@ public static class Scene2TitlePreview
 					audio?.Play(TitleAudio.CancelSound);
 					patch.Dispose();
 					patch = null;
+					menuWindow.Show();
 					menu?.Dialog.ClearRequest();
 				}
 			}
@@ -141,6 +173,10 @@ public static class Scene2TitlePreview
 			if (action == LoginDialogAction.ExitGame && confirm is null && menu is not null && textSurface is not null)
 			{
 				confirm = new TitleExitConfirm(menu.Dialog.Text, textSurface) { SoundPlayer = audio is null ? null : audio.Play };
+				confirmWindow = new UiWindowTransition { SoundPlayer = soundPlayer };
+				confirmWindow.Show();
+				menuWindow.IsSilent = true;
+				menuWindow.Close();
 				menu.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.RegisterUserId && register is null && menu is not null && textSurface is not null)
@@ -158,6 +194,10 @@ public static class Scene2TitlePreview
 					};
 				}
 				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface, registerFrame) { SoundPlayer = audio is null ? null : audio.Play };
+				registerWindow = new UiWindowTransition { SoundPlayer = soundPlayer };
+				registerWindow.Show();
+				menuWindow.IsSilent = true;
+				menuWindow.Close();
 				menu.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.PatchDownload && patch is null && network is not null && textSurface is not null)
@@ -173,6 +213,8 @@ public static class Scene2TitlePreview
 				if (PatchStatusScreen.TryLoad(files, host.Renderer, out PatchStatusScreen? statusScreen) && statusScreen is not null && menu is not null)
 					flow.AttachScreen(statusScreen, menu.Dialog.Text);
 				patch = flow;
+				menuWindow.IsSilent = true;
+				menuWindow.Close();
 				menu?.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 3 && !startGame))
@@ -244,7 +286,18 @@ public static class Scene2TitlePreview
 				frame++;
 				continue;
 			}
-			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, confirm, register, patch, textSurface, menuVisible, hidden, frame, capture);
+			Action<UiDrawList> drawWindows = ui =>
+			{
+				if (menuVisible && menu is not null && menuWindow.IsVisible && patch?.HasScreen != true)
+					DrawWindow(ui, menuWindow, LoginDialog.TitlePanelPosition + LoginDialog.PanelSize / 2f, menu.Dialog.Draw);
+				foreach ((IDisposable _, UiWindowTransition window, Vector2 center, Action<UiDrawList> draw) in closing)
+					DrawWindow(ui, window, center, draw);
+				if (confirm is not null && confirmWindow is not null)
+					DrawWindow(ui, confirmWindow, TitleExitConfirm.PanelPosition + TitleExitConfirm.PanelSize / 2f, confirm.Draw);
+				if (register is not null && registerWindow is not null)
+					DrawWindow(ui, registerWindow, TitleRegisterDialog.PanelPosition + TitleRegisterDialog.PanelSize / 2f, register.Draw);
+			};
+			Render(host.Renderer, art, drawWindows, patch, textSurface, menuVisible, hidden, frame, capture);
 			frame++;
 		}
 		patch?.Dispose();
@@ -354,7 +407,14 @@ public static class Scene2TitlePreview
 		};
 	}
 
-	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, TitleExitConfirm? confirm, TitleRegisterDialog? register, PatchDownloadFlow? patch, IUiTextSurface? textSurface, bool menuVisible, bool hidden, int frame, Action<int>? capture)
+	private static void DrawWindow(UiDrawList ui, UiWindowTransition window, Vector2 center, Action<UiDrawList> draw)
+	{
+		int start = ui.Count;
+		draw(ui);
+		window.Apply(ui, start, center);
+	}
+
+	private static void Render(IRenderer renderer, Scene2TitleArt art, Action<UiDrawList> drawWindows, PatchDownloadFlow? patch, IUiTextSurface? textSurface, bool menuVisible, bool hidden, int frame, Action<int>? capture)
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
@@ -371,17 +431,14 @@ public static class Scene2TitlePreview
 				art.DrawSelectorStrip(draw, frame);
 			draw.Render(renderer);
 		}
-		if (!hidden && (dialog is not null || confirm is not null || register is not null || patch is not null))
+		if (!hidden)
 		{
 			renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
 			renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
 			renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
 			renderer.SetRenderState(RenderStateId.Lighting, 0);
 			UiDrawList ui = new() { DefaultBlendMode = UiBlendMode.Alpha };
-			if (register is null)
-				dialog?.Draw(ui);
-			confirm?.Draw(ui);
-			register?.Draw(ui);
+			drawWindows(ui);
 			if (patch is not null && textSurface is not null)
 				patch.Draw(ui, textSurface);
 			ui.Render(renderer);

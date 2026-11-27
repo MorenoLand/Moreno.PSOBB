@@ -37,6 +37,21 @@ public sealed class UiDrawList
 			_quads.Add(quad);
 	}
 
+	/// <summary>Gets the number of collected quads.</summary>
+	public int Count => _quads.Count;
+
+	/// <summary>
+	/// Replaces each quad from an index onward with the mapped quad.
+	/// </summary>
+	/// <param name="start">The index of the first quad to map.</param>
+	/// <param name="map">The function that returns the replacement quad.</param>
+	public void Transform(int start, Func<UiQuad, UiQuad> map)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		for (int index = Math.Max(0, start); index < _quads.Count; index++)
+			_quads[index] = map(_quads[index]);
+	}
+
 	/// <summary>
 	/// Removes every collected quad.
 	/// </summary>
