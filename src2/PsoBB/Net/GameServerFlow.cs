@@ -42,6 +42,13 @@ public sealed class GameServerFlow
 	public ReconnectPacket? Redirect => _loginFlow.Redirect;
 
 	/// <summary>
+	/// Gets or sets the receiver for command 0x1A. The handler sees the 0x800 bytes after the
+	/// eight-byte prefix of the fixed 0x808-byte payload at <c>0x007C8854</c>; a null handler
+	/// consumes the command without forwarding.
+	/// </summary>
+	public Func<ReadOnlyMemory<byte>, int>? Command1AHandler { get; set; }
+
+	/// <summary>
 	/// Closes the login connection and opens the redirect target, keeping the stored client login packet for the next welcome.
 	/// </summary>
 	/// <returns><see langword="true"/> when the redirected transport opened.</returns>
@@ -113,6 +120,8 @@ public sealed class GameServerFlow
 
 	private bool HandlePacket(Packet packet)
 	{
+		if (packet.IsCommand((PacketCommand)0x1A))
+			return HandleForwardedCommand(packet);
 		bool handled;
 		try
 		{
@@ -134,12 +143,21 @@ public sealed class GameServerFlow
 		return true;
 	}
 
+	private bool HandleForwardedCommand(Packet packet)
+	{
+		byte[] buffer = new byte[0x808];
+		ReadOnlySpan<byte> payload = packet.Payload.Span;
+		payload[..Math.Min(payload.Length, buffer.Length)].CopyTo(buffer);
+		Command1AHandler?.Invoke(buffer.AsMemory(8, 0x800));
+		return true;
+	}
+
 	private bool Unsupported(Packet packet)
 	{
 		_state = GameServerFlowState.Unsupported;
 		_diagnostic = packet.Header.Opcode switch
 		{
-			0x1A => "Command 0x1A is a payload copy with no record codec in the lift.",
+
 			_ => $"Command 0x{packet.Header.Opcode:X2} is not a supported game-server packet.",
 		};
 		CloseSession();
