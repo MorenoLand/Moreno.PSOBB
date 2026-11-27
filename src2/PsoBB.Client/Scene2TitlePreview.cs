@@ -6,6 +6,7 @@ using PsoBB.Graphics;
 using PsoBB.Gui;
 using PsoBB.Imaging;
 using PsoBB.Input;
+using PsoBB.Save;
 using PsoBB.Scenes;
 using PsoBB.Text;
 
@@ -28,7 +29,7 @@ public static class Scene2TitlePreview
 	/// <param name="showMenu">Whether the account panel is shown instead of the press-enter strip.</param>
 	/// <exception cref="ArgumentNullException">A required parameter is null.</exception>
 	/// <exception cref="FileNotFoundException">The title archive is missing.</exception>
-	public static void Run(ClientHost host, Func<bool> pump, IUiTextSurface? textSurface = null, GameTextLocale locale = GameTextLocale.English, bool showMenu = false, Action<int>? capture = null)
+	public static void Run(ClientHost host, Func<bool> pump, IUiTextSurface? textSurface = null, GameTextLocale locale = GameTextLocale.English, bool showMenu = false, Action<int>? capture = null, bool startGameDiagnostic = false)
 	{
 		ArgumentNullException.ThrowIfNull(host);
 		ArgumentNullException.ThrowIfNull(pump);
@@ -36,6 +37,12 @@ public static class Scene2TitlePreview
 		using Scene2TitleArt art = new(files, host.Renderer);
 		using LoginDialog? dialog = CreateDialog(files, host.Renderer, textSurface, locale);
 		using Scene2TitleMenu? menu = dialog is null ? null : new Scene2TitleMenu(dialog);
+		Scene2StartGameScreen? startScreen = null;
+		Scene2StartGameModeMachine? machine = null;
+		ControllerButtonState? controller = null;
+		bool startGame = false;
+		bool machineStopped = false;
+		bool confirmEdge = false;
 		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
@@ -80,9 +87,52 @@ public static class Scene2TitlePreview
 			}
 			if (action == LoginDialogAction.ExitGame)
 				return;
+			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 30 && !startGame))
+			{
+				if (startGameDiagnostic && !startGame)
+					Scene2.SelectStartGame();
+				startGame = true;
+				if (startScreen is null && textSurface is not null && files.TryRead("PSO_CHARACTER", out ReadOnlyMemory<byte> saveData) && CharacterSaveCodec.TryParse(saveData.Span, out CharacterSave? save))
+				{
+					startScreen = Scene2StartGameScreenFactory.CreateScreen(CreateRowsText(files, locale), save);
+					if (startScreen is not null)
+						startScreen.TextSurface = textSurface;
+				}
+				machine ??= new Scene2StartGameModeMachine(files);
+				if (startGameDiagnostic && machine.Mode == Scene2StartGameModeMachine.InitialMode)
+					machine.SetMode(0);
+				controller ??= new ControllerButtonState();
+				bool confirm = input.WasActionPressed(InputAction.Confirm);
+				machine.Controller = controller;
+				machine.GameEvent = () => confirmEdge ? 0xF : 0;
+				controller.Buttons = confirm ? 0x101u : 0u;
+				if (!machineStopped)
+				{
+					try { machine.Advance(); } catch (NotSupportedException) { machineStopped = true; }
+				}
+				confirmEdge = confirm;
+				if (machine.Mode == 23 && machine.EntryState == 0)
+					Scene2.SelectLobbyScreenState();
+			}
+			if (startGame && startScreen is not null)
+			{
+				UiDrawList rows = new();
+				startScreen.Draw(rows);
+				Render(host.Renderer, art, null, false, hidden, frame, capture);
+				rows.Render(host.Renderer);
+				frame++;
+				continue;
+			}
 			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, menuVisible, hidden, frame, capture);
 			frame++;
 		}
+	}
+
+	private static GameText? CreateRowsText(IDataFiles files, GameTextLocale locale)
+	{
+		if (!files.TryRead(GameText.GetUnitxtFileName(locale), out ReadOnlyMemory<byte> data))
+			return null;
+		return new GameText(UnitxtTable.OpenCompressed(data.Span));
 	}
 
 	private static LoginDialog? CreateDialog(IDataFiles files, IRenderer renderer, IUiTextSurface? textSurface, GameTextLocale locale)
@@ -179,3 +229,5 @@ public static class Scene2TitlePreview
 		renderer.EndFrame();
 	}
 }
+
+

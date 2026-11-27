@@ -36,6 +36,7 @@ internal static class Program
 		bool nowLoading = false;
 		bool title = false;
 		bool menu = false;
+		bool startGame = false;
 		for (int index = 0; index < args.Length; index++)
 		{
 			if (args[index] == "--preview" && index + 1 < args.Length)
@@ -50,6 +51,8 @@ internal static class Program
 				title = true;
 			else if (args[index] == "--menu")
 				menu = true;
+			else if (args[index] == "--startgame")
+				startGame = true;
 			else if (!args[index].StartsWith("--", StringComparison.Ordinal))
 				dataFolder = args[index];
 		}
@@ -78,7 +81,7 @@ internal static class Program
 			else if (menu)
 				RunTitle(window, dataFolder, true);
 			else
-				RunClient(window, dataFolder);
+				RunClient(window, dataFolder, startGame);
 			return 0;
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -92,7 +95,7 @@ internal static class Program
 		}
 	}
 
-	private static void RunClient(GameWindow window, string dataFolder)
+	private static void RunClient(GameWindow window, string dataFolder, bool startGame = false)
 	{
 		WindowsFileSystem files = new(dataFolder);
 		WindowsGameClock clock = new();
@@ -106,7 +109,15 @@ internal static class Program
 		Scene1Preview.Run(host, window.Pump);
 		NowLoadingPreview.Run(host, window.Pump, 60);
 		using GdiBitmapFont font = GdiBitmapFont.Create(renderer);
-		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text));
+		string? captureDirectory = Environment.GetEnvironmentVariable("PSOBB_CAPTURE");
+		Action<int>? capture = captureDirectory is null ? null : frame =>
+		{
+			if (frame is not (0 or 2 or 10 or 60))
+				return;
+			Directory.CreateDirectory(captureDirectory);
+			WriteBmp(Path.Combine(captureDirectory, $"start-{frame:D3}.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());
+		};
+		Scene2TitlePreview.Run(host, window.Pump, new TextRendererSurface(font.Text), capture: capture, startGameDiagnostic: startGame);
 		host.RequestStop();
 	}
 
@@ -267,4 +278,6 @@ internal static class Program
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	private static extern int MessageBox(nint window, string text, string caption, uint type);
 }
+
+
 
