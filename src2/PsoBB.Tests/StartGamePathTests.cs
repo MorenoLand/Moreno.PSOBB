@@ -66,7 +66,14 @@ public sealed class StartGamePathTests : IDisposable
 		files.Add(SaveFileCheck.CharacterName, CreateCharacter());
 		files.Add(SaveFileCheck.GuildCardName, new byte[16]);
 		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
-		Scene2StartGameModeMachine machine = new(files);
+		CharacterSaveLoad.Attach(
+			new byte[CharacterSaveLoad.PlayerChunkLength],
+			new byte[CharacterSaveLoad.SystemChunkLength],
+			new byte[CharacterSaveLoad.SaveLength],
+			new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		GuildSave.Attach(new byte[4096], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		CreateCharacter().CopyTo(CharacterSaveLoad.LoadBuffer!);
+		Scene2StartGameModeMachine machine = new(files) { PumpSave = SystemSave.Pump };
 		machine.SetMode(0);
 		machine.Advance();
 		Assert.Equal(1u, machine.Mode);
@@ -80,6 +87,14 @@ public sealed class StartGamePathTests : IDisposable
 		machine.SetMode(1);
 		machine.Advance();
 		Assert.Equal(3u, machine.Mode);
+
+		int guard = 0;
+		while (machine.Mode != 23 && guard++ < 64)
+			machine.Advance();
+		Assert.Equal(23u, machine.Mode);
+		GameState.Reset();
+		machine.Advance();
+		Assert.Equal(6u, GameState.SceneScreenState);
 
 		using DataFileRegistry online = OnlineTestData.Registry();
 		using RecordingRenderer renderer = new(RenderSettings.Default);
