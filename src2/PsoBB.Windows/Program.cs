@@ -26,6 +26,14 @@ internal static class Program
 	private const string DefaultLoginHost = "127.0.0.1";
 	private const ushort DefaultLoginPort = 12000;
 
+	private static byte[]? ReadClientCursor(string dataFolder)
+	{
+		string executable = Path.Combine(dataFolder, "PsoBB.exe");
+		if (!File.Exists(executable))
+			return null;
+		return ExecutableCursorReader.TryRead(File.ReadAllBytes(executable), ExecutableCursorReader.ClientCursorId, out byte[] cursor) ? cursor : null;
+	}
+
 	/// <summary>
 	/// Runs the Windows client until the window closes.
 	/// </summary>
@@ -72,7 +80,7 @@ internal static class Program
 		GameWindow? window = null;
 		try
 		{
-			window = new GameWindow("Phantasy Star Online Blue Burst", WindowWidth, WindowHeight);
+			window = new GameWindow("Phantasy Star Online Blue Burst", WindowWidth, WindowHeight, ReadClientCursor(dataFolder));
 			if (previewEntry is not null)
 				RunPreview(window, dataFolder, previewEntry);
 			else if (scene1)

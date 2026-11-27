@@ -19,6 +19,19 @@ internal sealed class GameWindow : IDisposable
 	private const int IconSmall = 0;
 	private const int IconBig = 1;
 	private const int BlackBrush = 4;
+	private const uint WindowMessageSetCursor = 0x0020;
+	private const uint WindowMessageHitTest = 0x0084;
+	private const int CursorArrow = 32512;
+	private const int CursorSizeWestEast = 32644;
+	private const int CursorSizeNorthSouth = 32645;
+	private const uint CursorFormatVersion = 0x00030000;
+	private const uint CursorDefaultSize = 0x00000040;
+	private readonly nint _stockArrow;
+	private readonly nint _sizeWestEast;
+	private readonly nint _sizeNorthSouth;
+	private readonly nint _clientCursor;
+	private bool _hitTestKnown;
+	private int _hitTestKind;
 	private readonly string _className;
 	private readonly WindowMessageHandler _windowProcedure;
 	private readonly nint _instance;
@@ -32,11 +45,18 @@ internal sealed class GameWindow : IDisposable
 	/// <param name="title">The window title.</param>
 	/// <param name="width">Client width in pixels.</param>
 	/// <param name="height">Client height in pixels.</param>
-	public GameWindow(string title, int width, int height)
+	/// <param name="clientCursor">The cursor resource the client shows when no hit-test result is recorded; empty keeps the stock arrow.</param>
+	public GameWindow(string title, int width, int height, byte[]? clientCursor = null)
 	{
 		_className = $"PsoBB.Windows.{Guid.NewGuid():N}";
 		_windowProcedure = WindowProcedure;
 		_instance = GetModuleHandle(null);
+		_stockArrow = LoadCursor(0, CursorArrow);
+		_sizeWestEast = LoadCursor(0, CursorSizeWestEast);
+		_sizeNorthSouth = LoadCursor(0, CursorSizeNorthSouth);
+		_clientCursor = clientCursor is null || clientCursor.Length == 0 ? _stockArrow : CreateIconFromResourceEx(clientCursor, (uint)clientCursor.Length, false, CursorFormatVersion, 0, 0, CursorDefaultSize);
+		if (_clientCursor == 0)
+			_clientCursor = _stockArrow;
 		nint icon = LoadIcon(_instance, ApplicationIconResource);
 		WindowClass windowClass = new()
 		{
@@ -127,9 +147,59 @@ internal sealed class GameWindow : IDisposable
 			case WindowMessageDestroy:
 				PostQuitMessage(0);
 				return 0;
+			case WindowMessageHitTest:
+				nint hit = DefWindowProc(window, message, wParam, lParam);
+				RecordHitTest((int)hit);
+				return hit;
+			case WindowMessageSetCursor:
+				SetCursor(SelectCursor());
+				return 0;
 			default:
 				return DefWindowProc(window, message, wParam, lParam);
 		}
+	}
+
+	private void RecordHitTest(int hit)
+	{
+		switch (hit)
+		{
+			case 0:
+				_hitTestKnown = false;
+				break;
+			case 1:
+				_hitTestKnown = true;
+				_hitTestKind = 0;
+				break;
+			case 9:
+			case 10:
+			case 12:
+			case 13:
+			case 15:
+			case 16:
+				_hitTestKnown = true;
+				_hitTestKind = 1;
+				break;
+			case 11:
+			case 14:
+				_hitTestKnown = true;
+				_hitTestKind = 2;
+				break;
+			default:
+				_hitTestKnown = true;
+				break;
+		}
+	}
+
+	private nint SelectCursor()
+	{
+		if (!_hitTestKnown)
+			return _clientCursor;
+		return _hitTestKind switch
+		{
+			1 => _sizeWestEast,
+			2 => _sizeNorthSouth,
+			_ => _stockArrow,
+		};
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -225,6 +295,12 @@ internal sealed class GameWindow : IDisposable
 
 	[DllImport("user32.dll")]
 	private static extern nint LoadCursor(nint instance, int cursorName);
+
+	[DllImport("user32.dll")]
+	private static extern nint SetCursor(nint cursor);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern nint CreateIconFromResourceEx(byte[] resourceBits, uint resourceSize, [MarshalAs(UnmanagedType.Bool)] bool icon, uint version, int width, int height, uint flags);
 
 	[DllImport("gdi32.dll")]
 	private static extern nint GetStockObject(int index);
