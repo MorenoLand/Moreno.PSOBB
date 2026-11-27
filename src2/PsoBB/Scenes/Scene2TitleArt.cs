@@ -39,6 +39,9 @@ public sealed class Scene2TitleArt : IDisposable
 	/// <summary>The depth the flash passes to <c>0x0082B440</c>.</summary>
 	public const float FlashDepth = 1f - 0.007142857f;
 
+	/// <summary>The flash texture coordinates the image initialises at <c>0x006F4BD8</c>: left, top, right, bottom.</summary>
+	public static readonly Vector4 FlashTextureCoordinates = new(0.57421875f, 0f, 0.82421875f, 0.25f);
+
 	/// <summary>The element index of the press-enter strip in the table at <c>0x009CFF00</c>.</summary>
 	public const int SelectorElement = 10;
 
@@ -309,7 +312,27 @@ public sealed class Scene2TitleArt : IDisposable
 			new TitleArtVertex(new Vector2(min.X, max.Y), new Vector2(textureCoordinates.X, textureCoordinates.W)),
 			GetFlashColor(frame),
 			FlashDepth,
-			TitleArtBlend.Alpha));
+			TitleArtBlend.AdditiveAlpha));
+	}
+
+	/// <summary>
+	/// Adds the whole title picture in the order <c>0x006F475C</c> submits it: opaque strips, the additive flash,
+	/// the alpha strips, then the emblem and rings.
+	/// </summary>
+	/// <param name="draw">The draw list that receives the quads.</param>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <param name="state">The runtime emblem state; the image defaults are used when null.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The title art is released.</exception>
+	[Original(0x006F475C)]
+	public void DrawTitle(TitleArtDrawList draw, int frame, TitleEmblemState? state = null)
+	{
+		ArgumentNullException.ThrowIfNull(draw);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		DrawOpaqueStrips(draw);
+		DrawFlash(draw, frame, FlashTextureCoordinates);
+		DrawAlphaStrips(draw);
+		DrawEmblem(draw, frame, state);
 	}
 
 	/// <summary>Gets a value indicating whether the frame is inside the 150-170 flash window.</summary>
@@ -589,6 +612,7 @@ public sealed class TitleArtDrawList
 
 	private readonly List<TitleArtQuad> _quads = [];
 	private readonly List<TitleArtOverlayQuad> _overlay = [];
+	private readonly List<bool> _submission = [];
 
 	/// <summary>Gets the collected strip quads in submission order.</summary>
 	public IReadOnlyList<TitleArtQuad> Quads => _quads;
@@ -598,17 +622,26 @@ public sealed class TitleArtDrawList
 
 	/// <summary>Adds a strip quad.</summary>
 	/// <param name="quad">The quad to add.</param>
-	public void Add(TitleArtQuad quad) => _quads.Add(quad);
+	public void Add(TitleArtQuad quad)
+	{
+		_quads.Add(quad);
+		_submission.Add(false);
+	}
 
-	/// <summary>Adds an emblem or ring overlay quad.</summary>
+	/// <summary>Adds an emblem, ring or flash overlay quad.</summary>
 	/// <param name="quad">The quad to add.</param>
-	public void AddOverlay(TitleArtOverlayQuad quad) => _overlay.Add(quad);
+	public void AddOverlay(TitleArtOverlayQuad quad)
+	{
+		_overlay.Add(quad);
+		_submission.Add(true);
+	}
 
 	/// <summary>Removes every collected quad.</summary>
 	public void Clear()
 	{
 		_quads.Clear();
 		_overlay.Clear();
+		_submission.Clear();
 	}
 
 	/// <summary>Submits the collected strip and overlay quads to a renderer in order.</summary>
@@ -619,26 +652,32 @@ public sealed class TitleArtDrawList
 		ArgumentNullException.ThrowIfNull(renderer);
 		Span<byte> vertices = stackalloc byte[VertexStride * 6];
 		TitleArtBlend? currentBlend = null;
-		foreach (TitleArtQuad quad in _quads)
+		int strip = 0;
+		int overlay = 0;
+		foreach (bool isOverlay in _submission)
 		{
-			if (currentBlend != quad.Blend)
+			if (!isOverlay)
 			{
-				currentBlend = quad.Blend;
-				SetBlend(renderer, quad.Blend);
+				TitleArtQuad quad = _quads[strip++];
+				if (currentBlend != quad.Blend)
+				{
+					currentBlend = quad.Blend;
+					SetBlend(renderer, quad.Blend);
+				}
+				renderer.SetTexture(0, quad.Texture);
+				WriteQuad(vertices, quad);
 			}
-			renderer.SetTexture(0, quad.Texture);
-			WriteQuad(vertices, quad);
-			renderer.Draw(PrimitiveType.TriangleList, 2, vertices, VertexStride, VertexFormat);
-		}
-		foreach (TitleArtOverlayQuad quad in _overlay)
-		{
-			if (currentBlend != quad.Blend)
+			else
 			{
-				currentBlend = quad.Blend;
-				SetBlend(renderer, quad.Blend);
+				TitleArtOverlayQuad quad = _overlay[overlay++];
+				if (currentBlend != quad.Blend)
+				{
+					currentBlend = quad.Blend;
+					SetBlend(renderer, quad.Blend);
+				}
+				renderer.SetTexture(0, quad.Texture);
+				WriteOverlay(vertices, quad);
 			}
-			renderer.SetTexture(0, quad.Texture);
-			WriteOverlay(vertices, quad);
 			renderer.Draw(PrimitiveType.TriangleList, 2, vertices, VertexStride, VertexFormat);
 		}
 	}

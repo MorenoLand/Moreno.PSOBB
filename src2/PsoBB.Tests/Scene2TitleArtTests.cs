@@ -229,9 +229,31 @@ public sealed class Scene2TitleArtTests
 		Assert.Equal(334.4f, quad.P2.Position.Y, 4);
 		Assert.Equal(0xFF7F7F7Fu, quad.Color);
 		Assert.Equal(Scene2TitleArt.FlashDepth, quad.Depth);
+		Assert.Equal(TitleArtBlend.AdditiveAlpha, quad.Blend);
 		draw = new TitleArtDrawList();
 		art.DrawFlash(draw, 149, new Vector4(0f, 0f, 1f, 1f));
 		Assert.Empty(draw.OverlayQuads);
+	}
+
+	[Fact]
+	public void DrawTitleSubmitsTheFlashBetweenTheOpaqueAndAlphaStrips()
+	{
+		using DataFileRegistry files = Scene2TitleTestData.Registry();
+		using RecordingRenderer renderer = new(RenderSettings.Default);
+		using Scene2TitleArt art = new(files, renderer);
+		TitleArtDrawList flashing = new();
+		art.DrawTitle(flashing, 160);
+		Assert.Equal(16, flashing.Quads.Count);
+		Assert.Equal(6, flashing.OverlayQuads.Count);
+		Assert.Same(art.Textures[12], flashing.OverlayQuads[0].Texture);
+		Assert.Equal(Scene2TitleArt.FlashTextureCoordinates.Z, flashing.OverlayQuads[0].P2.TextureCoordinates.X);
+		TitleArtDrawList quiet = new();
+		art.DrawTitle(quiet, 10);
+		Assert.Equal(5, quiet.OverlayQuads.Count);
+		flashing.Render(renderer);
+		string[] destination = [.. renderer.Commands.Where(command => command.StartsWith("State 20:"))];
+		Assert.Equal(["State 20:2", "State 20:6", "State 20:2"], destination);
+		Assert.Equal(22, renderer.Commands.Count(command => command == "Draw TriangleList 2 28 144"));
 	}
 
 	[Fact]

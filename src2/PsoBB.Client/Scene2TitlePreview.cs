@@ -363,8 +363,7 @@ public static class Scene2TitlePreview
 		if (!hidden)
 		{
 			TitleArtDrawList draw = new();
-			art.Draw(draw);
-			art.DrawEmblem(draw, frame);
+			art.DrawTitle(draw, frame);
 			if (!menuVisible)
 				art.DrawSelectorStrip(draw);
 			draw.Render(renderer);
