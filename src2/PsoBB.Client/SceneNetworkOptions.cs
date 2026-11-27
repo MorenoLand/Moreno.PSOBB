@@ -29,7 +29,7 @@ public sealed class SceneNetworkOptions
 	public ServerHostTable Hosts { get; }
 
 	/// <summary>Gets the client login packet.</summary>
-	public ClientLoginPacket LoginRequest { get; }
+	public ClientLoginPacket LoginRequest { get; set; }
 
 	/// <summary>Gets the transport factory.</summary>
 	public Func<IGameConnection> ConnectionFactory { get; }

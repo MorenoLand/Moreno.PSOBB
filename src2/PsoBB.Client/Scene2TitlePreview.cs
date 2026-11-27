@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using PsoBB.Compression;
+using PsoBB.Core;
 using PsoBB.Data;
 using PsoBB.Game;
 using PsoBB.Graphics;
@@ -41,6 +42,7 @@ public static class Scene2TitlePreview
 		Scene2StartGameScreen? startScreen = null;
 		Scene2StartGameModeMachine? machine = null;
 		TitleExitConfirm? confirm = null;
+		TitleRegisterDialog? register = null;
 		ControllerButtonState? controller = null;
 		bool startGame = false;
 		bool machineStopped = false;
@@ -87,6 +89,23 @@ public static class Scene2TitlePreview
 					menu?.Dialog.ClearRequest();
 				}
 			}
+			else if (register is not null)
+			{
+				register.Update(input);
+				if (register.Confirmed)
+				{
+					ApplyCredentials(network, register);
+					register.Dispose();
+					register = null;
+					menu?.Dialog.ClearRequest();
+				}
+				else if (register.Cancelled)
+				{
+					register.Dispose();
+					register = null;
+					menu?.Dialog.ClearRequest();
+				}
+			}
 			else if (menuVisible && menu is not null)
 			{
 				menu.Update(input);
@@ -109,6 +128,11 @@ public static class Scene2TitlePreview
 			if (action == LoginDialogAction.ExitGame && confirm is null && menu is not null && textSurface is not null)
 			{
 				confirm = new TitleExitConfirm(menu.Dialog.Text, textSurface);
+				menu.Dialog.ClearRequest();
+			}
+			if (action == LoginDialogAction.RegisterUserId && register is null && menu is not null && textSurface is not null)
+			{
+				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface);
 				menu.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 3 && !startGame))
@@ -180,9 +204,10 @@ public static class Scene2TitlePreview
 				frame++;
 				continue;
 			}
-			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, confirm, menuVisible, hidden, frame, capture);
+			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, confirm, register, menuVisible, hidden, frame, capture);
 			frame++;
 		}
+		register?.Dispose();
 		confirm?.Dispose();
 		directory?.Dispose();
 	}
@@ -273,7 +298,21 @@ public static class Scene2TitlePreview
 		}
 	}
 
-	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, TitleExitConfirm? confirm, bool menuVisible, bool hidden, int frame, Action<int>? capture)
+	private static void ApplyCredentials(SceneNetworkOptions? network, TitleRegisterDialog dialog)
+	{
+		if (network is null)
+			return;
+		ClientLoginPacket current = network.LoginRequest;
+		network.LoginRequest = new ClientLoginPacket
+		{
+			Username = ByteString.FromText(dialog.UserId) ?? ByteString.Empty,
+			Password = ByteString.FromText(dialog.Password) ?? ByteString.Empty,
+			HardwareId = current.HardwareId,
+			ClientConfig = current.ClientConfig,
+		};
+	}
+
+	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, TitleExitConfirm? confirm, TitleRegisterDialog? register, bool menuVisible, bool hidden, int frame, Action<int>? capture)
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
@@ -300,6 +339,7 @@ public static class Scene2TitlePreview
 			UiDrawList ui = new();
 			dialog.Draw(ui);
 			confirm?.Draw(ui);
+			register?.Draw(ui);
 			ui.Render(renderer);
 		}
 		capture?.Invoke(frame);
