@@ -87,7 +87,7 @@ public static class Scene2TitlePreview
 			}
 			if (action == LoginDialogAction.ExitGame)
 				return;
-			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 30 && !startGame))
+			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 3 && !startGame))
 			{
 				if (startGameDiagnostic && !startGame)
 					Scene2.SelectStartGame();
@@ -118,14 +118,30 @@ public static class Scene2TitlePreview
 			{
 				UiDrawList rows = new();
 				startScreen.Draw(rows);
-				Render(host.Renderer, art, null, false, hidden, frame, capture);
-				rows.Render(host.Renderer);
+				RenderRows(host.Renderer, rows, frame, capture);
 				frame++;
 				continue;
 			}
 			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, menuVisible, hidden, frame, capture);
 			frame++;
 		}
+	}
+
+	private static void RenderRows(IRenderer renderer, UiDrawList rows, int frame, Action<int>? capture)
+	{
+		renderer.BeginFrame();
+		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
+		renderer.SetRenderState(RenderStateId.ZEnable, 0);
+		renderer.SetRenderState(RenderStateId.ZWriteEnable, 0);
+		renderer.SetRenderState(RenderStateId.CullMode, RenderStateId.CullNone);
+		renderer.SetRenderState(RenderStateId.Lighting, 0);
+		renderer.Clear(ClientHost.EmptyFrameColor);
+		renderer.SetRenderState(RenderStateId.AlphaBlendEnable, 1);
+		renderer.SetRenderState(RenderStateId.SourceBlend, RenderStateId.BlendSourceAlpha);
+		renderer.SetRenderState(RenderStateId.DestinationBlend, RenderStateId.BlendInverseSourceAlpha);
+		rows.Render(renderer);
+		capture?.Invoke(frame);
+		renderer.EndFrame();
 	}
 
 	private static GameText? CreateRowsText(IDataFiles files, GameTextLocale locale)
@@ -229,5 +245,7 @@ public static class Scene2TitlePreview
 		renderer.EndFrame();
 	}
 }
+
+
 
 
