@@ -50,6 +50,8 @@ public static class Scene2TitlePreview
 		bool startGame = false;
 		bool machineStopped = false;
 		SceneDirectory? directory = null;
+		PatchStatusScreen? connectScreen = null;
+		bool connectScreenLoaded = false;
 		ISceneScreen? online = null;
 		bool confirmEdge = false;
 		bool characterRequested = false;
@@ -271,6 +273,13 @@ public static class Scene2TitlePreview
 						lobbyRequested = lobbyWorld.SelectMenuItem(entry.MenuId, entry.ItemId);
 				}
 				UiDrawList ui = new();
+				if (!connectScreenLoaded)
+				{
+					connectScreenLoaded = true;
+					PatchStatusScreen.TryLoad(files, host.Renderer, out connectScreen);
+				}
+				if (connectScreen is not null && menu is not null && textSurface is not null)
+					connectScreen.Draw(ui, new PatchProgress(0, 0, 0, 0, 0, null, 0, 0, 0), menu.Dialog.Text, textSurface);
 				online.Draw(ui);
 				if (textSurface is not null)
 					directory?.OnlineScene?.DrawStatus(textSurface, ui);
@@ -281,6 +290,13 @@ public static class Scene2TitlePreview
 			if (startGame && startScreen is not null)
 			{
 				UiDrawList rows = new();
+				if (!connectScreenLoaded)
+				{
+					connectScreenLoaded = true;
+					PatchStatusScreen.TryLoad(files, host.Renderer, out connectScreen);
+				}
+				if (connectScreen is not null && menu is not null && textSurface is not null)
+					connectScreen.Draw(rows, new PatchProgress(0, 0, 0, 0, 0, null, 0, 0, 0), menu.Dialog.Text, textSurface);
 				startScreen.Draw(rows);
 				RenderRows(host.Renderer, rows, frame, capture);
 				frame++;
@@ -304,6 +320,7 @@ public static class Scene2TitlePreview
 		register?.Dispose();
 		confirm?.Dispose();
 		directory?.Dispose();
+		connectScreen?.Dispose();
 	}
 
 	private static void RenderRows(IRenderer renderer, UiDrawList rows, int frame, Action<int>? capture)
