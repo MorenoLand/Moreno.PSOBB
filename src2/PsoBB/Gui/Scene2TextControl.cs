@@ -31,6 +31,12 @@ public sealed class Scene2TextControl
 	/// <summary>Gets or sets the word at offset 132.</summary>
 	public int Flags132 { get; set; }
 
+	/// <summary>Gets or sets the base-window flag word at offset 44.</summary>
+	public int Flags44 { get; set; }
+
+	/// <summary>Gets or sets the list title.</summary>
+	public string? Title { get; set; }
+
 	/// <summary>
 	/// Returns the tail value of the current record, or -1 past the count, at <c>0x007365F4</c>.
 	/// </summary>

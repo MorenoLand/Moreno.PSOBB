@@ -520,6 +520,8 @@ public sealed class Scene2StartGameModeMachine
 		Children.Ensure(this);
 		Children.Release();
 		WorldList = Scene2WorldList.Create(WorldListLines ?? [], Episode4);
+		if (TextSurface is not null)
+			WorldList.CreateControls(TextTable, TextSurface);
 		ScreenFlags = WorldList.FirstListFlags;
 	}
 

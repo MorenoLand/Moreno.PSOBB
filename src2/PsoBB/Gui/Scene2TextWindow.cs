@@ -161,6 +161,19 @@ public sealed class Scene2TextWindow
 			0,
 			count);
 
+	/// <summary>
+	/// Creates the world-list box from the descriptors at <c>0x00A3B238</c>/<c>0x00A3B240</c>.
+	/// </summary>
+	/// <param name="count">The line count.</param>
+	/// <returns>The initialised window.</returns>
+	public static Scene2TextWindow CreateWorldList(int count = LineCount) =>
+		Create(
+			[BitConverter.SingleToInt32Bits(300f), BitConverter.SingleToInt32Bits(175f), BitConverter.SingleToInt32Bits(50000f), 0, 3],
+			[BitConverter.SingleToInt32Bits(330f), BitConverter.SingleToInt32Bits(285f), BitConverter.SingleToInt32Bits(300f), BitConverter.SingleToInt32Bits(175f), 31],
+			Scene2CellGrid.SingleRow(count),
+			0,
+			count);
+
 	[Original(0x0073B71C)]
 	private Scene2TextWindow(ReadOnlySpan<int> first, ReadOnlySpan<int> second, ReadOnlySpan<int> grid, short kind, int count)
 	{

@@ -325,8 +325,10 @@ The mode-24 entry binds `0x00481FF0` to the host `GameSession`/`GameServerFlow` 
 `StartNetworkClient`; the lifted constructor's live Winsock path is not recreated. The mode-26 entry
 creates the portable `0x0070CC78` 0x244-byte object at slot 0x1288 and represents the 0x1A9A0
 network object by `InterfaceObject1185` plus the host pump. The mode-28 entry parses the
-`worldlist.prc` row format at `0x004170AC` into `Scene2WorldList`; the `0x005B9780` file loader and
-the `0x00417390`/`0x00417414`/`0x00415154` UI constructors are host seams.
+`worldlist.prc` row format at `0x004170AC` into `Scene2WorldList`; `CreateControls` builds the
+`0x00417390` list state from `0x0073566C` with unitxt list 11 string 384 and the `0x00417414` box
+from `0x0073B698` with string 383. The `0x005B9780` file loader and the `0x00415154` 0x240 child are
+host seams.
 
 All update handlers in the `0x009A2DA4` table except the entry-only mode 5 are now ported; mode 18
 was recovered from a headless Ghidra dossier because the existing lift had no entry for

@@ -1,3 +1,6 @@
+using PsoBB.Gui;
+using PsoBB.Text;
+
 namespace PsoBB.Scenes;
 
 /// <summary>One parsed world-list row from the <c>0x004170AC</c> parser.</summary>
@@ -43,20 +46,39 @@ public sealed class Scene2WorldList
 	/// <summary>Gets the row count stored at <c>0x00A43660</c>.</summary>
 	public int Count => Rows.Count;
 
-	/// <summary>
-	/// Gets or sets the first list flag word at byte offset 0x84 used by the mode-28 handler.
-	/// </summary>
-	public int FirstListFlags { get; set; }
+	/// <summary>Gets the first list flag word at byte offset 0x84 used by the mode-28 handler.</summary>
+	public int FirstListFlags => FirstList?.Flags132 ?? 0;
+
+	/// <summary>Gets the first list slot at byte offset 0x81C, or <see langword="null"/>.</summary>
+	public Scene2TextControl? FirstList { get; private set; }
+
+	/// <summary>Gets the second text-box slot at byte offset 0x820, or <see langword="null"/>.</summary>
+	public Scene2TextWindow? SecondList { get; private set; }
 
 	/// <summary>
-	/// Gets the first list slot at byte offset 0x81C, or <see langword="null"/> when the UI list is not supplied.
+	/// Builds the two UI list states at <c>0x00417390</c> and <c>0x00417414</c>.
 	/// </summary>
-	public object? FirstList { get; }
+	/// <param name="text">The unitxt table for the list titles, or <see langword="null"/>.</param>
+	/// <param name="surface">The surface that supplies the glyph advance.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="surface"/> is null.</exception>
+	public void CreateControls(UnitxtTable? text, IUiTextSurface surface)
+	{
+		ArgumentNullException.ThrowIfNull(surface);
+		FirstList = Scene2TextControl.CreateDefault(Math.Max(Count, 1));
+		FirstList.Flags44 |= 0x40;
+		FirstList.Title = ReadTitle(text, 384);
+		for (int index = 0; index < Rows.Count; index++)
+			FirstList.AddRecord(Rows[index].Name1, 13, Rows[index].Filter, surface);
+		FirstList.MeasureLayout(0);
+		SecondList = Scene2TextWindow.CreateWorldList();
+		string? title = ReadTitle(text, 383);
+		if (!string.IsNullOrEmpty(title))
+			SecondList.AddLine(title, 3, -1, surface);
+		SecondList.RefreshChildren();
+	}
 
-	/// <summary>
-	/// Gets the second list slot at byte offset 0x820, or <see langword="null"/> when the UI list is not supplied.
-	/// </summary>
-	public object? SecondList { get; }
+	private static string? ReadTitle(UnitxtTable? text, int index) =>
+		text is not null && text.GetListLength(11) > index ? text.GetString(11, index) : null;
 
 	private Scene2WorldList(IReadOnlyList<Scene2WorldListRow> rows)
 	{
