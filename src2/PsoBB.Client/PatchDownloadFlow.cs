@@ -2,6 +2,8 @@ using System.Numerics;
 using PsoBB.Gui;
 using PsoBB.Net.Patch;
 using PsoBB.Platform;
+using PsoBB.Scenes;
+using PsoBB.Text;
 
 namespace PsoBB.Client;
 
@@ -12,6 +14,8 @@ public sealed class PatchDownloadFlow : IDisposable
 {
 	private readonly PatchSession _session;
 	private readonly List<string> _messages = [];
+	private PatchStatusScreen? _screen;
+	private GameText? _text;
 	private bool _disposed;
 
 	/// <summary>
@@ -25,6 +29,19 @@ public sealed class PatchDownloadFlow : IDisposable
 		_session = new PatchSession(connection, files, login);
 		_session.MessageReceived += message => _messages.Add(message);
 	}
+
+	/// <summary>Replaces the text-only state lines with the original status screen.</summary>
+	/// <param name="screen">The status screen; the flow takes ownership.</param>
+	/// <param name="text">The game text that holds the bar labels.</param>
+	public void AttachScreen(PatchStatusScreen screen, GameText text)
+	{
+		_screen?.Dispose();
+		_screen = screen;
+		_text = text;
+	}
+
+	/// <summary>Gets a value indicating whether the status screen replaces the title art.</summary>
+	public bool HasScreen => _screen is not null;
 
 	/// <summary>Gets the current patch state.</summary>
 	public PatchSessionState State => _session.State;
@@ -54,6 +71,13 @@ public sealed class PatchDownloadFlow : IDisposable
 	{
 		ArgumentNullException.ThrowIfNull(draw);
 		ArgumentNullException.ThrowIfNull(surface);
+		if (_screen is not null && _text is not null)
+		{
+			_screen.Draw(draw, Progress, _text, surface);
+			if (FailureReason is not null)
+				surface.Draw(draw, FailureReason, new Vector2(100f, 440f), 0xFFFF8080u);
+			return;
+		}
 		draw.Add(new UiQuad(new Vector2(0f, 28f), new Vector2(640f, 84f), new Vector4(0f, 0f, 1f, 1f), null, 0xC0000000u));
 		string state = State switch
 		{
@@ -80,6 +104,7 @@ public sealed class PatchDownloadFlow : IDisposable
 		if (_disposed)
 			return;
 		_disposed = true;
+		_screen?.Dispose();
 		_session.Dispose();
 	}
 }

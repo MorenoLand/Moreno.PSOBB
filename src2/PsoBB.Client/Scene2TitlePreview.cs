@@ -169,6 +169,8 @@ public static class Scene2TitlePreview
 				};
 				PatchDownloadFlow flow = new(network.ConnectionFactory(), host.FileSystem, patchLogin);
 				flow.Start(endpoints.GetPatchHost(network.ClientMode), endpoints.GetPatchPort(network.ClientMode));
+				if (PatchStatusScreen.TryLoad(files, host.Renderer, out PatchStatusScreen? statusScreen) && statusScreen is not null && menu is not null)
+					flow.AttachScreen(statusScreen, menu.Dialog.Text);
 				patch = flow;
 				menu?.Dialog.ClearRequest();
 			}
@@ -360,7 +362,7 @@ public static class Scene2TitlePreview
 		renderer.SetRenderState(RenderStateId.CullMode, RenderStateId.CullNone);
 		renderer.SetRenderState(RenderStateId.Lighting, 0);
 		renderer.Clear(ClientHost.EmptyFrameColor);
-		if (!hidden)
+		if (!hidden && patch?.HasScreen != true)
 		{
 			TitleArtDrawList draw = new();
 			art.DrawTitle(draw, frame);
