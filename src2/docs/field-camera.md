@@ -30,3 +30,16 @@ has been read for.
   builds the view matrix with `0x00782984(0x00A48780, 0x00A48980)` and finishes with `0x004D3FB0`.
 - Still to read before the controller can be ported: `0x004D3ABC`, `0x004D3EF4`, `0x004D3FB0`,
   `0x004D4048`, `0x0068D5A8`, `0x004D3AA0` and the 13 mode objects.
+
+## Update steps read so far
+
+- `0x004D3ABC` runs the active mode object (`[0x00A48A00 + 4 * byte 0x00A489F4]`): vtable slot `+4` unless flag `0x800`
+  is set in `0x00A489FC`, slot `+0x10` with argument 1 when flag `0x80` is set and 0 when flag `2` is set, then
+  `0x004D1FF4`. With flags `0x820` it runs `0x004D3E90`; otherwise it branches on the mode object's flags word `+0x38`
+  (bit 1 `0x004D3BA8` and `0x004D3D6C`; bit 4 `0x004D3D14`; bit 8 `0x004D3C98`; else `0x004D3E90`) and then `0x004D3DF4`.
+  It sets the field of view through `0x0082EBC8(fov at +0x19C, 1.1333334, 1.0, 21000.0)` (the values the handoff notes
+  give for `FieldCamera`), calls the mode object's slot `+0x24`, and copies `+0x194` to `+0x94`.
+- `0x004D3FB0` builds two rotation matrices on the matrix stack from the camera's `+0x194` and `+0x190` angles and
+  stores the results in the globals `0x00A489E8` and `0x00A489DC`.
+- Unread helpers: `0x004D1FF4`, `0x004D3BA8`, `0x004D3C98`, `0x004D3D14`, `0x004D3D6C`, `0x004D3DF4`, `0x004D3E90`,
+  `0x004D3EF4`, `0x0082EBC8`, `0x004D4048`.
