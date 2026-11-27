@@ -144,3 +144,4 @@
 0x0070768C	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
 0x00866D7B	x87 control-word helper for the C runtime's floating-point state; the port's arithmetic is double and does not read or change that state.
 0x00866CE9	x87 control-word helper for the C runtime's floating-point state; the port's arithmetic is double and does not read or change that state.
+0x0085E6A1	Stream wrapper: ungets a character unless it is WEOF; the .NET file streams replace the original stream call.
