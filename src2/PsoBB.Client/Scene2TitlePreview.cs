@@ -75,7 +75,7 @@ public static class Scene2TitlePreview
 			}
 			else if (input.WasActionPressed(InputAction.Confirm))
 				menuVisible = true;
-			if (action is LoginDialogAction.ExitGame or LoginDialogAction.StartGame)
+			if (action == LoginDialogAction.ExitGame)
 				return;
 			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, menuVisible, hidden, frame, capture);
 			frame++;
