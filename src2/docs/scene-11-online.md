@@ -86,3 +86,9 @@ renders the state-9 character rows at frame 10, reaches the mode-23 lobby result
 scene-11 `Connecting..` label at `(23,331)` in frame 60. The run has no host table or login request,
 so the scene stays in its loading phase and the two translucent panels remain black over the black
 clear.
+
+Setting `PSOBB_LOGIN_HOST` and `PSOBB_LOGIN_PORT`, with optional `PSOBB_LOGIN_USER` and
+`PSOBB_LOGIN_PASSWORD`, supplies `SceneNetworkOptions` to `SceneDirectory` in client mode 1. With a
+silent local listener on the supplied port the client reaches the `Connecting` state and renders the
+same label in frame 60; no protocol data is fabricated, so the login flow remains incomplete until a
+real server answers.
