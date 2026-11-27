@@ -48,7 +48,7 @@ public sealed class LoginDialog : IDisposable
 	public const float HeaderHeight = LoginDialogFrame.HeaderHeight;
 
 	/// <summary>The position of the header label inside the title-menu panel.</summary>
-	public static readonly Vector2 HeaderPosition = TitlePanelPosition;
+	public static readonly Vector2 HeaderPosition = TitlePanelPosition - new Vector2(0f, LoginDialogFrame.HeaderOverhang);
 
 	/// <summary>The position of the header frame used by the scene-2 selector.</summary>
 	public static readonly Vector2 SelectorHeaderPosition = new(192f, 308f);
@@ -123,7 +123,7 @@ public sealed class LoginDialog : IDisposable
 		Vector2 position = panelPosition ?? TitlePanelPosition;
 		_header = new UiLabel
 		{
-			Position = position,
+			Position = position - new Vector2(0f, LoginDialogFrame.HeaderOverhang),
 			Size = new Vector2(LoginDialogFrame.HeaderWidth, HeaderHeight),
 		};
 		_header.SetText(text.GetLoginScreenText(LoginScreenText.Login));
@@ -136,7 +136,7 @@ public sealed class LoginDialog : IDisposable
 			SelectionHeight = LoginDialogFrame.RowStripHeight,
 			ScrollBarWidth = 0f,
 			SelectionColor = 0x00000000u,
-			SelectedTextColor = 0xFF000000u,
+			SelectedTextColor = 0xFFFFFFFFu,
 		};
 		_menu.SetItems(
 		[

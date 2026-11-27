@@ -127,7 +127,7 @@ public sealed class LoginDialogTests
 		Assert.Equal(LoginDialog.HeaderPosition + dialog.Header.TextOffset, text.Draws[0].Position);
 		Assert.Equal("Start Game", text.Draws[1].Text);
 		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X + (220f - text.Measure("Start Game")) * 0.5f, LoginDialog.RowAreaPosition.Y + dialog.Menu.TextOffset.Y), text.Draws[1].Position);
-		Assert.Equal(0xFF000000u, text.Draws[1].Color);
+		Assert.Equal(0xFFFFFFFFu, text.Draws[1].Color);
 		Assert.Equal("[d]", text.Draws[5].Text);
 		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X + (220f - text.Measure("[d]")) * 0.5f, LoginDialog.RowAreaPosition.Y + 80f), text.Draws[5].Position);
 		Assert.Equal(LoginDialog.HintColor, text.Draws[5].Color);
@@ -211,7 +211,7 @@ public sealed class LoginDialogTests
 		Assert.Equal(new Vector2(210f, 330f), LoginDialog.AlternatePanelPosition);
 		Assert.Equal(new Vector2(210f, 300f), LoginDialog.TitlePanelPosition);
 		Assert.Equal(new Vector2(220f, 120f), LoginDialog.PanelSize);
-		Assert.Equal(new Vector2(210f, 300f), LoginDialog.HeaderPosition);
+		Assert.Equal(new Vector2(210f, 289f), LoginDialog.HeaderPosition);
 		Assert.Equal(new Vector2(210f, 320f), LoginDialog.RowAreaPosition);
 		Assert.Equal(new Vector2(192f, 308f), LoginDialog.SelectorHeaderPosition);
 		Assert.Equal(new Vector2(193f, 338f), LoginDialog.SelectorSelectionPosition);

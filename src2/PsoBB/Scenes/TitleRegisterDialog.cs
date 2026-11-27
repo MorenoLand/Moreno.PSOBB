@@ -40,7 +40,7 @@ public sealed class TitleRegisterDialog : IDisposable
 		ArgumentNullException.ThrowIfNull(text);
 		ArgumentNullException.ThrowIfNull(surface);
 		_frame = frame;
-		_header = CreateLabel(text.GetLoginScreenText(LoginScreenText.InputUserId), PanelPosition + new Vector2(10f, 2f), new Vector2(PanelSize.X - 20f, 20f), surface);
+		_header = CreateLabel(text.GetLoginScreenText(LoginScreenText.InputUserId), PanelPosition + new Vector2(10f, -LoginDialogFrame.HeaderOverhang), new Vector2(PanelSize.X - 20f, 20f), surface);
 		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), PanelPosition + new Vector2(10f, 22f), new Vector2(60f, 20f), surface);
 		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), PanelPosition + new Vector2(10f, 42f), new Vector2(60f, 20f), surface);
 		_userId = CreateField(PanelPosition + new Vector2(70f, 20f), new Vector2(PanelSize.X - 80f, 20f), surface);
