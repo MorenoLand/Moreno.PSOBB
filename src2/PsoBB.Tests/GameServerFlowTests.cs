@@ -113,18 +113,61 @@ public sealed class GameServerFlowTests
 	}
 
 	/// <summary>
-	/// A list command whose record layout is not in the lift stops the flow instead of being ignored.
+	/// Command 0x1A copies its fixed 0x808-byte payload and forwards the 0x800 bytes after the prefix.
 	/// </summary>
 	[Fact]
-	public void UnsupportedListCommandStopsWithADiagnostic()
+	public void CommandOneAForwardsTheShiftedPayload()
+	{
+		using Fixture fixture = new();
+		GameServerFlow flow = fixture.StartGameServer();
+		byte[] payload = new byte[0x808];
+		for (int index = 0; index < payload.Length; index++)
+			payload[index] = (byte)index;
+		byte[]? forwarded = null;
+		flow.Command1AHandler = data =>
+		{
+			forwarded = data.ToArray();
+			return 0;
+		};
+		PushEncrypted(fixture.Connection, Packet.Create((PacketCommand)0x1A, 0, payload));
+
+		flow.Pump();
+
+		Assert.NotNull(forwarded);
+		Assert.Equal(0x800, forwarded!.Length);
+		Assert.Equal(payload[8], forwarded[0]);
+		Assert.Equal(payload[0x807], forwarded[0x7FF]);
+		Assert.NotEqual(GameServerFlowState.Unsupported, flow.State);
+	}
+
+	/// <summary>
+	/// Command 0x1A without a receiver is consumed and leaves the flow in its current phase.
+	/// </summary>
+	[Fact]
+	public void CommandOneAWithoutAReceiverIsConsumed()
 	{
 		using Fixture fixture = new();
 		GameServerFlow flow = fixture.StartGameServer();
 		PushEncrypted(fixture.Connection, Packet.Create((PacketCommand)0x1A, 0, new byte[0]));
+
+		flow.Pump();
+
+		Assert.NotEqual(GameServerFlowState.Unsupported, flow.State);
+		Assert.Null(flow.Diagnostic);
+	}
+
+	/// <summary>
+	/// A command outside the handled set stops the flow instead of being ignored.
+	/// </summary>
+	[Fact]
+	public void UnsupportedCommandStopsWithADiagnostic()
+	{
+		using Fixture fixture = new();
+		GameServerFlow flow = fixture.StartGameServer();
+		PushEncrypted(fixture.Connection, Packet.Create((PacketCommand)0x1B, 0, new byte[0]));
 		flow.Pump();
 		Assert.Equal(GameServerFlowState.Unsupported, flow.State);
-		Assert.Contains("0x1A", flow.Diagnostic!);
-		Assert.Contains("no record codec", flow.Diagnostic!);
+		Assert.Contains("0x1B", flow.Diagnostic!);
 		Assert.Equal(GameSessionState.Disconnected, fixture.Session.State);
 	}
 
