@@ -320,6 +320,9 @@ All update handlers in the `0x009A2DA4` table except the entry-only mode 5 are n
 was recovered from a headless Ghidra dossier because the existing lift had no entry for
 `0x00403FB4`. Remaining boundary: the mode-20, mode-24, mode-26, mode-27 and mode-28 entry callbacks
 (`0x004054C0`, `0x00405358`, `0x00404E28`, `0x00404DFC`, `0x00404CD8`) need the unported network/UI
-objects, and `0x00402F0C` still needs the runtime list grid at `0x009F310C`/`0x009F30E8`. The
-running `--startgame` diagnostic confirms the state-9 rows at frame 10 using a synthetic
-`PSO_CHARACTER`, then the scene-11 `Connecting..` label at frame 60.
+objects. The `0x00402F0C` text-box and scroll-control factory still needs its cell composition: the
+shared templates' column word is written at runtime, `0x009F30EC` by `0x007354FC`/`0x00735708`/
+`0x00735884` and `0x009F3248` by `0x0073B1E8`, so the zero column count in the static image is not
+an unknown grid. The cell constructors and text-box draw path remain unported. The running
+`--startgame` diagnostic confirms the state-9 rows at frame 10 using a synthetic `PSO_CHARACTER`,
+then the scene-11 `Connecting..` label at frame 60.
