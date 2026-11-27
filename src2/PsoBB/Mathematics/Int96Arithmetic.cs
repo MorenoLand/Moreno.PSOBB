@@ -31,4 +31,29 @@ public static class Int96Arithmetic
 		value[1] = (value[1] >> 1) | (value[2] << 31);
 		value[2] >>= 1;
 	}
+
+	/// <summary>
+	/// Adds one 96-bit value into another, carrying across the three dwords, as the original's <c>___add_12</c> does.
+	/// </summary>
+	/// <param name="left">The three dwords of the sum, least significant first, updated in place.</param>
+	/// <param name="right">The three dwords of the addend, least significant first.</param>
+	[Original(0x00869924, "___add_12")]
+	public static void Add(Span<uint> left, ReadOnlySpan<uint> right)
+	{
+		int carry = Int32Arithmetic.AddWithCarry(left[0], right[0], out uint low);
+		left[0] = low;
+		if (carry != 0)
+		{
+			int middleCarry = Int32Arithmetic.AddWithCarry(left[1], 1, out uint incremented);
+			left[1] = incremented;
+			if (middleCarry != 0)
+				left[2] = unchecked(left[2] + 1);
+		}
+		int sumCarry = Int32Arithmetic.AddWithCarry(left[1], right[1], out uint middle);
+		left[1] = middle;
+		if (sumCarry != 0)
+			left[2] = unchecked(left[2] + 1);
+		Int32Arithmetic.AddWithCarry(left[2], right[2], out uint high);
+		left[2] = high;
+	}
 }

@@ -897,6 +897,24 @@ def addl_vectors(read):
     write("00869903.json", vectors)
 
 
+def add12_vectors(read):
+    """0x00869924 (___add_12): adds the second 96-bit value into the first, carrying across the three dwords."""
+    base_a, base_b = 0x20000000, 0x20001000
+    cases = [((0, 0, 0), (0, 0, 0)), ((1, 0, 0), (1, 0, 0)), ((0xFFFFFFFF, 0, 0), (1, 0, 0)),
+             ((0xFFFFFFFF, 0xFFFFFFFF, 0), (1, 0, 0)), ((0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF), (1, 0, 0)),
+             ((0xFFFFFFFF, 0xFFFFFFFF, 0), (0xFFFFFFFF, 0xFFFFFFFF, 0)),
+             ((0x80000000, 0x80000000, 0x80000000), (0x80000000, 0x80000000, 0x80000000)),
+             ((0x12345678, 0x9ABCDEF0, 0x0FEDCBA9), (0xDEADBEEF, 0x01234567, 0xFFFFFFFF)),
+             ((0xFFFFFFFF, 0, 0xFFFFFFFF), (0xFFFFFFFF, 0xFFFFFFFF, 1)), ((0xFFFFFFFE, 0xFFFFFFFF, 0x7FFFFFFF), (2, 1, 0x80000000))]
+    vectors = []
+    for left, right in cases:
+        _, _, captured = run(read, 0x00869924, 40, stack=[base_a, base_b],
+                             memory=[(base_a, struct.pack("<III", *left)), (base_b, struct.pack("<III", *right))],
+                             capture=[(base_a, 12)])
+        vectors.append({"left": list(left), "right": list(right), "result": list(struct.unpack("<III", captured[base_a]))})
+    write("00869924.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
