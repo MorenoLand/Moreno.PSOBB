@@ -34,7 +34,7 @@ public sealed class LoginDialogFrameTests
 	}
 
 	[Fact]
-	public void HeaderUsesTheOrangeStripWithMirroredCaps()
+	public void HeaderUsesTheOrangeStripWithTheObservedWidthAndCaps()
 	{
 		CountingTexture page = new();
 		using LoginDialogFrame frame = new() { PanelTexture = page };
@@ -45,13 +45,13 @@ public sealed class LoginDialogFrameTests
 		UiQuad left = list.Quads[9];
 		Assert.Equal(LoginDialogFrame.TitlePanelPosition, left.Position);
 		Assert.Equal(new Vector2(12f, 20f), left.Size);
-		Assert.Equal(new Vector4(76f / 256f, 128f / 256f, 64f / 256f, 147f / 256f), left.TextureCoordinates);
+		Assert.Equal(new Vector4(4f / 256f, 128f / 256f, 16f / 256f, 151f / 256f), left.TextureCoordinates);
 		UiQuad right = list.Quads[10];
-		Assert.Equal(LoginDialogFrame.TitlePanelPosition + new Vector2(208f, 0f), right.Position);
-		Assert.Equal(new Vector4(64f / 256f, 128f / 256f, 76f / 256f, 147f / 256f), right.TextureCoordinates);
+		Assert.Equal(LoginDialogFrame.TitlePanelPosition + new Vector2(138f, 0f), right.Position);
+		Assert.Equal(new Vector4(64f / 256f, 128f / 256f, 76f / 256f, 151f / 256f), right.TextureCoordinates);
 		UiQuad middle = list.Quads[11];
 		Assert.Equal(LoginDialogFrame.TitlePanelPosition + new Vector2(12f, 0f), middle.Position);
-		Assert.Equal(new Vector2(196f, 20f), middle.Size);
+		Assert.Equal(new Vector2(126f, 20f), middle.Size);
 	}
 
 	[Fact]

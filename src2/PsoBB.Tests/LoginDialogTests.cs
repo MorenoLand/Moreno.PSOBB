@@ -35,7 +35,7 @@ public sealed class LoginDialogTests
 		Assert.Equal(0, dialog.Menu.SelectedIndex);
 		Assert.Equal("Login", dialog.Header.Text);
 		Assert.Equal(LoginDialog.HeaderPosition, dialog.Header.Position);
-		Assert.Equal(new Vector2(220f, 20f), dialog.Header.Size);
+		Assert.Equal(new Vector2(LoginDialogFrame.HeaderWidth, 20f), dialog.Header.Size);
 		Assert.Equal(LoginDialog.RowAreaPosition, dialog.Menu.Position);
 		Assert.Equal(new Vector2(220f, 100f), dialog.Menu.Size);
 	}
@@ -120,14 +120,14 @@ public sealed class LoginDialogTests
 
 		UiQuad selection = Assert.Single(drawList.Quads);
 		Assert.Equal(LoginDialog.RowAreaPosition, selection.Position);
-		Assert.Equal(new Vector2(220f, 20f), selection.Size);
+		Assert.Equal(new Vector2(220f, 16f), selection.Size);
 		Assert.Equal(dialog.Menu.SelectionColor, selection.Color);
 		Assert.Equal(6, text.Draws.Count);
 		Assert.Equal("Login", text.Draws[0].Text);
 		Assert.Equal(LoginDialog.HeaderPosition + dialog.Header.TextOffset, text.Draws[0].Position);
 		Assert.Equal("Start Game", text.Draws[1].Text);
-		Assert.Equal(LoginDialog.RowAreaPosition + dialog.Menu.TextOffset, text.Draws[1].Position);
-		Assert.Equal(0xFFFFFFFFu, text.Draws[1].Color);
+		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X + (220f - text.Measure("Start Game")) * 0.5f, LoginDialog.RowAreaPosition.Y + dialog.Menu.TextOffset.Y), text.Draws[1].Position);
+		Assert.Equal(0xFF000000u, text.Draws[1].Color);
 		Assert.Equal("[d]", text.Draws[5].Text);
 		Assert.Equal(new Vector2(LoginDialog.RowAreaPosition.X + (220f - text.Measure("[d]")) * 0.5f, LoginDialog.RowAreaPosition.Y + 80f), text.Draws[5].Position);
 		Assert.Equal(LoginDialog.HintColor, text.Draws[5].Color);
@@ -172,7 +172,7 @@ public sealed class LoginDialogTests
 
 		Assert.Equal(53, drawList.Quads.Count);
 		Assert.Same(font.Pages[0], drawList.Quads[0].Texture);
-		Assert.Equal(0xFFFFFFFFu, drawList.Quads[0].Color);
+		Assert.Equal(0xFF000000u, drawList.Quads[0].Color);
 		UiQuad selection = Assert.Single(drawList.Quads, quad => quad.Color == dialog.Menu.SelectionColor);
 		Assert.Equal(LoginDialog.RowAreaPosition, selection.Position);
 		Assert.Equal(LoginDialog.HintColor, drawList.Quads[^1].Color);

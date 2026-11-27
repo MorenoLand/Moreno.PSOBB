@@ -123,22 +123,26 @@ public sealed class LoginDialog : IDisposable
 		_header = new UiLabel
 		{
 			Position = position,
-			Size = new Vector2(PanelSize.X, HeaderHeight),
+			Size = new Vector2(LoginDialogFrame.HeaderWidth, HeaderHeight),
 		};
 		_header.SetText(text.GetLoginScreenText(LoginScreenText.Login));
+		_header.SetTextColor(0xFF000000u);
 		_menu = new UiListWindow
 		{
 			Position = new Vector2(position.X, position.Y + HeaderHeight),
 			Size = RowAreaSize,
 			ItemHeight = RowHeight,
+			SelectionHeight = LoginDialogFrame.RowStripHeight,
 			ScrollBarWidth = 0f,
+			SelectionColor = 0xFF5A6A6Au,
+			SelectedTextColor = 0xFF000000u,
 		};
 		_menu.SetItems(
 		[
-			new UiListItem(text.GetLoginScreenText(LoginScreenText.StartGame), true, StartGameData, 0xFFFFFFFFu),
-			new UiListItem(text.GetLoginScreenText(LoginScreenText.ExitGame), true, ExitGameData, 0xFFFFFFFFu),
-			new UiListItem(text.GetLoginScreenText(LoginScreenText.PatchDownload), true, PatchDownloadData, 0xFFFFFFFFu),
-			new UiListItem(text.GetLoginScreenText(LoginScreenText.RegisterUserId), true, RegisterUserIdData, 0xFFFFFFFFu),
+			new UiListItem(text.GetLoginScreenText(LoginScreenText.StartGame), true, StartGameData, 0xFFFFFFFFu, centered: true),
+			new UiListItem(text.GetLoginScreenText(LoginScreenText.ExitGame), true, ExitGameData, 0xFFFFFFFFu, centered: true),
+			new UiListItem(text.GetLoginScreenText(LoginScreenText.PatchDownload), true, PatchDownloadData, 0xFFFFFFFFu, centered: true),
+			new UiListItem(text.GetLoginScreenText(LoginScreenText.RegisterUserId), true, RegisterUserIdData, 0xFFFFFFFFu, centered: true),
 			new UiListItem(hintText, false, HintData, HintColor, centered: true),
 		]);
 		_menu.SelectedIndex = 0;
@@ -187,7 +191,7 @@ public sealed class LoginDialog : IDisposable
 			_header.TextSurface = value;
 			_menu.TextSurface = value;
 			_menu.TextOffset = new Vector2(10f, 0f);
-			_header.TextOffset = value is null ? default : new Vector2(MathF.Max(0f, (PanelSize.X - value.Measure(_header.Text)) * 0.5f), (HeaderHeight - BitmapFont.GlyphHeight) * 0.5f);
+			_header.TextOffset = value is null ? default : new Vector2(MathF.Max(0f, (LoginDialogFrame.HeaderWidth - value.Measure(_header.Text)) * 0.5f), (HeaderHeight - BitmapFont.GlyphHeight) * 0.5f);
 		}
 	}
 

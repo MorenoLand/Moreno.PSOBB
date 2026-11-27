@@ -36,10 +36,13 @@ public sealed class LoginDialogFrame : IDisposable
 	public const float PanelInset = 8f;
 
 	/// <summary>The orange header strip in the skin atlas.</summary>
-	public static readonly Vector4 HeaderSource = new(4f, 128f, 76f, 147f);
+	public static readonly Vector4 HeaderSource = new(4f, 128f, 76f, 151f);
 
 	/// <summary>The header three-slice cap width.</summary>
 	public const float HeaderCap = 12f;
+
+	/// <summary>The header pill width observed in the reference capture.</summary>
+	public const float HeaderWidth = 150f;
 
 	/// <summary>The row strip left cap in the skin atlas.</summary>
 	public static readonly Vector4 RowLeftSource = new(151f, 57f, 167f, 73f);
@@ -115,8 +118,8 @@ public sealed class LoginDialogFrame : IDisposable
 		float capLeft = Atlas(source.X + cap);
 		float capRight = Atlas(source.Z - cap);
 		Vector2 position = TitlePanelPosition;
-		float width = TitlePanelSize.X;
-		Add(drawList, position, new Vector2(cap, HeaderHeight), right, v0, capRight, v1, PanelTexture);
+		float width = HeaderWidth;
+		Add(drawList, position, new Vector2(cap, HeaderHeight), Atlas(source.X), v0, capLeft, v1, PanelTexture);
 		Add(drawList, position + new Vector2(width - cap, 0f), new Vector2(cap, HeaderHeight), capRight, v0, right, v1, PanelTexture);
 		Add(drawList, position + new Vector2(cap, 0f), new Vector2(width - cap * 2f, HeaderHeight), capLeft, v0, capRight, v1, PanelTexture);
 	}
