@@ -38,6 +38,9 @@ public class UiListWindow : UiControl
 	/// <summary>Gets or sets the row height in pixels.</summary>
 	public float ItemHeight { get; set; } = 20f;
 
+	/// <summary>Gets or sets the selection height; zero uses <see cref="ItemHeight"/>.</summary>
+	public float SelectionHeight { get; set; }
+
 	/// <summary>Gets or sets the width reserved for the scroll bar in pixels.</summary>
 	public float ScrollBarWidth { get; set; } = 12f;
 
@@ -216,7 +219,7 @@ public class UiListWindow : UiControl
 			if (index == _selectedIndex)
 				drawList.Add(new UiQuad(
 					new Vector2(Position.X, top),
-					new Vector2(Size.X, ItemHeight),
+					new Vector2(Size.X, SelectionHeight > 0f ? SelectionHeight : ItemHeight),
 					TextureCoordinates,
 					null,
 					SelectionColor).Clip(clip));

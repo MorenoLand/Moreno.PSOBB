@@ -305,7 +305,7 @@ valid flag set selects mode 23, which writes the shared lobby screen state 6.
 
 The four character rows use the shipped pairs at `0x008F8940`/`0x008F8944`: x 28 and y 182, 225,
 268 and 311, with 43-pixel spacing. `0x00406624` adds the 180-by-38 selection rectangle from
-`0x008F8988`/`0x008F8984`; the list widget uses the same 180 width. The further columns at
+`0x008F8988`/`0x008F8984`; the list widget uses the same 180 width and 38 selection height. The further columns at
 `0x008F8908` (x 131) and `0x008F8928` (x 234), and the three extra rows those columns carry, remain
 unported; the screen draws only the four character rows.
 
