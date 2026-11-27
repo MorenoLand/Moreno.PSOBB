@@ -1,4 +1,5 @@
 using PsoBB.Data;
+using PsoBB.Game;
 using PsoBB.Save;
 
 namespace PsoBB.Scenes;
@@ -77,6 +78,12 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets or sets the interface handle at offset 0x6C.</summary>
 	public int Flag27 { get; set; }
 
+	/// <summary>Gets or sets the per-controller press query used by modes 21, 22 and 25.</summary>
+	public Func<uint, bool>? AnyControllerPressed { get; set; }
+
+	/// <summary>Gets or sets the event query used by mode 24.</summary>
+	public Func<int>? GameEvent { get; set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -134,6 +141,7 @@ public sealed class Scene2StartGameModeMachine
 			case 17:
 			case 18:
 			case 19:
+			case 23:
 				break;
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
@@ -185,6 +193,19 @@ public sealed class Scene2StartGameModeMachine
 				break;
 			case 17:
 				Mode17();
+				break;
+			case 21:
+			case 22:
+				Mode21();
+				break;
+			case 23:
+				Mode23();
+				break;
+			case 24:
+				Mode24();
+				break;
+			case 25:
+				Mode25();
 				break;
 			default:
 				throw new NotSupportedException($"The handler for mode {Mode} is not ported.");
@@ -352,6 +373,58 @@ public sealed class Scene2StartGameModeMachine
 		FileFlags[2 + 2 * slot] = 0;
 	}
 
+	[Original(0x00404CA4)]
+	private void Mode23()
+	{
+		if (CounterA > 0)
+			return;
+		switch (EntryState)
+		{
+			case 1:
+				Scene2.EnterSharedScreenStateZero();
+				break;
+			case 0:
+				Scene2.SelectLobbyScreenState();
+				break;
+			default:
+				SceneManager.RequestScene(SceneManager.ExitScene);
+				break;
+		}
+	}
+
+	[Original(0x004044E0)]
+	private void Mode21()
+	{
+		bool pressed = false;
+		for (int index = 0; index < 4; index++)
+			pressed |= AnyControllerPressed?.Invoke(0x101) ?? false;
+		if (!pressed)
+			return;
+		EntryState = 2;
+		SetMode(23);
+	}
+
+	[Original(0x004050F0)]
+	private void Mode25()
+	{
+		bool pressed = false;
+		for (int index = 0; index < 4; index++)
+			pressed |= AnyControllerPressed?.Invoke(0x101) ?? false;
+		if (!pressed)
+			return;
+		EntryState = 1;
+		SetMode(23);
+	}
+
+	[Original(0x00404558)]
+	private void Mode24()
+	{
+		int code = GameEvent?.Invoke() ?? 0;
+		if (code == 0)
+			return;
+		SetMode(code == 0xF ? 23u : 25u);
+	}
+
 	[Original(0x00403F54)]
 	private void Mode17()
 	{
@@ -455,6 +528,8 @@ public sealed class Scene2StartGameModeMachine
 		}
 	}
 }
+
+
 
 
 
