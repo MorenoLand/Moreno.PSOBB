@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using PsoBB.Imaging;
 using PsoBB.Mathematics;
 
 namespace PsoBB.Scene;
@@ -37,13 +38,14 @@ public sealed class MapRenderGeometryFile
 	/// Parses a relocated REL image at its root.
 	/// </summary>
 	/// <param name="container">The relocated image.</param>
+	/// <param name="textureArchive">The texture archive that fills the scene list, or <see langword="null"/>.</param>
 	/// <returns>The parsed geometry.</returns>
 	/// <exception cref="SceneFormatException">The marker, chunk table or any mesh tree lies outside the image.</exception>
 	[Original(0x0080A124, "MapLoaderLoadNrel_0080a124")]
-	public static MapRenderGeometryFile Parse(RelContainer container)
+	public static MapRenderGeometryFile Parse(RelContainer container, IReadOnlyList<XvmTexture>? textureArchive = null)
 	{
 		ArgumentNullException.ThrowIfNull(container);
-		return Parse(container.Data.Span, container.RootOffset, true);
+		return Parse(container.Data.Span, container.RootOffset, true, textureArchive);
 	}
 
 	/// <summary>
@@ -53,9 +55,9 @@ public sealed class MapRenderGeometryFile
 	/// <param name="rootOffset">Offset of the four-byte <c>fmt2</c> marker.</param>
 	/// <returns>The parsed geometry.</returns>
 	/// <exception cref="SceneFormatException">The marker, chunk table or any mesh tree lies outside the image.</exception>
-	public static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset = 0) => Parse(data, rootOffset, false);
+	public static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset = 0) => Parse(data, rootOffset, false, null);
 
-	private static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset, bool loadTextures)
+	private static MapRenderGeometryFile Parse(ReadOnlySpan<byte> data, int rootOffset, bool loadTextures, IReadOnlyList<XvmTexture>? textureArchive)
 	{
 		if (rootOffset < 0 || rootOffset > data.Length - 0x18)
 			throw new SceneFormatException("The render geometry header is truncated.", rootOffset);
@@ -68,6 +70,8 @@ public sealed class MapRenderGeometryFile
 		int chunksOffset = chunkCount == 0 ? 0 : ReadOffset(data, rootOffset + 0x10, "chunk table");
 		int textureDataOffset = ReadOffset(data, rootOffset + 0x14, "texture data");
 		MapTextureList? textures = loadTextures && textureDataOffset != 0 ? MapTextureList.Parse(data, textureDataOffset) : null;
+		if (textures is not null && textureArchive is not null)
+			textures = textures.Fill(textureArchive);
 		byte[] image = data.ToArray();
 		if (chunkCount == 0)
 			return new MapRenderGeometryFile(radius, textureDataOffset, textures, []);
