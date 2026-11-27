@@ -102,6 +102,7 @@ public static class CharacterSaveLoad
 		ReadBuffer = readBuffer;
 		LoadPages = pages;
 		TimeRecord = new byte[12];
+		CharacterSaveFixup.NameBuffer ??= new byte[CharacterSaveFixup.NameLength];
 	}
 
 	/// <summary>Clears the character state for a test or a new session.</summary>
@@ -244,6 +245,7 @@ public static class CharacterSaveLoad
 			int record = CharacterSave.SlotLength * Slot;
 			image.AsSpan(record + PlayerChunkOffset, PlayerChunkLength).CopyTo(PlayerRecord);
 			image.AsSpan(record + SystemChunkOffset, SystemChunkLength).CopyTo(SystemRecord);
+			CharacterSaveFixup.CopySystemName();
 			PlayerRecord![3] = PlayerVersion;
 			ApplyFlag = 0;
 		}
