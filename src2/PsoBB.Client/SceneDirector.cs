@@ -1,5 +1,6 @@
 using PsoBB.Data;
 using PsoBB.Game;
+using PsoBB.Graphics;
 using PsoBB.Gui;
 using PsoBB.Input;
 
@@ -58,8 +59,8 @@ public sealed class SceneDirector : IDisposable
 	/// <summary>Gets a value indicating whether the loop stopped because the current scene became zero.</summary>
 	public bool IsExited => _exited;
 
-	/// <summary>Gets the diagnostic for an unsupported scene, or <see langword="null"/>.</summary>
-	public string? Diagnostic => _diagnostic;
+	/// <summary>Gets the diagnostic for an unsupported scene or a stopped world scene, or <see langword="null"/>.</summary>
+	public string? Diagnostic => _diagnostic ?? (_screen as IWorldSceneScreen)?.Diagnostic;
 
 	/// <summary>
 	/// Runs one scene-loop pass for the current host frame.
@@ -92,6 +93,11 @@ public sealed class SceneDirector : IDisposable
 			}
 		}
 		_screen.Update(_input);
+		if (_screen is IWorldSceneScreen { IsStopped: true } world)
+		{
+			Stop(world.Diagnostic ?? "The world scene stopped.");
+			return;
+		}
 		if (GameState.SceneTransition != 0)
 			_releasePending = true;
 	}
@@ -107,6 +113,20 @@ public sealed class SceneDirector : IDisposable
 		ArgumentNullException.ThrowIfNull(draw);
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		_screen?.Draw(draw);
+	}
+
+	/// <summary>
+	/// Submits the active screen's world geometry when it exposes one.
+	/// </summary>
+	/// <param name="renderer">The renderer that receives the frame commands.</param>
+	/// <returns>The number of surfaces submitted, or zero when the active screen has no world.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="renderer"/> is null.</exception>
+	/// <exception cref="ObjectDisposedException">The director is disposed.</exception>
+	public int DrawWorld(IRenderer renderer)
+	{
+		ArgumentNullException.ThrowIfNull(renderer);
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		return _screen is IWorldSceneScreen world ? world.DrawWorld(renderer) : 0;
 	}
 
 	/// <summary>
@@ -154,7 +174,7 @@ public sealed class SceneDirector : IDisposable
 		SceneDirectory directory;
 		try
 		{
-			directory = new SceneDirectory(files, host.Renderer, options.Network, options.CinematicLogo, options.Scene2Factory);
+			directory = new SceneDirectory(files, host.Renderer, options.Network, options.CinematicLogo, options.Scene2Factory, options.LobbyHostFactory);
 		}
 		catch
 		{

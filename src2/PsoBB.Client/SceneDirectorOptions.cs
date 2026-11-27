@@ -15,4 +15,7 @@ public sealed class SceneDirectorOptions
 
 	/// <summary>Gets or sets the factory that builds the scene-2 interface tree, or <see langword="null"/> when it is not supplied.</summary>
 	public Func<Scene2Interface>? Scene2Factory { get; init; }
+
+	/// <summary>Gets or sets the factory that supplies the scene-11 field resources, or <see langword="null"/> to keep the online screen alone.</summary>
+	public Func<LobbySceneHost>? LobbyHostFactory { get; init; }
 }
