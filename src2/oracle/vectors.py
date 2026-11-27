@@ -970,6 +970,43 @@ def toupper_c_vectors(read):
     write("00858A24.json", vectors)
 
 
+PTD = 0x20002000
+SEED_SLOT = PTD + 0x14
+
+
+def patched_reader(read, call_at, replacement):
+    """Return a reader whose bytes at call_at hold the replacement instead of the original call."""
+    def reader(start, size):
+        data = bytearray(read(start, size))
+        for offset, value in enumerate(replacement):
+            position = call_at + offset
+            if start <= position < start + size:
+                data[position - start] = value
+        return bytes(data)
+    return reader
+
+
+def rand_vectors(read):
+    """0x00858798 (_srand) and 0x008587A5 (_rand): the seed lives in the per-thread block; the __getptd call is replaced by the address of a test block."""
+    seeds = [0, 1, 2, 42, 0x1234, 0x7FFF, 0x8000, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
+    generator = random.Random(0x3A7C11)
+    seeds += [generator.randrange(0x100000000) for _ in range(24)]
+    replacement = bytes([0xB8]) + struct.pack("<I", PTD)
+    rand_reader = patched_reader(read, 0x008587A5, replacement)
+    seed_reader = patched_reader(read, 0x00858798, replacement)
+    block = bytes(0x14) + bytes(4) + bytes(0x20)
+    srand_vectors, rand_vectors_out = [], []
+    for seed in seeds:
+        state = bytearray(block)
+        state[0x14:0x18] = struct.pack("<I", seed)
+        _, _, captured = run(seed_reader, 0x00858798, 13, stack=[seed], memory=[(PTD, bytes(state))], capture=[(SEED_SLOT, 4)])
+        srand_vectors.append({"seed": seed, "state": struct.unpack("<I", captured[SEED_SLOT])[0]})
+        eax, _, captured = run(rand_reader, 0x008587A5, 34, memory=[(PTD, bytes(state))], capture=[(SEED_SLOT, 4)])
+        rand_vectors_out.append({"seed": seed, "result": eax, "state": struct.unpack("<I", captured[SEED_SLOT])[0]})
+    write("00858798.json", srand_vectors)
+    write("008587A5.json", rand_vectors_out)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -1008,6 +1045,21 @@ def main():
     matrix_translate_vectors(read)
     matrix_transform_positions_vectors(read)
     matrix_scale_rows_vectors(read)
+    rand_vectors(read)
+    ftol_vectors(read)
+    allmul_vectors(read)
+    allshr_vectors(read)
+    aullshr_vectors(read)
+    aulldiv_vectors(read)
+    alldiv_vectors(read)
+    shl12_vectors(read)
+    shr12_vectors(read)
+    addl_vectors(read)
+    add12_vectors(read)
+    ip6_v4_vectors(read)
+    ascii_strnicmp_vectors(read)
+    tolower_c_vectors(read)
+    toupper_c_vectors(read)
 
 
 
