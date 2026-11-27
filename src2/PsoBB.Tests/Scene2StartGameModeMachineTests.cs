@@ -284,6 +284,17 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		machine.SetMode(20);
 		Assert.Equal("T25\nT26", machine.Mode20Text);
 		Assert.Null(machine.Children.Element);
+
+		Array.Fill(machine.FileFlags, -1);
+		machine.SetMode(21);
+		machine.SetMode(20);
+		Assert.Equal("T25\nT26", machine.Mode20Text);
+
+		machine.FileFlags[0] = 1;
+		machine.FileFlags[1] = 0;
+		machine.SetMode(21);
+		machine.SetMode(20);
+		Assert.Equal("T25\nT26", machine.Mode20Text);
 	}
 
 	[Fact]

@@ -318,23 +318,14 @@ public sealed class Scene2StartGameModeMachine
 	[Original(0x00404ADC)]
 	private bool Mode20UsesFirstPair()
 	{
-		bool allNonZero = true;
-		bool anyOtherOne = false;
-		bool allMinusOne = true;
-		for (int index = 0; index < FileFlags.Length; index++)
-		{
-			allNonZero &= FileFlags[index] != 0;
-			allMinusOne &= FileFlags[index] == -1;
-			if (index > 0)
-				anyOtherOne |= FileFlags[index] == 1;
-		}
-		if (!allNonZero)
-			return true;
-		if (FileFlags[0] == -1 && anyOtherOne)
-			return true;
-		if (allMinusOne)
+		if (FileFlags[0] == 1)
 			return false;
-		return FileFlags[0] != 1;
+		foreach (int flag in FileFlags)
+		{
+			if (flag != -1)
+				return true;
+		}
+		return false;
 	}
 
 	/// <summary>
