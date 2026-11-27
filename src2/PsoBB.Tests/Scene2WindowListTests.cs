@@ -59,6 +59,29 @@ public sealed class Scene2WindowListTests
 	}
 
 	[Fact]
+	public void TheChildrenSlotsAreCreatedOnceAndReleased()
+	{
+		Scene2WindowChildren children = new();
+		object owner = new();
+
+		children.Ensure(owner);
+		Scene2WindowElement element = children.Element!;
+		Scene2WindowCursor cursor = children.Cursor!;
+		Assert.Same(element, children.Element);
+		Assert.Same(cursor, children.Cursor);
+		Assert.Same(element, children.List.Head);
+		Assert.Same(owner, element.Owner);
+
+		children.Release();
+		Assert.Null(children.Element);
+		Assert.Null(children.Cursor);
+
+		children.Ensure(owner);
+		Assert.NotSame(element, children.Element);
+		Assert.NotSame(cursor, children.Cursor);
+	}
+
+	[Fact]
 	public void AnElementCannotBeLinkedTwice()
 	{
 		Scene2WindowList list = new();
