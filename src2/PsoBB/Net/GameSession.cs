@@ -49,6 +49,9 @@ public sealed class GameSession : IDisposable
 	/// <summary>Gets the role of the server that completed the handshake.</summary>
 	public GameServerRole ServerRole { get; private set; }
 
+	/// <summary>Gets the accepted server welcome, or <see langword="null"/> before one arrives.</summary>
+	public ServerInitPacket? Welcome { get; private set; }
+
 	/// <summary>Gets the reason the session failed, or <see langword="null"/> when it has not failed.</summary>
 	public string? FailureReason { get; private set; }
 
@@ -376,6 +379,7 @@ public sealed class GameSession : IDisposable
 		send.Init(clientKey);
 		_receiveCipher = receive;
 		_sendCipher = send;
+		Welcome = welcome;
 		_encrypted = true;
 		ServerRole = role;
 		State = GameSessionState.Ready;
@@ -437,6 +441,7 @@ public sealed class GameSession : IDisposable
 		_receiveCipher = null;
 		_encrypted = false;
 		ServerRole = GameServerRole.None;
+		Welcome = null;
 	}
 
 	private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

@@ -34,6 +34,9 @@ public sealed class LoginFlow
 	/// <summary>Gets the reason the flow failed, or <see langword="null"/> when it has not failed.</summary>
 	public string? FailureReason { get; private set; }
 
+	/// <summary>Gets the accepted server welcome, or <see langword="null"/> before one arrives.</summary>
+	public ServerInitPacket? Welcome => _session.Welcome;
+
 	/// <summary>Gets the error code from the last client initialization response.</summary>
 	public uint? LoginErrorCode { get; private set; }
 

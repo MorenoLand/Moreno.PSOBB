@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text;
 using PsoBB.Data;
 using PsoBB.Game;
 using PsoBB.Graphics;
@@ -257,7 +258,48 @@ public sealed class OnlineScene : IDisposable
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		if (_state is not (OnlineSceneState.Loading or OnlineSceneState.Connecting))
 			return;
+		string? welcome = _loginFlow?.Welcome?.Message?.Decode();
+		if (welcome is not null)
+		{
+			DrawWrapped(surface, draw, welcome, new Vector2(16f, 36f), 608f, 0xFFFFFFFFu);
+			surface.Draw(draw, CurrentStatusText, new Vector2(23f, 320f), StatusColor);
+			surface.Draw(draw, AllStatusText, new Vector2(23f, 360f), StatusColor);
+			surface.Draw(draw, PressEnterText, new Vector2(23f, 420f), 0xFFFFE040u);
+			return;
+		}
 		surface.Draw(draw, ConnectingText, new Vector2(StatusX, StatusY), StatusColor);
+	}
+
+	/// <summary>The current-status label from unitxt list 41 string 13.</summary>
+	public const string CurrentStatusText = "Current Status";
+
+	/// <summary>The all-status label from unitxt list 41 string 14.</summary>
+	public const string AllStatusText = "All Status";
+
+	/// <summary>The press-enter label from unitxt list 41 string 15.</summary>
+	public const string PressEnterText = "Please press Enter-Key";
+
+	private static void DrawWrapped(IUiTextSurface surface, UiDrawList draw, string text, Vector2 origin, float width, uint color)
+	{
+		StringBuilder line = new();
+		float y = origin.Y;
+		foreach (string word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+		{
+			string candidate = line.Length == 0 ? word : $"{line} {word}";
+			if (line.Length > 0 && surface.Measure(candidate) > width)
+			{
+				surface.Draw(draw, line.ToString(), new Vector2(origin.X, y), color);
+				y += 14f;
+				if (y > origin.Y + 70f)
+					return;
+				line.Clear();
+			}
+			if (line.Length > 0)
+				line.Append(' ');
+			line.Append(word);
+		}
+		if (line.Length > 0)
+			surface.Draw(draw, line.ToString(), new Vector2(origin.X, y), color);
 	}
 
 	/// <summary>
