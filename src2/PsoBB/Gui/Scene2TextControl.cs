@@ -180,7 +180,7 @@ public sealed class Scene2TextControl
 				total += height + 6f;
 		}
 		float result = total - 6f;
-		if ((Flags132 & 0x40) != 0)
+		if ((Flags44 & 0x40) != 0)
 			result += 6f;
 		Result144 = (int)result;
 		Field56 = result;

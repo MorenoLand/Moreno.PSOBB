@@ -53,7 +53,7 @@ public sealed class Scene2TextControlRecordTests
 		Assert.Equal(60f, control.Field56);
 		Assert.Equal(60, control.Result144);
 
-		control.Flags132 = 0x40;
+		control.Flags44 = 0x40;
 		control.MeasureLayout(0);
 		Assert.Equal(66f, control.Field56);
 	}
