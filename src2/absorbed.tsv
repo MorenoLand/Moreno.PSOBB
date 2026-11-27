@@ -138,3 +138,9 @@
 0x0085CD1D	A Pentium FDIV startup probe; the port runs no such check and has no counterpart.
 0x0085CD5D	A Pentium FDIV startup probe; the port runs no such check and has no counterpart.
 0x00863BD3	The platform file interface replaces the original file handle table allocation.
+0x00858020	The CLR probes stack pages itself; this page-probe helper has no counterpart.
+0x00707664	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
+0x00707678	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
+0x0070768C	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
+0x00866D7B	x87 control-word helper for the C runtime's floating-point state; the port's arithmetic is double and does not read or change that state.
+0x00866CE9	x87 control-word helper for the C runtime's floating-point state; the port's arithmetic is double and does not read or change that state.
