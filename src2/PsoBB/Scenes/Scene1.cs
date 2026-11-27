@@ -172,7 +172,7 @@ public sealed class Scene1 : IDisposable
 	}
 
 	/// <summary>
-	/// Adds the logo rectangles for the current timeline state and the black fade overlay.
+	/// Adds the white background, the logo rectangles for the current timeline state and the black fade overlay.
 	/// </summary>
 	/// <param name="draw">The draw list that receives the quads.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
@@ -181,6 +181,7 @@ public sealed class Scene1 : IDisposable
 	{
 		ArgumentNullException.ThrowIfNull(draw);
 		ObjectDisposedException.ThrowIf(_disposed, this);
+		draw.Add(new UiQuad(Vector2.Zero, FadeOverlaySize, new Vector4(0f, 0f, 1f, 1f), null, 0xFFFFFFFFu));
 		if (!_sequence.IsFinished)
 			_logo.Draw(draw, _sequence.Variant);
 		if (_sequence.Alpha > 0)

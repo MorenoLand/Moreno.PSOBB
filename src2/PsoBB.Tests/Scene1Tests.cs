@@ -102,19 +102,23 @@ public sealed class Scene1Tests : IDisposable
 		using Scene1 scene = new(files, renderer, textures, cinematicLogo: true);
 		UiDrawList draw = new();
 		scene.Draw(draw);
-		Assert.Equal(9, draw.Quads.Count);
+		Assert.Equal(10, draw.Quads.Count);
+		Assert.Null(draw.Quads[0].Texture);
+		Assert.Equal(Vector2.Zero, draw.Quads[0].Position);
+		Assert.Equal(Scene1.FadeOverlaySize, draw.Quads[0].Size);
+		Assert.Equal(0xFFFFFFFFu, draw.Quads[0].Color);
 		for (int index = 0; index < 8; index++)
 		{
 			TitleLogoQuad quad = TitleLogo.Quads[index];
-			UiQuad submitted = draw.Quads[index];
+			UiQuad submitted = draw.Quads[index + 1];
 			Assert.Same(scene.Logo.Frames[quad.TextureIndex], submitted.Texture);
 			Assert.Equal(new Vector2(quad.X, quad.Y), submitted.Position);
 			Assert.Equal(new Vector2(quad.Width, quad.Height), submitted.Size);
 			Assert.Equal(new Vector4(0f, 0f, 1f, 1f), submitted.TextureCoordinates);
 			Assert.Equal(0xFFFFFFFFu, submitted.Color);
 		}
-		Assert.Equal(Scene1.FadeOverlaySize, draw.Quads[8].Size);
-		Assert.Equal(0xFF000000u, draw.Quads[8].Color);
+		Assert.Equal(Scene1.FadeOverlaySize, draw.Quads[9].Size);
+		Assert.Equal(0xFF000000u, draw.Quads[9].Color);
 	}
 
 	[Fact]
