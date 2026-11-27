@@ -8,6 +8,7 @@ using PsoBB.Gui;
 using PsoBB.Imaging;
 using PsoBB.Input;
 using PsoBB.Net;
+using PsoBB.Net.Patch;
 using PsoBB.Save;
 using PsoBB.Scenes;
 using PsoBB.Text;
@@ -43,6 +44,7 @@ public static class Scene2TitlePreview
 		Scene2StartGameModeMachine? machine = null;
 		TitleExitConfirm? confirm = null;
 		TitleRegisterDialog? register = null;
+		PatchDownloadFlow? patch = null;
 		ControllerButtonState? controller = null;
 		bool startGame = false;
 		bool machineStopped = false;
@@ -106,6 +108,16 @@ public static class Scene2TitlePreview
 					menu?.Dialog.ClearRequest();
 				}
 			}
+			else if (patch is not null)
+			{
+				patch.Update();
+				if (input.WasActionPressed(InputAction.Cancel))
+				{
+					patch.Dispose();
+					patch = null;
+					menu?.Dialog.ClearRequest();
+				}
+			}
 			else if (menuVisible && menu is not null)
 			{
 				menu.Update(input);
@@ -134,6 +146,19 @@ public static class Scene2TitlePreview
 			{
 				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface);
 				menu.Dialog.ClearRequest();
+			}
+			if (action == LoginDialogAction.PatchDownload && patch is null && network is not null && textSurface is not null)
+			{
+				ServerEndpoints endpoints = new(network.Hosts);
+				PatchLogin patchLogin = new()
+				{
+					Username = network.LoginRequest.Username,
+					Password = network.LoginRequest.Password,
+				};
+				PatchDownloadFlow flow = new(network.ConnectionFactory(), host.FileSystem, patchLogin);
+				flow.Start(endpoints.GetPatchHost(network.ClientMode), endpoints.GetPatchPort(network.ClientMode));
+				patch = flow;
+				menu?.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 3 && !startGame))
 			{
@@ -204,9 +229,10 @@ public static class Scene2TitlePreview
 				frame++;
 				continue;
 			}
-			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, confirm, register, menuVisible, hidden, frame, capture);
+			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, confirm, register, patch, textSurface, menuVisible, hidden, frame, capture);
 			frame++;
 		}
+		patch?.Dispose();
 		register?.Dispose();
 		confirm?.Dispose();
 		directory?.Dispose();
@@ -312,7 +338,7 @@ public static class Scene2TitlePreview
 		};
 	}
 
-	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, TitleExitConfirm? confirm, TitleRegisterDialog? register, bool menuVisible, bool hidden, int frame, Action<int>? capture)
+	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, TitleExitConfirm? confirm, TitleRegisterDialog? register, PatchDownloadFlow? patch, IUiTextSurface? textSurface, bool menuVisible, bool hidden, int frame, Action<int>? capture)
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
@@ -340,6 +366,8 @@ public static class Scene2TitlePreview
 			dialog.Draw(ui);
 			confirm?.Draw(ui);
 			register?.Draw(ui);
+			if (patch is not null && textSurface is not null)
+				patch.Draw(ui, textSurface);
 			ui.Render(renderer);
 		}
 		capture?.Invoke(frame);
