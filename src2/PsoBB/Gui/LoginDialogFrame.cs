@@ -68,6 +68,9 @@ public sealed class LoginDialogFrame : IDisposable
 	/// <summary>Gets or sets the diffuse colour applied to the selected-row slices.</summary>
 	public uint RowColor { get; set; } = SkinColor;
 
+	/// <summary>Gets or sets whether the orange header pill is drawn.</summary>
+	public bool ShowHeader { get; set; } = true;
+
 	/// <summary>Gets or sets the distance from the panel top to the first selectable row.</summary>
 	public float RowAreaTop { get; set; } = HeaderHeight;
 
@@ -103,7 +106,8 @@ public sealed class LoginDialogFrame : IDisposable
 		ArgumentNullException.ThrowIfNull(drawList);
 		ObjectDisposedException.ThrowIf(IsDisposed, this);
 		DrawPanel(drawList);
-		DrawHeader(drawList);
+		if (ShowHeader)
+			DrawHeader(drawList);
 		if (selectedIndex >= 0)
 			DrawRow(drawList, selectedIndex, hovered);
 	}

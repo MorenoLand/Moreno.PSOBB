@@ -261,10 +261,8 @@ public sealed class OnlineScene : IDisposable
 		string? welcome = _loginFlow?.Welcome?.Message?.Decode();
 		if (welcome is not null)
 		{
-			DrawWrapped(surface, draw, welcome, new Vector2(16f, 36f), 608f, 0xFFFFFFFFu);
-			surface.Draw(draw, CurrentStatusText, new Vector2(23f, 320f), StatusColor);
-			surface.Draw(draw, AllStatusText, new Vector2(23f, 360f), StatusColor);
-			surface.Draw(draw, PressEnterText, new Vector2(23f, 420f), 0xFFFFE040u);
+			DrawWrapped(surface, draw, welcome, new Vector2(40f, 30f), 540f, 0xFFFFFFFFu);
+			surface.Draw(draw, PressEnterText, new Vector2(40f, 425f), 0xFFFFFFFFu);
 			return;
 		}
 		surface.Draw(draw, ConnectingText, new Vector2(StatusX, StatusY), StatusColor);
@@ -289,8 +287,8 @@ public sealed class OnlineScene : IDisposable
 			if (line.Length > 0 && surface.Measure(candidate) > width)
 			{
 				surface.Draw(draw, line.ToString(), new Vector2(origin.X, y), color);
-				y += 14f;
-				if (y > origin.Y + 70f)
+				y += 20f;
+				if (y > origin.Y + 150f)
 					return;
 				line.Clear();
 			}
@@ -369,9 +367,30 @@ public sealed class OnlineScene : IDisposable
 		};
 	}
 
+	/// <summary>The welcome panel position observed on the oracle frame.</summary>
+	public static readonly Vector2 WelcomePanelPosition = new(33f, 23f);
+
+	/// <summary>The welcome panel size observed on the oracle frame.</summary>
+	public static readonly Vector2 WelcomePanelSize = new(573f, 178f);
+
+	/// <summary>The press-enter panel position observed on the oracle frame.</summary>
+	public static readonly Vector2 PromptPanelPosition = new(33f, 417f);
+
+	/// <summary>The press-enter panel size observed on the oracle frame.</summary>
+	public static readonly Vector2 PromptPanelSize = new(573f, 51f);
+
+	/// <summary>Gets or sets the title skin page the welcome panels are drawn from.</summary>
+	public ITexture? SkinTexture { get; set; }
+
 	[Original(0x00407F6C, "OnlineScene_DrawProgressPanel_00407f6c")]
 	private void DrawProgressPanel(UiDrawList draw)
 	{
+		if (SkinTexture is not null && _loginFlow?.Welcome is not null)
+		{
+			DrawSkinPanel(draw, WelcomePanelPosition, WelcomePanelSize);
+			DrawSkinPanel(draw, PromptPanelPosition, PromptPanelSize);
+			return;
+		}
 		DrawUpperPanel(draw);
 		DrawLowerPanel(draw);
 	}
@@ -381,6 +400,12 @@ public sealed class OnlineScene : IDisposable
 
 	[Original(0x0040808C, "OnlineScene_DrawLowerPanel_0040808c")]
 	private static void DrawLowerPanel(UiDrawList draw) => DrawPanel(draw, LowerPanelPosition, LowerPanelSize);
+
+	private void DrawSkinPanel(UiDrawList draw, Vector2 position, Vector2 size)
+	{
+		using LoginDialogFrame frame = new() { PanelTexture = SkinTexture, OwnsTextures = false, Position = position, Size = size, ShowHeader = false };
+		frame.Draw(draw, -1);
+	}
 
 	[Original(0x00407FD8, "OnlineScene_DrawPanel_00407fd8")]
 	private static void DrawPanel(UiDrawList draw, Vector2 position, Vector2 size) =>

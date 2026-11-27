@@ -125,7 +125,7 @@ internal static class Program
 		string? captureDirectory = Environment.GetEnvironmentVariable("PSOBB_CAPTURE");
 		Action<int>? capture = captureDirectory is null ? null : frame =>
 		{
-			if (frame is not (0 or 2 or 10 or 60))
+			if (frame is not (0 or 2 or 10 or 60 or 240 or 480))
 				return;
 			Directory.CreateDirectory(captureDirectory);
 			WriteBmp(Path.Combine(captureDirectory, $"start-{frame:D3}.bmp"), renderer.Settings.Width, renderer.Settings.Height, renderer.CaptureFrame());

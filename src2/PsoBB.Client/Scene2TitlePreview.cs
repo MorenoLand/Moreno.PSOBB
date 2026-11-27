@@ -264,6 +264,8 @@ public static class Scene2TitlePreview
 			if (online is not null)
 			{
 				online.Update(input);
+				if (directory?.OnlineScene is { } welcomeScene)
+					welcomeScene.SkinTexture ??= menu?.Dialog.Frame?.PanelTexture;
 				if (startGameDiagnostic && !characterRequested && directory?.OnlineScene?.LoginFlow is { State: LoginFlowState.CharacterSelect, SystemFileCreated: true })
 					characterRequested = directory.OnlineScene.SelectCharacter(0);
 				if (startGameDiagnostic && !lobbyRequested && directory?.OnlineScene?.GameServerFlow?.World is { Menu: { Count: > 0 } serverMenu } lobbyWorld)
