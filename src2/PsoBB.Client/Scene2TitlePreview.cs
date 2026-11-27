@@ -47,6 +47,7 @@ public static class Scene2TitlePreview
 		ISceneScreen? online = null;
 		bool confirmEdge = false;
 		bool characterRequested = false;
+		bool lobbyRequested = false;
 		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
@@ -138,6 +139,9 @@ public static class Scene2TitlePreview
 				online.Update(input);
 				if (startGameDiagnostic && !characterRequested && directory?.OnlineScene?.LoginFlow?.State == LoginFlowState.CharacterSelect)
 					characterRequested = directory.OnlineScene.SelectCharacter(0);
+				if (startGameDiagnostic && !lobbyRequested && directory?.OnlineScene?.GameServerFlow?.World is { LobbyMenu: { Count: > 0 } mainMenu } lobbyWorld
+					&& mainMenu.Records.Any(record => record.MenuId == MenuSelectionPacket.MainMenuId))
+					lobbyRequested = lobbyWorld.SelectMainMenuItem(MenuSelectionPacket.GoToLobbyItem);
 				UiDrawList ui = new();
 				online.Draw(ui);
 				if (textSurface is not null)

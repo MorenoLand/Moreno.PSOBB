@@ -148,6 +148,18 @@ public sealed class NetPacketTests
 		Assert.Equal(preview, read.Preview.ToArray());
 	}
 
+	/// <summary>
+	/// The base 0x10 selection carries the main-menu and "Go to lobby" identifiers.
+	/// </summary>
+	[Fact]
+	public void MenuSelectionRoundTripsTheTwoIdentifiers()
+	{
+		MenuSelectionPacket packet = new() { MenuId = MenuSelectionPacket.MainMenuId, ItemId = MenuSelectionPacket.GoToLobbyItem };
+		MenuSelectionPacket read = MenuSelectionPacket.Read(packet.WritePayload());
+		Assert.Equal(0x11000011u, read.MenuId);
+		Assert.Equal(0x11222211u, read.ItemId);
+	}
+
 	[Fact]
 	public void ServerInitRoundTripsCopyrightAndKeys()
 	{
