@@ -43,3 +43,9 @@ has been read for.
   stores the results in the globals `0x00A489E8` and `0x00A489DC`.
 - Unread helpers: `0x004D1FF4`, `0x004D3BA8`, `0x004D3C98`, `0x004D3D14`, `0x004D3D6C`, `0x004D3DF4`, `0x004D3E90`,
   `0x004D3EF4`, `0x0082EBC8`, `0x004D4048`.
+
+## Ported members
+
+`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`) names the proven fields: the eye at `+0x178`,
+the target at `+0x184` (the update subtracts the eye from the target to get the viewing direction), the eye and target
+the active mode asks for at `+0x1A0` and `+0x1AC`, and the eye recorded at `+0x1C8`. `SnapToDesired` is `0x004D3E90`.

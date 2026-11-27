@@ -1117,6 +1117,29 @@ def qsort_vectors(read):
     write("008CADE0.json", vectors)
 
 
+CAMERA = 0x20006000
+CAMERA_SIZE = 0x1D4
+
+
+def camera_blocks(count, seed):
+    """Camera objects whose every dword is a random finite single-precision float."""
+    generator = random.Random(seed)
+    blocks = []
+    for _ in range(count):
+        values = [generator.uniform(-1000.0, 1000.0) for _ in range(CAMERA_SIZE // 4)]
+        blocks.append(struct.pack("<%df" % len(values), *values))
+    return blocks
+
+
+def camera_snap_vectors(read):
+    """0x004D3E90: the camera's current eye and target are set from the desired pair, and the eye is stored again."""
+    vectors = []
+    for block in camera_blocks(24, 0x4D3E90):
+        _, _, captured = run(read, 0x004D3E90, 97, registers={"ecx": CAMERA}, memory=[(CAMERA, block)], capture=[(CAMERA, CAMERA_SIZE)])
+        vectors.append({"input": block.hex(), "output": bytes(captured[CAMERA]).hex()})
+    write("004D3E90.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
@@ -1160,6 +1183,7 @@ def main():
     atoi64_vectors(read)
     shortsort_vectors(read)
     qsort_vectors(read)
+    camera_snap_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
