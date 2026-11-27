@@ -927,6 +927,27 @@ def ip6_v4_vectors(read):
     write("008A8C52.json", vectors)
 
 
+def ascii_strnicmp_vectors(read):
+    """0x00863DE0 (___ascii_strnicmp): compares at most n bytes of two zero-terminated strings, folding only A to Z; returns -1, 0 or 1."""
+    base_a, base_b = 0x20000000, 0x20001000
+    nul = bytes([0])
+    cases = [
+        (b"abc" + nul, b"abc" + nul, 4), (b"ABC" + nul, b"abc" + nul, 4), (b"abc" + nul, b"abd" + nul, 4),
+        (b"abd" + nul, b"abc" + nul, 4), (b"ab" + nul, b"abc" + nul, 4), (b"abc" + nul, b"ab" + nul, 4),
+        (b"abc" + nul, b"abc" + nul, 0), (b"abcd" + nul, b"abce" + nul, 3), (b"@" + nul, b"`" + nul, 2),
+        (b"[" + nul, b"{" + nul, 2), (b"Z" + nul, b"z" + nul, 2), (bytes([0xC1, 0]), bytes([0xE1, 0]), 2),
+        (b"Hello World" + nul, b"hello world" + nul, 20), (nul, b"a" + nul, 2), (b"a" + nul, nul, 2),
+        (bytes([0x80, 0x41, 0]), bytes([0x80, 0x61, 0]), 3),
+    ]
+    vectors = []
+    for a, b, n in cases:
+        eax, _, _ = run(read, 0x00863DE0, 80, stack=[base_a, base_b, n],
+                        memory=[(base_a, a), (base_b, b)])
+        signed = eax - (1 << 32) if eax >= 0x80000000 else eax
+        vectors.append({"a": a.hex(), "b": b.hex(), "n": n, "result": signed})
+    write("00863DE0.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
