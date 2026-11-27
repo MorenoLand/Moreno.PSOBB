@@ -948,6 +948,17 @@ def ascii_strnicmp_vectors(read):
     write("00863DE0.json", vectors)
 
 
+def tolower_c_vectors(read):
+    """0x008598F9 (___tolower_mt) on the C-locale path: a zero locale field at +0x14 selects the ASCII fold of A to Z."""
+    base = 0x20000000
+    vectors = []
+    for c in list(range(-1, 256)):
+        eax, _, _ = run(read, 0x008598F9, 200, stack=[base, c & 0xFFFFFFFF], memory=[(base, bytes(256))])
+        signed = eax - (1 << 32) if eax >= 0x80000000 else eax
+        vectors.append({"c": c, "result": signed})
+    write("008598F9.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()

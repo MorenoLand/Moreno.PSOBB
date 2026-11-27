@@ -30,6 +30,14 @@ public static class CrtCharacters
 		}
 	}
 
+	/// <summary>
+	/// Lowers a character on the C-locale path of the original's <c>___tolower_mt</c>: only the capitals A to Z change, and every other value, negative end-of-file included, is returned unchanged.
+	/// </summary>
+	/// <param name="character">The character value.</param>
+	/// <returns>The lowercase letter, or the value unchanged.</returns>
+	[Original(0x008598F9, "___tolower_mt")]
+	public static int ToLowerC(int character) => character is >= 'A' and <= 'Z' ? character + 0x20 : character;
+
 	private static byte ByteAt(ReadOnlySpan<byte> text, int index) => index < text.Length ? text[index] : (byte)0;
 
 	private static byte FoldAsciiCapital(byte value) => value is >= (byte)'A' and <= (byte)'Z' ? (byte)(value + 0x20) : value;
