@@ -339,4 +339,7 @@ object in mode 26 and the `0x004170AC` UI list constructors remain host seams; t
 column words are written at runtime by `0x007354FC`/`0x00735708`/`0x00735884` (`0x009F30EC`) and
 `0x0073B1E8` (`0x009F3248`). The base-window draw and glyph path remain host seams. The running
 `--startgame` diagnostic confirms the state-9 rows at frame 10 using a synthetic `PSO_CHARACTER`,
-then the scene-11 `Connecting..` label at frame 60.
+then the scene-11 `Connecting..` label at frame 60. The stored oracle corpus does not contain a
+successful state-9 frame: `t23` is the patch-server-full dialog and `t24` is the title with the
+`! DLL ERROR !` line, so the state-9 and scene-11 screens cannot be pixel-verified from those
+captures.
