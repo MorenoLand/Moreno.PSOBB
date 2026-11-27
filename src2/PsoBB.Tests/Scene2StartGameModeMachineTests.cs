@@ -5,6 +5,7 @@ using PsoBB.Gui;
 using PsoBB.Input;
 using PsoBB.Save;
 using PsoBB.Scenes;
+using PsoBB.Text;
 
 namespace PsoBB.Tests;
 
@@ -209,6 +210,32 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 
 		Assert.Equal(16u, machine.Mode);
 		Assert.Equal(12, SystemSave.Pending);
+	}
+
+	[Fact]
+	public void TheModeTwentyFiveEntrySelectsTheEventText()
+	{
+		int[] sizes = new int[72];
+		sizes[71] = 21;
+		string[] values = new string[21];
+		Array.Fill(values, string.Empty);
+		for (int index = 5; index < values.Length; index++)
+			values[index] = $"T{index}";
+		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [71] = values }));
+
+		Scene2StartGameModeMachine machine = new(_files) { EventCode = () => 0, TextTable = table };
+		machine.SetMode(25);
+		Assert.Equal("T5", machine.Mode25Text);
+		Assert.True(machine.Mode25Ready);
+
+		machine = new(_files) { EventCode = () => 13, TextTable = table };
+		machine.SetMode(25);
+		Assert.Equal("T20", machine.Mode25Text);
+
+		machine = new(_files) { EventCode = () => 14, TextTable = table };
+		machine.SetMode(25);
+		Assert.Null(machine.Mode25Text);
+		Assert.False(machine.Mode25Ready);
 	}
 
 	[Fact]
@@ -522,8 +549,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	{
 		Scene2StartGameModeMachine machine = new(_files);
 
-		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(25));
-		Assert.Contains("25", error.Message);
+		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(24));
+		Assert.Contains("24", error.Message);
 	}
 
 	private sealed class Files : IDataFiles
@@ -546,6 +573,7 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
 
 
 
