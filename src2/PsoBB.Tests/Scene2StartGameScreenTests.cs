@@ -52,7 +52,7 @@ public sealed class Scene2StartGameScreenTests : IDisposable
 		Assert.Equal(Scene2StartGameScreen.RowY, screen.Menu.Position.Y);
 		Assert.Equal(Scene2StartGameScreen.RowStep, screen.Menu.ItemHeight);
 		Assert.Equal(Scene2StartGameScreen.RowHeight, screen.Menu.SelectionHeight);
-		Assert.Equal(28f, Scene2StartGameScreen.RowX);
+		Assert.Equal(131f, Scene2StartGameScreen.RowX);
 		Assert.Equal(182f, Scene2StartGameScreen.RowY);
 		Assert.Equal(43f, Scene2StartGameScreen.RowStep);
 		Assert.Equal(180f, Scene2StartGameScreen.RowWidth);

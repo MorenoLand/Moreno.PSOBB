@@ -316,12 +316,15 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		values[27] = "First";
 		values[34] = "Second";
 		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [29] = values }));
-		Scene2StartGameModeMachine machine = new(_files) { TextTable = table };
+		Scene2StartGameModeMachine machine = new(_files) { TextTable = table, TextSurface = new NoopSurface() };
 
 		machine.SetMode(22);
 
 		Assert.Equal("First\nSecond", machine.Mode22Text);
 		Assert.True(machine.Mode22Ready);
+		Assert.NotNull(machine.Mode22Box);
+		Assert.Equal("First\nSecond", machine.Mode22Box!.Box.Cells[0].Text);
+		Assert.Null(machine.Mode22Box.Options);
 	}
 
 	[Fact]

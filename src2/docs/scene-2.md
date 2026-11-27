@@ -303,11 +303,12 @@ the mode-6 system start, and the mode-7 four-slot character validation. `SystemS
 for the asynchronous worker at `0x006C38BC`; it completes pending 16 before each dispatch. The mode-7
 valid flag set selects mode 23, which writes the shared lobby screen state 6.
 
-The four character rows use the shipped pairs at `0x008F8940`/`0x008F8944`: x 28 and y 182, 225,
-268 and 311, with 43-pixel spacing. `0x00406624` adds the 180-by-38 selection rectangle from
-`0x008F8988`/`0x008F8984`; the list widget uses the same 180 width and 38 selection height. The further columns at
-`0x008F8908` (x 131) and `0x008F8928` (x 234), and the three extra rows those columns carry, remain
-unported; the screen draws only the four character rows.
+The default state-9 layout (`this+8 == 0`) uses the four pairs at `0x008F8908`/`0x008F890C`: x 131
+and y 182, 225, 268 and 311, with 43-pixel spacing. `0x00406624` adds the 180-by-38 selection
+rectangle from `0x008F8988`/`0x008F8984`; the list widget uses the same 180 width and 38 selection
+height. The `this+8 == 1` branch uses x 28 at `0x008F8940` and adds three rows at x 234 from
+`0x008F8928`; the `this+8 == 2` branch uses three rows at x 28. Those two branches and their extra
+rows remain unported; the screen draws only the default four rows.
 
 Ported entry callbacks: `0x00405734` (5), `0x00405670` (14), `0x00405600` (15),
 `0x00405580` (16), `0x004054C0` (20), `0x0040544C` (21), `0x004053E0` (22),
