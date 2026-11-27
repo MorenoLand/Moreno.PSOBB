@@ -63,11 +63,17 @@
 
 <section>
   <h2>Where the code stands</h2>
-  <p class="note">Share of the original code bytes: ported with a C# member that carries the original address, absorbed because the .NET runtime replaces it, or still missing.</p>
+  <p class="note">Share of the game's original code bytes (third-party code excluded): ported with a C# member that carries the original address, absorbed because the .NET runtime replaces it, or still missing.</p>
   <div class="two">
     <div id="donut"></div>
     <div id="kinds"></div>
   </div>
+</section>
+
+<section>
+  <h2>Side task: third-party code</h2>
+  <p class="note">The C runtime, libpng, libjpeg, zlib and D3DX are third-party. They do not count toward the headline numbers; they are tracked here and are handled by the .NET runtime or libraries.</p>
+  <div class="cards" id="side"></div>
 </section>
 
 <section>
@@ -146,6 +152,15 @@
         '<div class="bar"><b style="width:' + p + '%;background:' + colors[k] + '"></b></div><div class="pct">' + p.toFixed(2) + '%</div></div>' +
         '<div class="sub" style="margin:-4px 0 6px 18px;font-size:12px">' + fmt(K[k].functions) + ' functions · ' + fmt(K[k].bytes) + ' bytes</div>';
     }).join("");
+
+    var S = D.side;
+    $("side").innerHTML = S ? [
+      ["Ported", fmt(S.ported.functions), fmt(S.ported.bytes) + " bytes"],
+      ["Absorbed", fmt(S.absorbed.functions), fmt(S.absorbed.bytes) + " bytes"],
+      ["Missing", fmt(S.missing.functions), fmt(S.missing.bytes) + " bytes"]
+    ].map(function (c) {
+      return '<div class="card"><div class="k">' + c[0] + '</div><div class="v">' + c[1] + '</div><div class="n">' + c[2] + '</div></div>';
+    }).join("") : "";
 
     if (H.length < 2) {
       $("trend").innerHTML = '<p class="note">The trend appears after the second refresh of the report.</p>';

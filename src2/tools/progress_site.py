@@ -26,6 +26,8 @@ TEMPLATE = Path(__file__).resolve().parent / "site"
 EXCLUDED = {"WinMain_16_1.c", "WinMain_16_2.c", "cfltcvt.c", "nullsub.c", "unknown.c"}
 FN_ENTER = re.compile(r"FN_ENTER\(0x([0-9A-Fa-f]{6,8})\)")
 SMALL = 64
+SIDE_TASK = "Third-party code (side task)"
+THIRD_PARTY_CATEGORIES = {"lib:crt", "lib:png", "lib:jpeg", "lib:zlib"}
 EASY_LIMIT = 200
 LARGEST_LIMIT = 30
 
@@ -70,10 +72,8 @@ def group_of(row, home):
     """Name the part of the program a function belongs to, for the area table."""
     if home in EXCLUDED:
         return "Excluded by goal"
-    if home.startswith("mangled_"):
-        return "D3DX and libjpeg"
-    if row["category"] == "lib:crt":
-        return "C runtime label"
+    if home.startswith("mangled_") or row["category"] in THIRD_PARTY_CATEGORIES:
+        return SIDE_TASK
     return "Game code"
 
 
@@ -90,6 +90,7 @@ def in_scope_addresses(rows, homes, misc_files):
 def build(rows, ported, absorbed, homes, misc_files):
     """Compute the totals, the groups, the largest and the easiest missing game functions."""
     kinds = {"ported": [0, 0], "absorbed": [0, 0], "missing": [0, 0]}
+    side = {"ported": [0, 0], "absorbed": [0, 0], "missing": [0, 0]}
     groups = {}
     for address, row in rows.items():
         home = homes.get(address, "-")
@@ -100,15 +101,17 @@ def build(rows, ported, absorbed, homes, misc_files):
             state = "absorbed"
         else:
             state = "missing"
-        kinds[state][0] += 1
-        kinds[state][1] += row["size"]
+        target = side if name == SIDE_TASK else kinds
+        target[state][0] += 1
+        target[state][1] += row["size"]
         group = groups.setdefault(name, {"functions": 0, "bytes": 0, "ported": [0, 0], "absorbed": [0, 0], "missing": [0, 0]})
         group["functions"] += 1
         group["bytes"] += row["size"]
         group[state][0] += 1
         group[state][1] += row["size"]
 
-    total_bytes = sum(row["size"] for row in rows.values())
+    total_bytes = sum(v[1] for v in kinds.values())
+    total_functions = sum(v[0] for v in kinds.values())
     scope = in_scope_addresses(rows, homes, misc_files)
     scope_open = [a for a in scope if a not in ported and a not in absorbed]
 
@@ -119,7 +122,8 @@ def build(rows, ported, absorbed, homes, misc_files):
     done_bytes = kinds["ported"][1] + kinds["absorbed"][1]
     return {
         "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "total": {"functions": len(rows), "bytes": total_bytes},
+        "total": {"functions": total_functions, "bytes": total_bytes},
+        "side": {k: {"functions": v[0], "bytes": v[1]} for k, v in side.items()},
         "done": {"bytes": done_bytes, "share": round(100.0 * done_bytes / total_bytes, 3) if total_bytes else 0.0},
         "kinds": {k: {"functions": v[0], "bytes": v[1]} for k, v in kinds.items()},
         "scope": {"functions": len(scope), "open": len(scope_open)},
