@@ -65,6 +65,18 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets the entry state at offset 0x30.</summary>
 	public int EntryState { get; set; }
 
+	/// <summary>Gets or sets the word at offset 0x20.</summary>
+	public int Flag32 { get; set; }
+
+	/// <summary>Gets or sets the word at offset 0x28.</summary>
+	public int Field10 { get; set; }
+
+	/// <summary>Gets or sets the word at offset 0x2C.</summary>
+	public int Field11 { get; set; }
+
+	/// <summary>Gets or sets the interface handle at offset 0x6C.</summary>
+	public int Flag27 { get; set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -134,6 +146,9 @@ public sealed class Scene2StartGameModeMachine
 		{
 			case 0:
 				Mode0();
+				break;
+			case 1:
+				Mode1();
 				break;
 			case 2:
 				Mode2();
@@ -207,6 +222,47 @@ public sealed class Scene2StartGameModeMachine
 		EntryState = 1;
 		SetMode(1);
 	}
+
+	/// <summary>
+	/// Selects the next mode from the nine file flags at <c>0x004033E8</c>.
+	/// </summary>
+	[Original(0x004033E8)]
+	private void Mode1()
+	{
+		uint next = 3;
+		bool anyZero = false;
+		for (int index = 1; index < FileFlags.Length; index++)
+			anyZero |= FileFlags[index] == 0;
+		if (FileFlags[0] == 0 || anyZero)
+			next = Flag32 != 0 ? 18u : 20u;
+		else
+		{
+			bool anyMinus = FileFlags[0] == -1;
+			bool anyOne = false;
+			for (int index = 1; index < FileFlags.Length; index++)
+			{
+				anyMinus |= FileFlags[index] == -1;
+				anyOne |= FileFlags[index] == 1;
+			}
+			if (FileFlags[0] == -1 && anyOne)
+				next = 3;
+			else if (anyMinus)
+				next = Flag32 != 0 ? 19u : 20u;
+			else
+				next = Field10 != 0 || Field11 != 0 ? 2u : 3u;
+		}
+		if (Flag27 == 0 && next is 18 or 19)
+			CounterB = 97;
+		SetMode(next);
+	}
+
+	/// <summary>
+	/// Returns the free-space budget at <c>0x00403770</c>; <c>0x00844D38</c> is the constant
+	/// 819200000, so the value is always 90 minus 50000.
+	/// </summary>
+	/// <returns>The negative budget.</returns>
+	[Original(0x00403770)]
+	public static int FreeSpaceBudget() => 90 - 819200000 / 0x4000;
 
 	[Original(0x00403864)]
 	private void Mode2()
@@ -385,4 +441,6 @@ public sealed class Scene2StartGameModeMachine
 		}
 	}
 }
+
+
 

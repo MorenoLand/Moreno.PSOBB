@@ -59,6 +59,71 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void ModeOneSelectsNineteenForTheAllMinusOneFlags()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(1);
+		Array.Fill(machine.FileFlags, -1);
+		machine.Flag32 = 1;
+		machine.Flag27 = 1;
+
+		machine.Advance();
+
+		Assert.Equal(19u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeOneSelectsEighteenForAZeroFlag()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(1);
+		Array.Fill(machine.FileFlags, 1);
+		machine.FileFlags[4] = 0;
+		machine.Flag32 = 1;
+
+		machine.Advance();
+
+		Assert.Equal(18u, machine.Mode);
+		Assert.Equal(96, machine.CounterB);
+	}
+
+	[Fact]
+	public void ModeOneSelectsThreeOrTwoForTheAllOneFlags()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(1);
+		Array.Fill(machine.FileFlags, 1);
+
+		machine.Advance();
+		Assert.Equal(3u, machine.Mode);
+
+		machine.SetMode(1);
+		machine.Field10 = 1;
+		machine.Advance();
+		Assert.Equal(2u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeOneSelectsThreeForTheMixedMinusOneAndOneFlags()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(1);
+		Array.Fill(machine.FileFlags, -1);
+		machine.FileFlags[3] = 1;
+
+		machine.Advance();
+
+		Assert.Equal(3u, machine.Mode);
+	}
+
+	[Fact]
+	public void TheFreeSpaceBudgetIsNegative()
+	{
+		Assert.Equal(90 - 50000, Scene2StartGameModeMachine.FreeSpaceBudget());
+		Assert.True(Scene2StartGameModeMachine.FreeSpaceBudget() < 0);
+	}
+
+	[Fact]
 	public void ModeTwoWaitsForItsCounter()
 	{
 		Scene2StartGameModeMachine machine = new(_files);
@@ -244,5 +309,6 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
 
 
