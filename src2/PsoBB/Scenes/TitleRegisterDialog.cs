@@ -69,6 +69,9 @@ public sealed class TitleRegisterDialog : IDisposable
 	/// <summary>Gets the entered password.</summary>
 	public string Password => _password.Text;
 
+	/// <summary>Gets or sets the callback that plays a sound-effect identifier.</summary>
+	public Action<int>? SoundPlayer { get; set; }
+
 	/// <summary>Gets whether the confirm action was accepted.</summary>
 	public bool Confirmed { get; private set; }
 
@@ -86,15 +89,25 @@ public sealed class TitleRegisterDialog : IDisposable
 		ReadText(input.Keyboard);
 		if (input.WasActionPressed(InputAction.Cancel))
 		{
+			SoundPlayer?.Invoke(UiSounds.Cancel);
 			Cancelled = true;
 			return;
 		}
 		if (input.WasActionPressed(InputAction.MoveForward))
+		{
 			Select((_index + 3) % 4);
+			SoundPlayer?.Invoke(UiSounds.Select);
+		}
 		else if (input.WasActionPressed(InputAction.MoveBackward))
+		{
 			Select((_index + 1) % 4);
+			SoundPlayer?.Invoke(UiSounds.Select);
+		}
 		if (input.WasActionPressed(InputAction.Confirm) && _index >= 2)
+		{
+			SoundPlayer?.Invoke(UiSounds.Activate);
 			Activate(_index - 2);
+		}
 	}
 
 	/// <summary>Adds the panel, labels, fields and buttons to the draw list.</summary>

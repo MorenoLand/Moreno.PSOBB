@@ -130,7 +130,7 @@ internal sealed class TitleAudio : IDisposable
 	{
 		if (Environment.GetEnvironmentVariable("PSOBB_AUDIODBG") is null)
 			return;
-		foreach (int soundEffectId in (ReadOnlySpan<int>)[SelectionSound, ConfirmSound, CancelSound])
+		foreach (int soundEffectId in (ReadOnlySpan<int>)[SelectionSound, ConfirmSound, CancelSound, PsoBB.Gui.UiSounds.Activate])
 		{
 			SoundEffectMapping? mapping = effects.Resolve(soundEffectId);
 			ReportDiagnostic(mapping is { } value

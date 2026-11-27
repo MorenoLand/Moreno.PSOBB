@@ -58,6 +58,9 @@ public sealed class TitleExitConfirm : IDisposable
 		_list.TextSurface = surface;
 	}
 
+	/// <summary>Gets or sets the callback that plays a sound-effect identifier.</summary>
+	public Action<int>? SoundPlayer { get; set; }
+
 	/// <summary>Gets whether the confirm row was accepted.</summary>
 	public bool Confirmed { get; private set; }
 
@@ -74,15 +77,20 @@ public sealed class TitleExitConfirm : IDisposable
 			return;
 		if (input.WasActionPressed(InputAction.Cancel))
 		{
+			SoundPlayer?.Invoke(UiSounds.Cancel);
 			Cancelled = true;
 			return;
 		}
+		int selected = _list.SelectedIndex;
 		if (input.WasActionPressed(InputAction.MoveForward))
 			_list.SelectPrevious();
 		else if (input.WasActionPressed(InputAction.MoveBackward))
 			_list.SelectNext();
+		if (_list.SelectedIndex != selected)
+			SoundPlayer?.Invoke(UiSounds.Select);
 		if (input.WasActionPressed(InputAction.Confirm))
 		{
+			SoundPlayer?.Invoke(UiSounds.Activate);
 			if (_list.SelectedData == 0)
 				Confirmed = true;
 			else

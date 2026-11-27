@@ -113,6 +113,7 @@ public static class Scene2TitlePreview
 				patch.Update();
 				if (input.WasActionPressed(InputAction.Cancel))
 				{
+					audio?.Play(TitleAudio.CancelSound);
 					patch.Dispose();
 					patch = null;
 					menu?.Dialog.ClearRequest();
@@ -139,7 +140,7 @@ public static class Scene2TitlePreview
 			}
 			if (action == LoginDialogAction.ExitGame && confirm is null && menu is not null && textSurface is not null)
 			{
-				confirm = new TitleExitConfirm(menu.Dialog.Text, textSurface);
+				confirm = new TitleExitConfirm(menu.Dialog.Text, textSurface) { SoundPlayer = audio is null ? null : audio.Play };
 				menu.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.RegisterUserId && register is null && menu is not null && textSurface is not null)
@@ -156,7 +157,7 @@ public static class Scene2TitlePreview
 						OwnsTextures = false,
 					};
 				}
-				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface, registerFrame);
+				register = new TitleRegisterDialog(menu.Dialog.Text, textSurface, registerFrame) { SoundPlayer = audio is null ? null : audio.Play };
 				menu.Dialog.ClearRequest();
 			}
 			if (action == LoginDialogAction.PatchDownload && patch is null && network is not null && textSurface is not null)
