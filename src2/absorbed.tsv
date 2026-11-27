@@ -54,3 +54,29 @@
 0x0086759B	The CLR releases locale tables; this CRT cleanup has no counterpart.
 0x008677C7	The CLR releases locale tables; this CRT cleanup has no counterpart.
 0x008CB064	C# exceptions replace the original exception frame setup.
+0x00857E98	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x0085A0FA	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x0088F686	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008BEFF2	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008BFA40	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B00	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B06	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B0C	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B12	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B18	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B1E	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B24	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B2A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B30	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B36	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B3C	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B42	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B48	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B4E	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B54	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B5A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B60	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B0E	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B14	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B1A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B20	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
