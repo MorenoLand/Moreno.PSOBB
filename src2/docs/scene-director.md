@@ -58,6 +58,15 @@ target through `GameServerFlow` on the next update and is exposed through
 reports `OnlineSceneState.GameServer` when the 0x64/0x67 replies arrive, and an unsupported list
 command stops with a diagnostic.
 
+`SceneDirectorOptions.LobbyHostFactory` supplies the field resources for scene 11. When it is
+present, `SceneDirectory` wraps the same `OnlineScene` and `GameSession` in `LobbyScene`; when the
+game server reaches the lobby or game phase, `LobbyScene` promotes its `LobbyWorld` into a
+`FieldScene` over the host's scene-10 shell. Scene 11 stays current, matching the original scene
+update, and no scene 10 transition is requested. The host supplies the map, camera, texture cache,
+player, ground query and player model; `SceneDirector.DrawWorld` submits the field map before the
+player models. A missing field host or a failed game-server step stops the director with a
+diagnostic.
+
 ## Host integration
 
 `ClientHost.StartSceneDirector` creates the director over the host file system, renderer and input
@@ -70,7 +79,9 @@ renderer, input device, clock, dispatcher or file system of its own.
 
 `SceneDirectorTests` uses synthetic screens for entry, update, draw, release order, transitions 1
 through 3, a transition outside that range, initialiser and release overrides, the pre-init clear,
-scene zero, missing and out-of-table numbers, and disposal. `SceneDirectoryTests` uses synthetic GSL
+scene zero, missing and out-of-table numbers, and disposal. `LobbySceneTests` covers the host
+endpoint table, the redirect, lobby creation, controller movement, map then player draw order, the
+missing field host and release. `SceneDirectoryTests` uses synthetic GSL
 data, a synthetic connection and a synthetic host table for the three login endpoint selections,
 the login phases through character selection, the redirect and redirected connection, a rejected
 login, cancel, exit, loading without a host table, and release; it also runs scene 2's

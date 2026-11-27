@@ -114,14 +114,16 @@ public sealed class FieldScene : IDisposable
 	/// Runs the scene-10 update, pumps the lobby world and reconciles the spawned player views.
 	/// </summary>
 	/// <param name="input">The input layer already polled for this frame.</param>
+	/// <param name="pumpWorld">Whether this call pumps the lobby world's session; an owner that already pumps the same session passes <see langword="false"/>.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
 	/// <exception cref="ObjectDisposedException">The scene is released.</exception>
-	public void Update(InputManager input)
+	public void Update(InputManager input, bool pumpWorld = true)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		_offline.Update(input);
-		_world?.Update();
+		if (pumpWorld)
+			_world?.Update();
 		ReconcileEntities();
 	}
 
