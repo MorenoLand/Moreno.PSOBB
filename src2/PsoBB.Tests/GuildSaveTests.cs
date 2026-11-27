@@ -103,6 +103,14 @@ public sealed class GuildSaveTests : IDisposable
 		Assert.Equal(0, SystemSave.Pending);
 	}
 
+	[Fact]
+	public void BeginTimeStoresTheLanguageAndMarksTheLoadActive()
+	{
+		Assert.Equal(0, GuildSave.BeginTime(3));
+		Assert.Equal(3, GuildSave.Language);
+		Assert.Equal(1, SystemSave.LoadActive);
+	}
+
 	private sealed class Files : IDataFiles
 	{
 		private readonly Dictionary<string, byte[]> _files = new(StringComparer.OrdinalIgnoreCase);
