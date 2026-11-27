@@ -844,6 +844,20 @@ def aulldiv_vectors(read):
     write("00863510.json", vectors)
 
 
+def alldiv_vectors(read):
+    """0x0085ADE0 (__alldiv): signed 64-bit quotient truncated toward zero; divisors are nonzero and MIN / -1 faults."""
+    pairs = [(0, 1), (0xffffffffffffffff, 1), (0xFFFFFFFFFFFFFFF9, 2), (7, 0xFFFFFFFFFFFFFFFE), (0xFFFFFFFFFFFFFFF9, 0xFFFFFFFFFFFFFFFE),
+             (0x8000000000000000, 1), (0x8000000000000000, 2), (0x8000000000000000, 0xFFFFFFFFFFFFFFFE), (0x7fffffffffffffff, 0xffffffffffffffff), (0x7fffffffffffffff, 0x7fffffffffffffff),
+             (0xffffffffffffffff, 0x8000000000000000), (0x8000000000000000 + 1, 0xffffffffffffffff), (123456789012345678, 0xFFFFFFFFFFFFFC18),
+             (0xF0F0F0F0F0F0F0F0, 0x10), (1000000007, 0xFFFFFFFFFFFFFFFD)]
+    vectors = []
+    for dividend, divisor in pairs:
+        stack = [dividend & 0xFFFFFFFF, dividend >> 32, divisor & 0xFFFFFFFF, divisor >> 32]
+        eax, edx, _ = run(read, 0x0085ADE0, 170, stack=stack)
+        vectors.append({"dividend": f"{dividend:016x}", "divisor": f"{divisor:016x}", "result": f"{(edx << 32) | eax:016x}"})
+    write("0085ADE0.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()

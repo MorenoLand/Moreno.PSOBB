@@ -40,4 +40,13 @@ public static class Int64Arithmetic
 	/// <returns>The unsigned quotient.</returns>
 	[Original(0x00863510, "__aulldiv")]
 	public static ulong DivideUnsigned(ulong dividend, ulong divisor) => dividend / divisor;
+
+	/// <summary>
+	/// Divides one signed 64-bit value by another and returns the quotient truncated toward zero, as the original's <c>__alldiv</c> does.
+	/// </summary>
+	/// <param name="dividend">The value to divide.</param>
+	/// <param name="divisor">The divisor; zero, and the minimum value divided by minus one, raise the faults the original raises.</param>
+	/// <returns>The signed quotient.</returns>
+	[Original(0x0085ADE0, "__alldiv")]
+	public static long Divide(long dividend, long divisor) => dividend / divisor;
 }
