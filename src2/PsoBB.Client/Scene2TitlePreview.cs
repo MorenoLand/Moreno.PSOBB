@@ -35,13 +35,14 @@ public static class Scene2TitlePreview
 		using DataFileRegistry files = new(host.FileSystem, DataArchiveSource.Gsl("data/data.gsl"));
 		using Scene2TitleArt art = new(files, host.Renderer);
 		using LoginDialog? dialog = CreateDialog(files, host.Renderer, textSurface, locale);
+		using Scene2TitleMenu? menu = dialog is null ? null : new Scene2TitleMenu(dialog);
 		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
 		long frequency = host.Clock.Frequency;
 		long previous = host.Clock.Timestamp;
 		double accumulator = 0;
 		int frame = 0;
-		int selection = dialog?.Menu.SelectedIndex ?? -1;
+		int selection = menu?.Menu.SelectedIndex ?? -1;
 		LoginDialogAction? previousAction = null;
 		bool wasClosed = false;
 		bool menuVisible = showMenu;
@@ -58,25 +59,25 @@ public static class Scene2TitlePreview
 			input.Update(TimeSpan.FromSeconds(FrameSeconds));
 			bool hidden = TitleFade.Advance(ref fade);
 			LoginDialogAction? action = null;
-			if (menuVisible && dialog is not null)
+			if (menuVisible && menu is not null)
 			{
-				dialog.Update(input);
-				action = dialog.RequestedAction;
-				if (dialog.Menu.SelectedIndex != selection)
+				menu.Update(input);
+				action = menu.RequestedAction;
+				if (menu.Menu.SelectedIndex != selection)
 					audio?.Play(TitleAudio.SelectionSound);
 				if (action != previousAction)
 					audio?.Play(TitleAudio.ConfirmSound);
-				else if (dialog.IsClosed && !wasClosed)
+				else if (menu.IsClosed && !wasClosed)
 					audio?.Play(TitleAudio.CancelSound);
-				selection = dialog.Menu.SelectedIndex;
+				selection = menu.Menu.SelectedIndex;
 				previousAction = action;
-				wasClosed = dialog.IsClosed;
+				wasClosed = menu.IsClosed;
 			}
 			else if (input.WasActionPressed(InputAction.Confirm))
 				menuVisible = true;
-			if (action == LoginDialogAction.ExitGame)
+			if (action is LoginDialogAction.ExitGame or LoginDialogAction.StartGame)
 				return;
-			Render(host.Renderer, art, menuVisible ? dialog : null, menuVisible, hidden, frame, capture);
+			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, menuVisible, hidden, frame, capture);
 			frame++;
 		}
 	}
