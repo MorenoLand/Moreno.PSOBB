@@ -160,6 +160,12 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets a value indicating whether mode 25 selected non-empty text.</summary>
 	public bool Mode25Ready { get; private set; }
 
+	/// <summary>Gets the mode-22 message text, or <see langword="null"/>.</summary>
+	public string? Mode22Text { get; private set; }
+
+	/// <summary>Gets a value indicating whether mode 22 selected non-empty text.</summary>
+	public bool Mode22Ready { get; private set; }
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -211,6 +217,9 @@ public sealed class Scene2StartGameModeMachine
 			case 16:
 				EnterMode16();
 				break;
+			case 22:
+				EnterMode22();
+				break;
 			case 25:
 				EnterMode25();
 				break;
@@ -237,6 +246,25 @@ public sealed class Scene2StartGameModeMachine
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
 		}
+	}
+
+	/// <summary>
+	/// Selects the two mode-22 text lines at <c>0x004053E0</c>.
+	/// </summary>
+	/// <remarks>
+	/// The text-box creation at <c>0x00402F0C</c> and the child elements at <c>0x00403784</c> are host seams.
+	/// </remarks>
+	[Original(0x004053E0)]
+	private void EnterMode22()
+	{
+		Mode22Text = null;
+		Mode22Ready = false;
+		if (TextTable is null)
+			return;
+		string first = TextTable.GetString(29, 27);
+		string second = TextTable.GetString(29, 34);
+		Mode22Text = first + "\n" + second;
+		Mode22Ready = Mode22Text.Length > 0;
 	}
 
 	[Original(0x00405168)]

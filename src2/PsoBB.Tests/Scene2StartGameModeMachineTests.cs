@@ -223,6 +223,24 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void TheModeTwentyTwoEntrySelectsTheTwoLines()
+	{
+		int[] sizes = new int[30];
+		sizes[29] = 35;
+		string[] values = new string[35];
+		Array.Fill(values, string.Empty);
+		values[27] = "First";
+		values[34] = "Second";
+		UnitxtTable table = UnitxtTable.Open(TextSamples.Unitxt(sizes, new Dictionary<int, string[]> { [29] = values }));
+		Scene2StartGameModeMachine machine = new(_files) { TextTable = table };
+
+		machine.SetMode(22);
+
+		Assert.Equal("First\nSecond", machine.Mode22Text);
+		Assert.True(machine.Mode22Ready);
+	}
+
+	[Fact]
 	public void TheModeTwentyFiveEntrySelectsTheEventText()
 	{
 		int[] sizes = new int[72];
@@ -454,6 +472,26 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Assert.Equal(1u, machine.Mode);
 		Assert.Equal(1, machine.RepeatFlag);
 		Assert.Equal(0, machine.FileFlags[7]);
+	}
+
+	[Fact]
+	public void ModeSevenUsesTheRepeatFlagToSelectModeTwentyTwo()
+	{
+		CharacterSaveLoad.Attach(
+			new byte[CharacterSaveLoad.PlayerChunkLength],
+			new byte[CharacterSaveLoad.SystemChunkLength],
+			new byte[CharacterSaveLoad.SaveLength],
+			new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.FileFlags[1] = machine.FileFlags[3] = machine.FileFlags[5] = machine.FileFlags[7] = 1;
+		machine.SlotIndex = 3;
+		machine.RepeatFlag = 1;
+
+		machine.SetMode(7);
+		machine.Advance();
+
+		Assert.Equal(22u, machine.Mode);
+		Assert.Equal(1, machine.RepeatFlag);
 	}
 
 	[Fact]
