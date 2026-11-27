@@ -48,6 +48,43 @@ public sealed class SystemSaveTests : IDisposable
 	}
 
 	[Fact]
+	public void AlternateStartQueuesSeventeenWithoutBusy()
+	{
+		Files files = new();
+		files.Add(SaveFileCheck.SystemName, CreateSystem(valid: true));
+		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+
+		Assert.Equal(0, SystemSave.StartAlternate(files, alternate: true));
+		Assert.Equal(17, SystemSave.Pending);
+		Assert.Equal(1, SystemSave.LoadActive);
+		Assert.Equal(0, SystemSave.Busy);
+	}
+
+	[Fact]
+	public void AlternateStartQueuesSixteen()
+	{
+		Files files = new();
+		files.Add(SaveFileCheck.SystemName, CreateSystem(valid: true));
+		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+
+		Assert.Equal(0, SystemSave.StartAlternate(files, alternate: false));
+		Assert.Equal(SystemSave.SystemPending, SystemSave.Pending);
+		Assert.Equal(0, SystemSave.Busy);
+	}
+
+	[Fact]
+	public void AlternateStartLeavesAnExistingPendingState()
+	{
+		Files files = new();
+		files.Add(SaveFileCheck.SystemName, CreateSystem(valid: true));
+		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		SystemSave.Pending = 8;
+
+		Assert.Equal(SystemSave.MissingBlockStatus, SystemSave.StartAlternate(files, alternate: true));
+		Assert.Equal(8, SystemSave.Pending);
+	}
+
+	[Fact]
 	public void AMissingSystemFileReturnsTheCheckStatus()
 	{
 		Files files = new();
