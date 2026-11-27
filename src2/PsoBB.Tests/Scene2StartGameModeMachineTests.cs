@@ -138,14 +138,14 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Scene2StartGameModeMachine machine = new(_files);
 		Scene2TextControl control = new(2) { Flags132 = 2, Count = 1 };
 		machine.ScrollControl = control;
-		machine.SetMode(20);
+		ForceMode(machine, 20);
 		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), 0);
 
 		machine.Advance();
 		Assert.Equal(1u, machine.Mode);
 		Assert.Equal(1, machine.Flag32);
 
-		machine.SetMode(20);
+		ForceMode(machine, 20);
 		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), 1);
 		machine.Advance();
 		Assert.Equal(23u, machine.Mode);
@@ -158,7 +158,7 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Scene2StartGameModeMachine machine = new(_files) { ScreenFlags = 2 };
 		Scene2TextControl control = new(2) { Count = 1 };
 		machine.ScrollControl = control;
-		machine.SetMode(28);
+		ForceMode(machine, 28);
 		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), -1);
 
 		machine.Advance();
@@ -166,7 +166,7 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Assert.Equal(1, machine.EntryState);
 
 		int confirmed = -1;
-		machine.SetMode(28);
+		ForceMode(machine, 28);
 		machine.ScreenFlags = 2;
 		BinaryPrimitives.WriteInt32LittleEndian(control.Records.AsSpan(4), 5);
 		machine.CharacterConfirmed = index => confirmed = index;
@@ -174,7 +174,7 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Assert.Equal(5, confirmed);
 		Assert.Equal(26u, machine.Mode);
 
-		machine.SetMode(28);
+		ForceMode(machine, 28);
 		machine.ScreenFlags = 4;
 		machine.Advance();
 		Assert.Equal(23u, machine.Mode);
@@ -220,6 +220,40 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 
 		Assert.Equal(16u, machine.Mode);
 		Assert.Equal(12, SystemSave.Pending);
+	}
+
+	[Fact]
+	public void TheModeTwentyOneEntryHasNoReachableBody()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+
+		machine.SetMode(21);
+
+		Assert.Equal(21u, machine.Mode);
+	}
+
+	[Fact]
+	public void TheModeThreeAndTwentyThreeEntriesReleaseTheChildren()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.Children.Ensure(machine);
+
+		machine.SetMode(3);
+		Assert.Null(machine.Children.Element);
+		Assert.Null(machine.Children.Cursor);
+
+		machine.Children.Ensure(machine);
+		machine.SetMode(23);
+		Assert.Null(machine.Children.Element);
+		Assert.Null(machine.Children.Cursor);
+	}
+
+	[Fact]
+	public void TheUnportedModeTwentyEntryStillStops()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+
+		Assert.Throws<NotSupportedException>(() => machine.SetMode(20));
 	}
 
 	[Fact]
@@ -726,6 +760,9 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		NotSupportedException error = Assert.Throws<NotSupportedException>(() => machine.SetMode(24));
 		Assert.Contains("24", error.Message);
 	}
+
+	private static void ForceMode(Scene2StartGameModeMachine machine, uint mode) =>
+		typeof(Scene2StartGameModeMachine).GetProperty(nameof(Scene2StartGameModeMachine.Mode))!.SetValue(machine, mode);
 
 	private sealed class Files : IDataFiles
 	{

@@ -206,6 +206,9 @@ public sealed class Scene2StartGameModeMachine
 	{
 		switch (mode)
 		{
+			case 3:
+				Children.Release();
+				break;
 			case 5:
 				SlotIndex = 0;
 				Mode = 6;
@@ -220,8 +223,14 @@ public sealed class Scene2StartGameModeMachine
 			case 16:
 				EnterMode16();
 				break;
+			case 21:
+				EnterMode21();
+				break;
 			case 22:
 				EnterMode22();
+				break;
+			case 23:
+				Children.Release();
 				break;
 			case 25:
 				EnterMode25();
@@ -229,7 +238,6 @@ public sealed class Scene2StartGameModeMachine
 			case 0:
 			case 1:
 			case 2:
-			case 3:
 			case 4:
 			case 6:
 			case 7:
@@ -242,13 +250,24 @@ public sealed class Scene2StartGameModeMachine
 			case 17:
 			case 18:
 			case 19:
-			case 20:
-			case 23:
-			case 28:
 				break;
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
 		}
+	}
+
+	/// <summary>
+	/// Evaluates the mode-21 patch-warning budget at <c>0x0040544C</c>.
+	/// </summary>
+	/// <remarks>
+	/// <c>0x00403770</c> returns <c>90 - 819200000 / 0x4000 = -49910</c>, so the positive-budget
+	/// body that builds the warning text and selects <c>0x00402F0C</c> is unreachable in this image.
+	/// </remarks>
+	[Original(0x0040544C)]
+	private void EnterMode21()
+	{
+		if (FreeSpaceBudget() > 0)
+			throw new NotSupportedException("The unreachable mode-21 warning body is not ported.");
 	}
 
 	/// <summary>

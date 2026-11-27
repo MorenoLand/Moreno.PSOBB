@@ -304,13 +304,15 @@ for the asynchronous worker at `0x006C38BC`; it completes pending 16 before each
 valid flag set selects mode 23, which writes the shared lobby screen state 6.
 
 Ported entry callbacks: `0x00405734` (5), `0x00405670` (14), `0x00405600` (15),
-`0x00405580` (16), `0x004053E0` (22) and `0x00405168` (25). The mode-22 callback selects unitxt
-list 29 strings 27 and 34, and both the mode-22 and mode-25 callbacks leave the text-box factory
-`0x00402F0C` as a host seam. `0x00403784` and `0x00404A34` create and release the element and cursor
-slots and are ported.
+`0x00405580` (16), `0x0040544C` (21), `0x004053E0` (22) and `0x00405168` (25). The mode-21 callback
+returns without building text because `0x00403770` is the constant `90 - 50000`, so its
+`budget > 0` body is unreachable. The mode-22 callback selects unitxt list 29 strings 27 and 34,
+and both the mode-22 and mode-25 callbacks leave the text-box factory `0x00402F0C` as a host seam.
+`0x00403784` and `0x00404A34` create and release the element and cursor slots and are ported.
 
-Remaining boundary: `0x00403FB4` (mode 18) has no pseudo or `asm/index.tsv` entry; the mode-21,
-mode-24, mode-26 and mode-27 entry callbacks (`0x0040544C`, `0x00405358`, `0x00404E28`,
-`0x00404DFC`) need the unported network/UI objects, and `0x00402F0C` still needs the runtime list
-grid at `0x009F310C`/`0x009F30E8`. The running `--startgame` diagnostic confirms the state-9 rows
-at frame 10 using a synthetic `PSO_CHARACTER`, then the scene-11 `Connecting..` label at frame 60.
+Remaining boundary: `0x00403FB4` (mode 18) has no pseudo or `asm/index.tsv` entry; the mode-20,
+mode-24, mode-26, mode-27 and mode-28 entry callbacks (`0x004054C0`, `0x00405358`, `0x00404E28`,
+`0x00404DFC`, `0x00404CD8`) need the unported network/UI objects, and `0x00402F0C` still needs the
+runtime list grid at `0x009F310C`/`0x009F30E8`. The running `--startgame` diagnostic confirms the
+state-9 rows at frame 10 using a synthetic `PSO_CHARACTER`, then the scene-11 `Connecting..` label
+at frame 60.
