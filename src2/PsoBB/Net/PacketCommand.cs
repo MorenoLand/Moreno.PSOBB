@@ -14,9 +14,11 @@ public enum PacketCommand : ushort
 	/// <summary>Redirect to another server address and port.</summary>
 	Reconnect = 0x0019,
 
+	/// <summary>Client menu selection with a menu identifier and an item identifier.</summary>
+	MenuSelection = 0x0010,
+
 	/// <summary>Keepalive request and response; both carry no payload.</summary>
 	Ping = 0x001D,
-
 	/// <summary>Broadcast wrapper for one or more 0x60 subcommand records.</summary>
 	Broadcast = 0x0060,
 
@@ -55,7 +57,6 @@ public enum PacketCommand : ushort
 
 	/// <summary>Client login with account, character slot and connection phase.</summary>
 	ClientLogin = 0x0093,
-
 	/// <summary>Character server welcome carrying its copyright text and the two encryption keys.</summary>
 	CharacterServerInit = 0x009B,
 

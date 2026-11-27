@@ -81,6 +81,23 @@ public sealed class LobbyWorld
 	/// <summary>Gets the last command 0x83 lobby-menu reply, or <see langword="null"/> before one arrives.</summary>
 	public LobbyMenuPacket? LobbyMenu { get; private set; }
 
+	/// <summary>
+	/// Sends the base 0x10 main-menu selection through the redirected session.
+	/// </summary>
+	/// <param name="itemId">The selected item identifier.</param>
+	/// <returns><see langword="true"/> when the selection was queued.</returns>
+	/// <exception cref="InvalidOperationException">The world has no session.</exception>
+	public bool SelectMainMenuItem(uint itemId)
+	{
+		if (_session is null)
+			throw new InvalidOperationException("The world has no session to send the menu selection on.");
+		if (_session.State != GameSessionState.Ready)
+			return false;
+		_session.Send(new MenuSelectionPacket { MenuId = MenuSelectionPacket.MainMenuId, ItemId = itemId }.ToPacket());
+		_session.FlushSends();
+		return _session.State is not (GameSessionState.Failed or GameSessionState.Disconnected);
+	}
+
 	/// <summary>Gets the command 0x81 mail entries in arrival order, keeping at most <see cref="SimpleMailCapacity"/>; a mail whose text exceeds <see cref="SimpleMailPacket.ListTextLengthLimit"/> is still exposed here even though the original list callback skips it.</summary>
 	public IReadOnlyList<SimpleMailPacket> SimpleMails => _simpleMails;
 

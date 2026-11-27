@@ -119,3 +119,9 @@ phase-1 login with character slot 0, and held the game-server connection open. `
 automatically requests slot 0 at the character-select state; the flow stops before the server main
 menu is selected.
 
+The main menu uses command 0x83 with menu id `0x11000011` and item id `0x11222211` for "Go to
+lobby". `MenuSelectionPacket` writes the base command 0x10 selection and
+`LobbyWorld.SelectMainMenuItem` sends it through the redirected session. The `--startgame`
+diagnostic selects that item when the main menu arrives; the server had not sent the menu in the
+verified run, so the lobby join is still unconfirmed.
+

@@ -443,6 +443,17 @@ public sealed class LobbyWorldTests
 	}
 
 	[Fact]
+	public void MenuSelectionRequiresARedirectedSession()
+	{
+		Assert.Throws<InvalidOperationException>(() => new LobbyWorld().SelectMainMenuItem(MenuSelectionPacket.GoToLobbyItem));
+		TestConnection connection = new();
+		using GameSession session = new(connection);
+		Assert.True(session.Connect(TestHost, TestPort));
+		LobbyWorld world = new(session);
+		Assert.False(world.SelectMainMenuItem(MenuSelectionPacket.GoToLobbyItem));
+	}
+
+	[Fact]
 	public void SessionDisconnectClearsTheWorld()
 	{
 		TestConnection connection = new();
