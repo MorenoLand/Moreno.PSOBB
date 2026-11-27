@@ -8,6 +8,7 @@ src2/absorbed.tsv, and the golden fixtures in src2/PsoBB.Tests/Golden.
 """
 
 import argparse
+import bisect
 import datetime
 import json
 import re
@@ -77,6 +78,25 @@ def group_of(row, home):
     return "Game code"
 
 
+ADDRESS = re.compile(r"0x([0-9A-Fa-f]{6,8})\b")
+
+
+def read_cited(rows):
+    """Original functions whose address (or an address inside them) appears anywhere in the C# source."""
+    starts = sorted(rows)
+    cited = set()
+    for path in (ROOT / "src2" / "PsoBB").rglob("*.cs"):
+        posix = path.as_posix()
+        if "/obj/" in posix or "/bin/" in posix:
+            continue
+        for match in ADDRESS.finditer(path.read_text(encoding="utf-8", errors="replace")):
+            address = int(match.group(1), 16)
+            i = bisect.bisect_right(starts, address) - 1
+            if i >= 0 and address < starts[i] + rows[starts[i]]["size"]:
+                cited.add(starts[i])
+    return cited
+
+
 def in_scope_addresses(rows, homes, misc_files):
     """Functions of src/misc that the goal covers: every file there except the five excluded ones."""
     scope = set()
@@ -87,10 +107,10 @@ def in_scope_addresses(rows, homes, misc_files):
     return scope
 
 
-def build(rows, ported, absorbed, homes, misc_files):
+def build(rows, ported, absorbed, homes, misc_files, cited):
     """Compute the totals, the groups, the largest and the easiest missing game functions."""
-    kinds = {"ported": [0, 0], "absorbed": [0, 0], "missing": [0, 0]}
-    side = {"ported": [0, 0], "absorbed": [0, 0], "missing": [0, 0]}
+    kinds = {"ported": [0, 0], "absorbed": [0, 0], "cited": [0, 0], "missing": [0, 0]}
+    side = {"ported": [0, 0], "absorbed": [0, 0], "cited": [0, 0], "missing": [0, 0]}
     groups = {}
     for address, row in rows.items():
         home = homes.get(address, "-")
@@ -99,12 +119,14 @@ def build(rows, ported, absorbed, homes, misc_files):
             state = "ported"
         elif address in absorbed:
             state = "absorbed"
+        elif address in cited:
+            state = "cited"
         else:
             state = "missing"
         target = side if name == SIDE_TASK else kinds
         target[state][0] += 1
         target[state][1] += row["size"]
-        group = groups.setdefault(name, {"functions": 0, "bytes": 0, "ported": [0, 0], "absorbed": [0, 0], "missing": [0, 0]})
+        group = groups.setdefault(name, {"functions": 0, "bytes": 0, "ported": [0, 0], "absorbed": [0, 0], "cited": [0, 0], "missing": [0, 0]})
         group["functions"] += 1
         group["bytes"] += row["size"]
         group[state][0] += 1
@@ -116,10 +138,10 @@ def build(rows, ported, absorbed, homes, misc_files):
     scope_open = [a for a in scope if a not in ported and a not in absorbed]
 
     game_missing = [(a, row) for a, row in rows.items()
-                    if a not in ported and a not in absorbed and group_of(row, homes.get(a, "-")) == "Game code"]
+                    if a not in ported and a not in absorbed and a not in cited and group_of(row, homes.get(a, "-")) == "Game code"]
     largest = sorted(game_missing, key=lambda item: -item[1]["size"])[:LARGEST_LIMIT]
     easy = sorted((item for item in game_missing if item[1]["size"] <= SMALL), key=lambda item: -item[1]["callers"])[:EASY_LIMIT]
-    done_bytes = kinds["ported"][1] + kinds["absorbed"][1]
+    done_bytes = kinds["ported"][1] + kinds["absorbed"][1] + kinds["cited"][1]
     return {
         "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "total": {"functions": total_functions, "bytes": total_bytes},
@@ -131,6 +153,7 @@ def build(rows, ported, absorbed, homes, misc_files):
         "groups": [{"name": name, "functions": g["functions"], "bytes": g["bytes"],
                     "ported": {"functions": g["ported"][0], "bytes": g["ported"][1]},
                     "absorbed": {"functions": g["absorbed"][0], "bytes": g["absorbed"][1]},
+                    "cited": {"functions": g["cited"][0], "bytes": g["cited"][1]},
                     "missing": {"functions": g["missing"][0], "bytes": g["missing"][1]}}
                    for name, g in sorted(groups.items(), key=lambda kv: -kv[1]["bytes"])],
         "largest": [{"address": "%08X" % a, "name": row["name"], "bytes": row["size"], "callers": row["callers"]} for a, row in largest],
@@ -180,7 +203,7 @@ def main(argv=None):
     ported, _ = cv.read_ported()
     absorbed = cv.read_absorbed()
     homes, misc_files = read_homes()
-    data = build(rows, ported, absorbed, homes, misc_files)
+    data = build(rows, ported, absorbed, homes, misc_files, read_cited(rows))
 
     target = args.site
     history = read_history(target)

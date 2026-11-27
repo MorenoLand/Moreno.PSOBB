@@ -109,9 +109,9 @@
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (n) { return Number(n).toLocaleString("en-US"); };
   var pct = function (a, b) { return b ? 100 * a / b : 0; };
-  var colors = { ported: "var(--done)", absorbed: "var(--absorbed)", missing: "var(--missing)" };
-  var labels = { ported: "ported", absorbed: "absorbed", missing: "missing" };
-  var order = ["ported", "absorbed", "missing"];
+  var colors = { ported: "var(--done)", absorbed: "var(--absorbed)", cited: "var(--warn)", missing: "var(--missing)" };
+  var labels = { ported: "ported", absorbed: "absorbed", cited: "in source, not attributed", missing: "missing" };
+  var order = ["ported", "absorbed", "cited", "missing"];
   var D = window.PROGRESS, H = window.HISTORY || [], lastCards = {}, first = true;
 
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -124,6 +124,7 @@
       ["Code bytes done", D.done.share.toFixed(3) + "%", fmt(D.done.bytes) + " of " + fmt(T.bytes) + " bytes ported or absorbed"],
       ["Ported", fmt(K.ported.functions), fmt(K.ported.bytes) + " bytes with a C# member and its original address"],
       ["Absorbed", fmt(K.absorbed.functions), fmt(K.absorbed.bytes) + " bytes replaced by the .NET runtime"],
+      ["In source, not attributed", fmt(K.cited.functions), fmt(K.cited.bytes) + " bytes whose address is cited in the C# but has no [Original] yet"],
       ["Missing", fmt(K.missing.functions), fmt(K.missing.bytes) + " bytes still to port or absorb"],
       ["src/misc goal", fmt(D.scope.open), "of " + fmt(D.scope.functions) + " src/misc functions still open"],
       ["Golden fixtures", fmt(D.golden), "machine-code vector files under PsoBB.Tests"]
