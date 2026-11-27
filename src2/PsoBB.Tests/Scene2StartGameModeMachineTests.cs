@@ -372,6 +372,20 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void ModeSixteenStartsTheGuildTimeAndSelectsSeventeen()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(16);
+		Assert.Equal(12, SystemSave.Pending);
+
+		machine.Advance();
+
+		Assert.Equal(17u, machine.Mode);
+		Assert.Equal(1, SystemSave.LoadActive);
+		Assert.Equal(0, GuildSave.Language);
+	}
+
+	[Fact]
 	public void ModeSeventeenMarksTheGuildFlagAndSelectsNineteen()
 	{
 		Scene2StartGameModeMachine machine = new(_files);

@@ -126,6 +126,21 @@ public static class GuildSave
 	}
 
 	/// <summary>
+	/// Sets the guild language, marks the load active and writes the local time at <c>0x006C2914</c>.
+	/// </summary>
+	/// <param name="language">The language value stored at <c>0x00A95DD8</c>.</param>
+	/// <returns>Zero, matching <c>0x00828928</c>.</returns>
+	[Original(0x006C2914)]
+	public static int BeginTime(int language)
+	{
+		SystemSave.LoadActive = 1;
+		Language = language;
+		Span<byte> time = stackalloc byte[12];
+		CharacterSaveLoad.WriteLocalTime(time);
+		return 0;
+	}
+
+	/// <summary>
 	/// Checks PSO_GUILDCARD, clears the guild buffer and returns the shipped build mode.
 	/// </summary>
 	/// <param name="files">The data files that resolve PSO_GUILDCARD.</param>

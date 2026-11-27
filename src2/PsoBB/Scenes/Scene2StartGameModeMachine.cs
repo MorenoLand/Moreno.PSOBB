@@ -342,6 +342,9 @@ public sealed class Scene2StartGameModeMachine
 			case 15:
 				Mode15();
 				break;
+			case 16:
+				Mode16();
+				break;
 			case 17:
 				Mode17();
 				break;
@@ -744,6 +747,17 @@ public sealed class Scene2StartGameModeMachine
 		if (code == 0)
 			return;
 		SetMode(code == 0xF ? 23u : 25u);
+	}
+
+	/// <summary>
+	/// Starts the guild load and selects mode 17 at <c>0x00403F14</c>.
+	/// </summary>
+	[Original(0x00403F14)]
+	private void Mode16()
+	{
+		if (GuildSave.BeginTime(0) != 0)
+			return;
+		ChangeMode(17);
 	}
 
 	[Original(0x00403F54)]
