@@ -116,7 +116,7 @@ public sealed class Scene2WindowState
 		Fields[7] = first[2];
 		Fields[21] = BitConverter.SingleToInt32Bits(-10000f);
 		Fields[11] = first[4];
-		ZNode.Key = first[2];
+		ZNode.Key = BitConverter.Int32BitsToSingle(first[2]);
 		ZNode.Relink();
 		Fields[20] = 0;
 		Span<byte> word32 = MemoryMarshal.AsBytes(Fields.AsSpan(8, 1));

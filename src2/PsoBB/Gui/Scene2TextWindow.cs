@@ -154,7 +154,12 @@ public sealed class Scene2TextWindow
 	/// <returns>The initialised window.</returns>
 	/// <exception cref="ArgumentException">The count is invalid.</exception>
 	public static Scene2TextWindow CreateDefault(int count = LineCount) =>
-		Create([31, 20, 577, 184, 31], [577, 184], Scene2CellGrid.SingleRow(count), 0, count);
+		Create(
+			[BitConverter.SingleToInt32Bits(577f), BitConverter.SingleToInt32Bits(184f), BitConverter.SingleToInt32Bits(50000f), 0, 3],
+			[BitConverter.SingleToInt32Bits(31f), BitConverter.SingleToInt32Bits(20f), BitConverter.SingleToInt32Bits(577f), BitConverter.SingleToInt32Bits(184f), 31],
+			Scene2CellGrid.SingleRow(count),
+			0,
+			count);
 
 	[Original(0x0073B71C)]
 	private Scene2TextWindow(ReadOnlySpan<int> first, ReadOnlySpan<int> second, ReadOnlySpan<int> grid, short kind, int count)

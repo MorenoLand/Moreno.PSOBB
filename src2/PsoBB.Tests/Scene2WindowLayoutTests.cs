@@ -108,10 +108,10 @@ public sealed class Scene2WindowLayoutTests : IDisposable
 	{
 		Scene2ZList theme = new();
 
-		Scene2WindowState state = Scene2WindowState.Create(theme, [0, 0, 5, 0, 0], [0, 0], [1, 1, 0], 1);
+		Scene2WindowState state = Scene2WindowState.Create(theme, [0, 0, BitConverter.SingleToInt32Bits(5f), 0, 0], [0, 0], [1, 1, 0], 1);
 
 		Assert.Same(state.ZNode, theme.Head);
-		Assert.Equal(5, state.ZNode.Key);
+		Assert.Equal(5f, state.ZNode.Key);
 	}
 }
 
