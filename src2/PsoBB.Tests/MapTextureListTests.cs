@@ -47,6 +47,28 @@ public sealed class MapTextureListTests
 		Assert.False(MapTextureArchive.TryLoad(files, "missing.xvm", out _));
 	}
 
+	[Fact]
+	public void TheMapLoaderUsesThePrimaryAndFallbackSuffixes()
+	{
+		byte[] archive = TextureTestData.Xvm([TextureTestData.Xvr(XvmTextureFormat.Bgra8888, 5, 1, 1, [1, 2, 3, 4])]);
+		Files sceneArchive = new();
+		sceneArchive.Add("lobby_01o" + MapTextureArchive.ArchiveSuffix, archive);
+		Assert.True(MapTextureArchive.TryLoadForMap(sceneArchive, "lobby_01o", out IReadOnlyList<XvmTexture> sceneTextures));
+		Assert.Equal(5u, Assert.Single(sceneTextures).GlobalIndex);
+
+		Files primary = new();
+		primary.Add("lobby_01o" + MapTextureArchive.PrimarySuffix, archive);
+		Assert.True(MapTextureArchive.TryLoadForMap(primary, "lobby_01o", out IReadOnlyList<XvmTexture> textures));
+		Assert.Equal(5u, Assert.Single(textures).GlobalIndex);
+
+		Files fallback = new();
+		fallback.Add("lobby_01o" + MapTextureArchive.FallbackSuffix, archive);
+		Assert.True(MapTextureArchive.TryLoadForMap(fallback, "lobby_01o", out textures));
+		Assert.Equal(5u, Assert.Single(textures).GlobalIndex);
+
+		Assert.False(MapTextureArchive.TryLoadForMap(new Files(), "missing", out _));
+	}
+
 	private static XvmTexture Texture(uint globalIndex) =>
 		new(globalIndex, XvmTextureFormat.Bgra8888, 1, 1, 0, new TextureImage(1, 1, new byte[4]));
 
