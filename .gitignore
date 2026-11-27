@@ -28,3 +28,4 @@ LOOP-STATE.md
 
 LOOP-STATE.md
 .loop-*
+recomp/data/*.res
