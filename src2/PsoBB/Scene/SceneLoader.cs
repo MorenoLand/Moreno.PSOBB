@@ -1,4 +1,5 @@
 using PsoBB.Data;
+using PsoBB.Imaging;
 
 namespace PsoBB.Scene;
 
@@ -37,7 +38,12 @@ public sealed class SceneLoader
 			throw new ArgumentException("Render geometry, collision and room graph names are required.", nameof(files));
 		RelContainer geometryImage = RelContainer.Parse(_dataFiles.Read(files.RenderGeometry).Span);
 		RelContainer collisionImage = RelContainer.Parse(_dataFiles.Read(files.Collision).Span);
-		MapRenderGeometryFile geometry = MapRenderGeometryFile.Parse(geometryImage);
+		string mapPrefix = files.RenderGeometry.EndsWith("n.rel", StringComparison.OrdinalIgnoreCase)
+			? files.RenderGeometry[..^5]
+			: files.RenderGeometry;
+		MapRenderGeometryFile geometry = MapTextureArchive.TryLoadForMap(_dataFiles, mapPrefix, out IReadOnlyList<XvmTexture> textures)
+			? MapRenderGeometryFile.Parse(geometryImage, textures)
+			: MapRenderGeometryFile.Parse(geometryImage);
 		MapCollisionFile collision = MapCollisionFile.Parse(collisionImage);
 		MapRoomGraph rooms = MapRoomGraph.Parse(_dataFiles.Read(files.RoomGraph).Span);
 		MapEventFile? events = null;
