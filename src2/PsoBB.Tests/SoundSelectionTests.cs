@@ -8,9 +8,19 @@ namespace PsoBB.Tests;
 [Collection("Game state")]
 public sealed class SoundSelectionTests : IDisposable
 {
-	public SoundSelectionTests() => SoundSelection.OperationMode = 0;
+	public SoundSelectionTests()
+	{
+		SoundSelection.OperationMode = 0;
+		SoundSelection.Volume = 0;
+		SoundSelection.LastSound = 0;
+	}
 
-	public void Dispose() => SoundSelection.OperationMode = 0;
+	public void Dispose()
+	{
+		SoundSelection.OperationMode = 0;
+		SoundSelection.Volume = 0;
+		SoundSelection.LastSound = 0;
+	}
 
 	[Fact]
 	public void TheModeTwentyOneAndTwentyTwoReplaceTheFourSelectionIds()
@@ -61,6 +71,67 @@ public sealed class SoundSelectionTests : IDisposable
 		Assert.Equal(5f, SoundSelection.Distance([1f, 2f, 3f], [4f, 6f, 3f]));
 		Assert.Equal(2f, SoundSelection.SignedSqrt(4f));
 		Assert.Equal(-2f, SoundSelection.SignedSqrt(-4f));
+	}
+
+	[Fact]
+	public void ThePlaybackAppliesTheAttenuationWeight()
+	{
+		int id = 1391;
+		int slot = SoundSelection.Select(id);
+		int attenuation = SoundEffectIds.VolumeIndex(slot);
+		int centibels = -attenuation;
+		double weight = (SoundSelection.Volume / 127.0 + 1.0) * (centibels / 127.0 + 1.0) - 1.0;
+		int scaled = (int)(weight * weight * weight * 6400.0);
+		float expected = MathF.Pow(10f, scaled / 2000f);
+		int played = 0;
+		float gain = 0f;
+
+		int result = SoundSelection.Play(id, [], 0, 0, (playedId, playedGain) =>
+		{
+			played = playedId;
+			gain = playedGain;
+			return 7;
+		});
+
+		Assert.Equal(7, result);
+		Assert.Equal(id, played);
+		Assert.Equal(expected, gain, 6);
+		Assert.Equal(7, SoundSelection.LastSound);
+	}
+
+	[Fact]
+	public void AZeroIdAndADistantSoundAreDropped()
+	{
+		int calls = 0;
+		Assert.Equal(-1, SoundSelection.Play(0, [], 0, 0, (_, _) => ++calls));
+		Assert.Equal(-1, SoundSelection.Play(1391, [400f, 0f, 0f], 0, 0, (_, _) => ++calls));
+		Assert.Equal(0, calls);
+		Assert.Equal(-1, SoundSelection.LastSound);
+	}
+
+	[Fact]
+	public void AnExemptModePlaysTheDistantSound()
+	{
+		SoundSelection.OperationMode = 44;
+		int calls = 0;
+
+		int result = SoundSelection.Play(1391, [400f, 0f, 0f], 0, 0, (_, _) => ++calls);
+
+		Assert.Equal(1, result);
+		Assert.Equal(1, calls);
+	}
+
+	[Fact]
+	public void TheOffsetAppliesOnlyWithTheFlagBit()
+	{
+		SoundSelection.Volume = 10;
+		float withFlag = 0f;
+		float withoutFlag = 0f;
+
+		SoundSelection.Play(1391, [], 20, 2, (_, gain) => { withFlag = gain; return 0; });
+		SoundSelection.Play(1391, [], 20, 0, (_, gain) => { withoutFlag = gain; return 0; });
+
+		Assert.True(withFlag > withoutFlag);
 	}
 
 	[Fact]

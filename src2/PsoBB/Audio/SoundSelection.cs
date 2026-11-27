@@ -7,7 +7,8 @@ namespace PsoBB.Audio;
 /// <c>0x007AFC9C</c>-independent mode checks, the id remap at <c>0x0081443C</c>, the exemption
 /// test at <c>0x00814498</c>, the listener vector at <c>0x0082992C</c>, the distance at
 /// <c>0x00836208</c> and the signed square root at <c>0x0082DC9C</c>. The playback core at
-/// <c>0x00828E4C</c> is not part of this helper set.
+/// <c>0x00828E4C</c> is the host audio seam: <see cref="Play"/> computes the id and the linear gain
+/// and the supplied sink performs the channel allocation and output.
 /// </remarks>
 public static class SoundSelection
 {
@@ -17,6 +18,14 @@ public static class SoundSelection
 	/// <summary>Gets or sets the operation mode at <c>0x00AAFC9C</c>.</summary>
 	[OriginalGlobal(0x00AAFC9C)]
 	public static int OperationMode { get; set; }
+
+	/// <summary>Gets or sets the integer volume word at <c>0x00AB59F8</c>.</summary>
+	[OriginalGlobal(0x00AB59F8)]
+	public static int Volume { get; set; }
+
+	/// <summary>Gets or sets the last selected sound at <c>0x00A11EEC</c>.</summary>
+	[OriginalGlobal(0x00A11EEC)]
+	public static int LastSound { get; set; }
 
 	private static readonly float[] ListenerPoint = new float[3];
 
@@ -68,6 +77,58 @@ public static class SoundSelection
 	/// <returns>The square root, negated for negative input.</returns>
 	[Original(0x0082DC9C)]
 	public static float SignedSqrt(float value) => value >= 0f ? MathF.Sqrt(value) : -MathF.Sqrt(-value);
+
+	/// <summary>
+	/// Selects and plays a sound with the positional attenuation at <c>0x00814298</c>.
+	/// </summary>
+	/// <param name="soundId">The global sound id.</param>
+	/// <param name="position">The source position, or an empty span for a non-positional sound.</param>
+	/// <param name="offset">The volume offset added when bit one of <paramref name="flags"/> is set.</param>
+	/// <param name="flags">The caller flags.</param>
+	/// <param name="play">The playback sink; it receives the sound id and the linear gain.</param>
+	/// <returns>The playback result, or <c>-1</c> when the sound is dropped.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="play"/> is null.</exception>
+	/// <exception cref="ArgumentException">The position is shorter than three floats.</exception>
+	[Original(0x00814298)]
+	public static int Play(int soundId, ReadOnlySpan<float> position, int offset, int flags, Func<int, float, int> play)
+	{
+		ArgumentNullException.ThrowIfNull(play);
+		if (soundId == 0)
+			return -1;
+		int slot;
+		int attenuation;
+		if (soundId < 0x700)
+		{
+			slot = Select(soundId);
+			attenuation = SoundEffectIds.VolumeIndex(slot);
+		}
+		else
+		{
+			slot = 0;
+			attenuation = SoundEffectIds.VolumeIndex(0);
+		}
+		float distance = 0f;
+		if (!position.IsEmpty)
+			distance = Distance(position, Listener());
+		if (!IsExempt(CurrentMode()) && distance >= 300f)
+		{
+			LastSound = -1;
+			return -1;
+		}
+		int centibels = -attenuation;
+		if ((flags & 2) != 0)
+			centibels += offset;
+		if (centibels >= 0)
+			centibels = 0;
+		if (centibels <= -127)
+			centibels = -127;
+		double weight = (Volume / 127.0 + 1.0) * (centibels / 127.0 + 1.0) - 1.0;
+		int scaled = (int)(weight * weight * weight * 6400.0);
+		float gain = MathF.Pow(10f, scaled / 2000f);
+		int result = play(soundId, gain);
+		LastSound = result;
+		return result;
+	}
 
 	/// <summary>
 	/// Returns the distance between two three-float points, or zero below the 0.025 floor.
