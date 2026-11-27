@@ -1,4 +1,5 @@
 using PsoBB.Data;
+using PsoBB.Game;
 using PsoBB.Save;
 using PsoBB.Scenes;
 
@@ -114,6 +115,44 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		machine.Advance();
 
 		Assert.Equal(3u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwentyThreeUsesTheEntryStateForTitleLobbyOrExit()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(23);
+		machine.EntryState = 1;
+		GameState.Reset();
+
+		machine.Advance();
+		Assert.Equal(Scene2.EntryScreenState, GameState.SceneScreenState);
+
+		machine.EntryState = 0;
+		machine.Advance();
+		Assert.Equal(6u, GameState.SceneScreenState);
+
+		machine.EntryState = 2;
+		GameState.Reset();
+		machine.Advance();
+		Assert.Equal(1u, GameState.SceneTransition);
+		Assert.Equal(0u, GameState.RequestedScene);
+	}
+
+	[Fact]
+	public void ModeTwentyThreeWaitsForItsCounter()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(23);
+		machine.EntryState = 1;
+		machine.CounterA = 5;
+		GameState.Reset();
+		uint state = GameState.SceneScreenState;
+
+		machine.Advance();
+
+		Assert.Equal(state, GameState.SceneScreenState);
+		Assert.Equal(0u, GameState.SceneTransition);
 	}
 
 	[Fact]
@@ -337,6 +376,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
+
 
 
 
