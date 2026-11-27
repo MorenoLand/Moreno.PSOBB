@@ -26,6 +26,89 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void ModeZeroClearsTheFlagsAndSelectsModeOneWithoutFiles()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(0);
+
+		machine.Advance();
+
+		Assert.Equal(1u, machine.Mode);
+		Assert.Equal(1, machine.EntryState);
+		Assert.All(machine.FileFlags, flag => Assert.Equal(-1, flag));
+	}
+
+	[Fact]
+	public void ModeZeroMarksThePresentFilesAndSelectsModeOne()
+	{
+		_files.Add(SaveFileCheck.SystemName, new byte[SystemSave.SaveLength]);
+		_files.Add(SaveFileCheck.CharacterName, new byte[CharacterSave.Length]);
+		_files.Add(SaveFileCheck.GuildCardName, new byte[16]);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(0);
+
+		machine.Advance();
+
+		Assert.Equal(1u, machine.Mode);
+		Assert.Equal(0, machine.FileFlags[0]);
+		for (int slot = 0; slot < 4; slot++)
+		{
+			Assert.Equal(1, machine.FileFlags[1 + 2 * slot]);
+			Assert.Equal(1, machine.FileFlags[2 + 2 * slot]);
+		}
+	}
+
+	[Fact]
+	public void ModeTwoWaitsForItsCounter()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(2);
+		machine.CounterB = 1;
+
+		machine.Advance();
+
+		Assert.Equal(2u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwoSelectsTheTimeoutModeWithoutTheRequiredFiles()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(2);
+
+		machine.Advance();
+
+		Assert.Equal(22u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwoSelectsTheTimeoutModeWithAValidSystemFile()
+	{
+		_files.Add(SaveFileCheck.SystemName, new byte[SystemSave.SaveLength]);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(2);
+
+		machine.Advance();
+
+		Assert.Equal(22u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwoSelectsTheTimeoutModeWithAZeroLengthSystemFile()
+	{
+		_files.Add(SaveFileCheck.SystemName, []);
+		_files.Add(SaveFileCheck.CharacterName, new byte[CharacterSave.Length]);
+		_files.Add(SaveFileCheck.GuildCardName, new byte[16]);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(2);
+
+		machine.Advance();
+
+		Assert.Equal(22u, machine.Mode);
+		Assert.Equal(1, machine.FileFlags[0]);
+	}
+
+	[Fact]
 	public void ModeFourMovesThroughTheEntryFiveIntoModeSix()
 	{
 		Scene2StartGameModeMachine machine = new(_files);
@@ -145,6 +228,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	{
 		private readonly Dictionary<string, byte[]> _files = new(StringComparer.OrdinalIgnoreCase);
 
+		public void Add(string name, byte[] data) => _files[name] = data;
+
 		public bool Exists(string name) => _files.ContainsKey(name);
 
 		public int GetLength(string name) => _files.TryGetValue(name, out byte[]? data) ? data.Length : throw new FileNotFoundException(name);
@@ -159,4 +244,5 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
 
