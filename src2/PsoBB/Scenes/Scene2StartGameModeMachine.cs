@@ -109,6 +109,7 @@ public sealed class Scene2StartGameModeMachine
 			case 0:
 			case 1:
 			case 2:
+			case 3:
 			case 4:
 			case 6:
 			case 7:
@@ -131,6 +132,12 @@ public sealed class Scene2StartGameModeMachine
 	{
 		switch (Mode)
 		{
+			case 0:
+				Mode0();
+				break;
+			case 2:
+				Mode2();
+				break;
 			case 4:
 				Mode4();
 				break;
@@ -164,6 +171,126 @@ public sealed class Scene2StartGameModeMachine
 			default:
 				throw new NotSupportedException($"The handler for mode {Mode} is not ported.");
 		}
+	}
+
+	[Original(0x004031E8)]
+	private void Mode0()
+	{
+		Timer++;
+		if (SystemSave.BuildMode() != 0)
+			return;
+		if (!SaveFileCheck.IsHandleSupported(0))
+			return;
+		for (int index = 0; index < FileFlags.Length; index++)
+			FileFlags[index] = -1;
+		int system;
+		if (SystemCheck())
+		{
+			FileFlags[0] = 0;
+			system = 0;
+		}
+		else if (SaveFileCheck.FileExists(_files, SaveFileCheck.SystemName))
+		{
+			FileFlags[0] = 1;
+			system = 1;
+		}
+		else
+		{
+			system = FileFlags[0];
+		}
+		if (system == 1)
+		{
+			for (int slot = 0; slot < 4; slot++)
+				ApplySlotFiles(slot);
+		}
+		SetMissingFlags();
+		EntryState = 1;
+		SetMode(1);
+	}
+
+	[Original(0x00403864)]
+	private void Mode2()
+	{
+		if (CounterB > 0)
+			return;
+		if (CounterA > 0)
+			return;
+		if (SystemSave.BuildMode() != 0)
+			return;
+		for (int index = 0; index < FileFlags.Length; index++)
+			FileFlags[index] = -1;
+		int system;
+		if (SystemCheck())
+		{
+			FileFlags[0] = 0;
+			system = 0;
+		}
+		else if (SaveFileCheck.FileExists(_files, SaveFileCheck.SystemName))
+		{
+			FileFlags[0] = 1;
+			system = 1;
+		}
+		else
+		{
+			system = FileFlags[0];
+		}
+		if (system == 1)
+		{
+			for (int slot = 0; slot < 4; slot++)
+				ApplySlotFiles(slot);
+		}
+		SetMissingFlags();
+		bool ready = true;
+		foreach (int flag in FileFlags)
+			ready &= flag == 1;
+		ChangeMode(ready ? 3u : (uint)TimeoutMode);
+	}
+
+	private void ChangeMode(uint mode)
+	{
+		Mode = mode;
+		Timer = 0;
+	}
+
+	private bool SystemCheck()
+	{
+		int status = SaveFileCheck.Check(_files, 0, SaveFileCheck.SystemName);
+		if (status != 0)
+		{
+			if (status != SaveFileCheck.MissingStatus)
+				return true;
+		}
+		else if (SaveFileCheck.Length(_files, 0, SaveFileCheck.SystemName) > 0)
+		{
+			return true;
+		}
+		return SystemSave.Apply(_files) != 0;
+	}
+
+	private void SetMissingFlags()
+	{
+		for (int slot = 0; slot < 4; slot++)
+		{
+			int character = 1 + 2 * slot;
+			if (FileFlags[character] == -1 && SaveFileCheck.Check(_files, 0, SaveFileCheck.CharacterName) == 0)
+				FileFlags[character] = 1;
+			int guild = 2 + 2 * slot;
+			if (FileFlags[guild] == -1 && SaveFileCheck.Check(_files, 0, SaveFileCheck.GuildCardName) == 0)
+				FileFlags[guild] = 1;
+		}
+	}
+
+	private void ApplySlotFiles(int slot)
+	{
+		int character = 1 + 2 * slot;
+		int status = SaveFileCheck.Check(_files, 0, SaveFileCheck.CharacterName);
+		bool present = status == SaveFileCheck.MissingStatus
+			|| (status == 0 && SaveFileCheck.Length(_files, 0, SaveFileCheck.CharacterName) > 0);
+		if (!present || CharacterSaveLoad.Apply(_files) != 0)
+			FileFlags[character] = 0;
+		SaveFileCheck.Check(_files, 0, SaveFileCheck.GuildCardName);
+		GuildSave.Wait(_files);
+		FileFlags[2 + 2 * slot] = 0;
 	}
 
 	[Original(0x00403B68)]
