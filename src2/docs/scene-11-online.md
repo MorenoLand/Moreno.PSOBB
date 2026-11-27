@@ -92,3 +92,30 @@ Setting `PSOBB_LOGIN_HOST` and `PSOBB_LOGIN_PORT`, with optional `PSOBB_LOGIN_US
 silent local listener on the supplied port the client reaches the `Connecting` state and renders the
 same label in frame 60; no protocol data is fabricated, so the login flow remains incomplete until a
 real server answers.
+
+## Blue Burst login chain
+
+The real Blue Burst exchange adds four pieces the earlier connection did not model:
+
+- The command 0x03 welcome carries the 0xC0-byte copyright and key blocks plus the fixed 0xB4
+  after-message at `<c>0x00C0</c>`. `ServerInitPacket` now reads and writes both the 0xC0 and
+  0x174 forms.
+- The client login is the 0xB4 form: the 8-byte hardware identifier at payload `<c>0x7C</c>` and the
+  0x28-byte client configuration at `<c>0x84</c>`. `0x00482490` writes both fields; the shipped
+  version string at `<c>0x006F4C84</c>` is `! DLL ERROR !`, and `0x00836634` fills the hardware
+  identifier from the machine MAC address (falling back when the query fails).
+- Command 0x00E6 returns the assigned guild card number and security token. `LoginFlow` copies both
+  into the stored login before the 0x19 redirect; a login with guild card zero is redirected again
+  instead of reaching the data-server phase.
+- Command 0x00E4 is the empty-slot answer and 0x00E5 is the existing-character preview. The preview
+  selects the slot; the client then opens a new connection and sends the same login with
+  `CharacterSlot` set and `ConnectionPhase` 1. The server answers with the save-file sync (0xE7),
+  player list and lobby join (0x64/0x67).
+
+The Windows client was run against a local newserv instance (real server, no fabricated protocol)
+with `PSOBB_LOGIN_HOST=127.0.0.1`, `PSOBB_LOGIN_PORT=12000`, user `portchar` and a character file
+copied from the server's existing account. Newserv logged the phase-0 login and redirect, the
+phase-1 login with character slot 0, and held the game-server connection open. `--startgame`
+automatically requests slot 0 at the character-select state; the flow stops before the server main
+menu is selected.
+

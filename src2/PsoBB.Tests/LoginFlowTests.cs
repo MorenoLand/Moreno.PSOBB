@@ -175,6 +175,25 @@ public sealed class LoginFlowTests
 	}
 
 	/// <summary>
+	/// A 0xE5 preview records the existing character slot.
+	/// </summary>
+	[Fact]
+	public void PlayerPreviewSelectsTheExistingCharacter()
+	{
+		using FlowFixture fixture = new();
+		fixture.AdvanceToCharacterSelect();
+		fixture.Flow.RequestCharacterSelection(1);
+		byte[] preview = new byte[PlayerPreviewPacket.PreviewLength];
+		preview[0] = 0x5A;
+		PushEncrypted(fixture.Connection, new PlayerPreviewPacket { CharacterIndex = 1, Preview = preview }.ToPacket());
+		fixture.Flow.Pump();
+		Assert.Equal(LoginFlowState.CharacterSelected, fixture.Flow.State);
+		Assert.Equal(1, fixture.Flow.SelectedCharacterIndex);
+		Assert.NotNull(fixture.Flow.LastPlayerPreview);
+		Assert.Equal(0x5A, fixture.Flow.LastPlayerPreview!.Preview.Span[0]);
+	}
+
+	/// <summary>
 	/// An empty-slot answer returns to character selection and permits another request.
 	/// </summary>
 	[Fact]

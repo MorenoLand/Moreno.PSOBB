@@ -96,6 +96,17 @@ public sealed class GameServerFlow
 			_state = GameServerFlowState.Connecting;
 			return;
 		}
+		if (_loginFlow.State == LoginFlowState.CharacterSelected)
+		{
+			_world.Reset();
+			if (!_loginFlow.FollowSelectedCharacter())
+			{
+				Fail(_loginFlow.FailureReason ?? "The character login failed.");
+				return;
+			}
+			_state = GameServerFlowState.Connecting;
+			return;
+		}
 		if (_loginFlow.State == LoginFlowState.Authenticating && _state == GameServerFlowState.Connecting)
 			_state = GameServerFlowState.Authenticating;
 		while (_loginFlow.TryReadUnhandledPacket(out Packet? packet))

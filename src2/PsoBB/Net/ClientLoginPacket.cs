@@ -77,6 +77,54 @@ public sealed class ClientLoginPacket
 	public int PayloadLength => HardwareId.HasValue ? WithHardwareInfoPayloadLength : ClientConfig.HasValue ? WithClientConfigPayloadLength : BasePayloadLength;
 
 	/// <summary>
+	/// Copies the login with the guild card and security token the client-init reply assigned.
+	/// </summary>
+	/// <param name="guildCardNumber">The guild card number from the 0xE6 reply.</param>
+	/// <param name="securityToken">The security token from the 0xE6 reply.</param>
+	/// <param name="clientConfig">The command-0xE6 client configuration, or empty to keep the current value.</param>
+	/// <returns>The login for the redirected connection.</returns>
+	public ClientLoginPacket WithServerState(uint guildCardNumber, uint securityToken, ReadOnlyMemory<byte> clientConfig) => new()
+	{
+		PlayerTag = PlayerTag,
+		GuildCardNumber = guildCardNumber,
+		SubVersion = SubVersion,
+		Language = Language,
+		CharacterSlot = CharacterSlot,
+		ConnectionPhase = ConnectionPhase,
+		ClientCode = ClientCode,
+		SecurityToken = securityToken,
+		Username = Username,
+		Password = Password,
+		MenuId = MenuId,
+		PreferredLobbyId = PreferredLobbyId,
+		HardwareId = HardwareId,
+		ClientConfig = clientConfig.Length == ClientConfigLength ? clientConfig : ClientConfig,
+	};
+
+	/// <summary>
+	/// Copies the login with the chosen character slot and the phase-one connection marker.
+	/// </summary>
+	/// <param name="characterSlot">The chosen zero-based character slot.</param>
+	/// <returns>The login for the game-server connection.</returns>
+	public ClientLoginPacket WithCharacter(int characterSlot) => new()
+	{
+		PlayerTag = PlayerTag,
+		GuildCardNumber = GuildCardNumber,
+		SubVersion = SubVersion,
+		Language = Language,
+		CharacterSlot = unchecked((sbyte)characterSlot),
+		ConnectionPhase = 1,
+		ClientCode = ClientCode,
+		SecurityToken = SecurityToken,
+		Username = Username,
+		Password = Password,
+		MenuId = MenuId,
+		PreferredLobbyId = PreferredLobbyId,
+		HardwareId = HardwareId,
+		ClientConfig = ClientConfig,
+	};
+
+	/// <summary>
 	/// Reads the command payload in any of the three wire lengths.
 	/// </summary>
 	/// <param name="payload">The payload bytes after the header.</param>

@@ -74,6 +74,9 @@ public enum PacketCommand : ushort
 	/// <summary>Server approval of a character choice, or the empty-slot error.</summary>
 	PlayerChoice = 0x00E4,
 
+	/// <summary>Server preview of an existing character.</summary>
+	PlayerPreview = 0x00E5,
+
 	/// <summary>Server initialization of the guild card number and client configuration.</summary>
 	ClientInit = 0x00E6,
 }

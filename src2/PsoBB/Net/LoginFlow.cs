@@ -61,6 +61,9 @@ public sealed class LoginFlow
 	/// <summary>Gets the last character choice answer returned by the server.</summary>
 	public PlayerChoicePacket? LastCharacterChoice { get; private set; }
 
+	/// <summary>Gets the last existing-character preview, or <see langword="null"/>.</summary>
+	public PlayerPreviewPacket? LastPlayerPreview { get; private set; }
+
 	/// <summary>Gets the redirect target from command 0x19, or <see langword="null"/> before it arrives.</summary>
 	public ReconnectPacket? Redirect { get; private set; }
 
@@ -165,6 +168,29 @@ public sealed class LoginFlow
 	}
 
 	/// <summary>
+	/// Closes the character-select connection and opens a new login with the chosen slot at phase one.
+	/// </summary>
+	/// <returns><see langword="true"/> when the game-server transport opened.</returns>
+	/// <exception cref="InvalidOperationException">No character has been approved or no login packet is stored.</exception>
+	[Original(0x0046819C, "LoginFlow_FollowCharacter_0046819c")]
+	public bool FollowSelectedCharacter()
+	{
+		if (State != LoginFlowState.CharacterSelected)
+			throw new InvalidOperationException($"The login flow is {State}, not character-selected.");
+		int slot = SelectedCharacterIndex ?? throw new InvalidOperationException("The login flow has no approved character slot.");
+		ClientLoginPacket loginRequest = (_loginRequest ?? throw new InvalidOperationException("The login flow has no stored login packet.")).WithCharacter(slot);
+		ReconnectPacket target = Redirect ?? throw new InvalidOperationException("The login flow has no redirect target.");
+		_session.Disconnect();
+		ResetFlow();
+		_loginRequest = loginRequest;
+		Redirect = target;
+		if (!_session.Connect(target.Host, target.Port))
+			return Fail(_session.FailureReason ?? $"The connection to {target.Host}:{target.Port} failed.");
+		State = LoginFlowState.AwaitingWelcome;
+		return true;
+	}
+
+	/// <summary>
 	/// Closes the transport and returns the flow to its starting state unless it had failed.
 	/// </summary>
 	public void Disconnect()
@@ -214,6 +240,8 @@ public sealed class LoginFlow
 			return HandleSyncSystemFile(packet);
 		if (packet.IsCommand(PacketCommand.PlayerChoice))
 			return HandlePlayerChoice(packet);
+		if (packet.IsCommand(PacketCommand.PlayerPreview))
+			return HandlePlayerPreview(packet);
 		if (packet.IsCommand(PacketCommand.Reconnect))
 			return HandleReconnect(packet);
 		if (ForwardUnhandledPackets)
@@ -255,6 +283,8 @@ public sealed class LoginFlow
 		GuildCardNumber = init.GuildCardNumber;
 		SecurityToken = init.SecurityToken;
 		ClientConfig = init.ClientConfig;
+		if (_loginRequest is not null)
+			_loginRequest = _loginRequest.WithServerState(init.GuildCardNumber, init.SecurityToken, init.ClientConfig);
 		State = LoginFlowState.AwaitingSystemFile;
 		return SendPacket(new SystemFileRequestPacket().ToPacket());
 	}
@@ -334,6 +364,29 @@ public sealed class LoginFlow
 		return Fail($"The player choice result 0x{choice.Result:X8} is not an approval or the empty-slot error.");
 	}
 
+	[Original(0x0047B0A8)]
+	private bool HandlePlayerPreview(Packet packet)
+	{
+		if (State != LoginFlowState.AwaitingCharacterChoice)
+			return FailUnexpected("a player preview");
+		PlayerPreviewPacket preview;
+		try
+		{
+			preview = PlayerPreviewPacket.Read(packet.Payload.Span);
+		}
+		catch (InvalidDataException exception)
+		{
+			return Fail($"The player preview is malformed: {exception.Message}");
+		}
+		if (preview.CharacterIndex != _requestedCharacterIndex)
+			return Fail($"The server previewed character slot {preview.CharacterIndex} instead of slot {_requestedCharacterIndex}.");
+		LastPlayerPreview = preview;
+		SelectedCharacterIndex = preview.CharacterIndex;
+		_requestedCharacterIndex = null;
+		State = LoginFlowState.CharacterSelected;
+		return true;
+	}
+
 	[Original(0x0046819C)]
 	private bool HandleReconnect(Packet packet)
 	{
@@ -389,6 +442,7 @@ public sealed class LoginFlow
 		TeamMembership = ReadOnlyMemory<byte>.Empty;
 		SelectedCharacterIndex = null;
 		LastCharacterChoice = null;
+		LastPlayerPreview = null;
 		Redirect = null;
 		_loginRequest = null;
 		_requestedCharacterIndex = null;
