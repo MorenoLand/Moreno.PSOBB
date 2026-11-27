@@ -27,6 +27,9 @@ public static class SoundSelection
 	[OriginalGlobal(0x00A11EEC)]
 	public static int LastSound { get; set; }
 
+	/// <summary>Gets or sets the playback sink used when a caller does not pass one.</summary>
+	public static Func<int, float, int>? Playback { get; set; }
+
 	private static readonly float[] ListenerPoint = new float[3];
 
 	/// <summary>Returns the operation mode at <c>0x00807AC0</c>.</summary>
