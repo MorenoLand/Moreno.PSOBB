@@ -194,6 +194,12 @@ public sealed class Scene2StartGameModeMachine
 			case 17:
 				Mode17();
 				break;
+			case 19:
+				Mode19();
+				break;
+			case 27:
+				Mode27();
+				break;
 			case 21:
 			case 22:
 				Mode21();
@@ -371,6 +377,64 @@ public sealed class Scene2StartGameModeMachine
 		SaveFileCheck.Check(_files, 0, SaveFileCheck.GuildCardName);
 		GuildSave.Wait(_files);
 		FileFlags[2 + 2 * slot] = 0;
+	}
+
+	/// <summary>
+	/// Chooses mode 14, 15, 16 or the fallback mode 1 from the nine file flags at
+	/// <c>0x004041D0</c>.
+	/// </summary>
+	[Original(0x004041D0)]
+	private void Mode19()
+	{
+		bool anyZero = FileFlags[0] == 0;
+		bool anyOne = false;
+		bool anyMinus = FileFlags[0] == -1;
+		for (int index = 1; index < FileFlags.Length; index++)
+		{
+			anyZero |= FileFlags[index] == 0;
+			anyOne |= FileFlags[index] == 1;
+			anyMinus |= FileFlags[index] == -1;
+		}
+		if (anyZero || (FileFlags[0] == -1 && anyOne) || !anyMinus)
+		{
+			Field11 = 1;
+			SetMode(1);
+			return;
+		}
+		if (FileFlags[0] == -1)
+		{
+			SetMode(14);
+			return;
+		}
+		for (int slot = 0; slot < 4; slot++)
+		{
+			if (FileFlags[1 + 2 * slot] == -1)
+			{
+				SlotIndex = slot;
+				SetMode(15);
+				return;
+			}
+			if (FileFlags[2 + 2 * slot] == -1)
+			{
+				SlotIndex = slot;
+				SetMode(16);
+				return;
+			}
+		}
+		Field11 = 1;
+		SetMode(1);
+	}
+
+	[Original(0x00404D60)]
+	private void Mode27()
+	{
+		bool pressed = false;
+		for (int index = 0; index < 4; index++)
+			pressed |= AnyControllerPressed?.Invoke(0x101) ?? false;
+		if (!pressed)
+			return;
+		EntryState = 1;
+		SetMode(23);
 	}
 
 	[Original(0x00404CA4)]
