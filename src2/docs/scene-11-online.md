@@ -109,15 +109,21 @@ The real Blue Burst exchange adds four pieces the earlier connection did not mod
   instead of reaching the data-server phase.
 - Command 0x00E4 is the empty-slot answer and 0x00E5 is the existing-character preview. The preview
   selects the slot; the client then opens a new connection and sends the same login with
-  `CharacterSlot` set and `ConnectionPhase` 1. The server answers with the save-file sync (0xE7),
-  player list and lobby join (0x64/0x67).
+  `CharacterSlot` set and `ConnectionPhase` 1. Command 0x00E2 stores the server system file and is
+  answered with the same payload; only the following 0x00E1 created notice moves the flow to
+  character selection.
 
 The Windows client was run against a local newserv instance (real server, no fabricated protocol)
 with `PSOBB_LOGIN_HOST=127.0.0.1`, `PSOBB_LOGIN_PORT=12000`, user `portchar` and a character file
-copied from the server's existing account. Newserv logged the phase-0 login and redirect, the
-phase-1 login with character slot 0, and held the game-server connection open. `--startgame`
-automatically requests slot 0 at the character-select state; the flow stops before the server main
-menu is selected.
+copied from the server's existing account. The verified packet sequence was:
+
+1. Phase-0 login: `93`, `03`, `E6`, `E0`, `19`.
+2. Data server: `03`, `E6`, `E0`, `E2`, client `E2`, `E1`, `E3`, `E5`.
+3. Phase-1 login with slot 0: `03`, `E6`, `E0`, `E2`, client `E2`, `E1`, `1D`, client `1D`.
+
+The server kept the phase-1 connection open and pinged it. It had not sent the save-file sync
+(0xE7), player list or lobby join (0x64/0x67) at the end of the run, so those remain unconfirmed.
+`--startgame` automatically requests slot 0 at the character-select state.
 
 The main menu uses command 0x83 with menu id `0x11000011` and item id `0x11222211` for "Go to
 lobby". `MenuSelectionPacket` writes the base command 0x10 selection and

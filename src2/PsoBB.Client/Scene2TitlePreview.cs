@@ -137,7 +137,7 @@ public static class Scene2TitlePreview
 			if (online is not null)
 			{
 				online.Update(input);
-				if (startGameDiagnostic && !characterRequested && directory?.OnlineScene?.LoginFlow?.State == LoginFlowState.CharacterSelect)
+				if (startGameDiagnostic && !characterRequested && directory?.OnlineScene?.LoginFlow is { State: LoginFlowState.CharacterSelect, SystemFileCreated: true })
 					characterRequested = directory.OnlineScene.SelectCharacter(0);
 				if (startGameDiagnostic && !lobbyRequested && directory?.OnlineScene?.GameServerFlow?.World is { LobbyMenu: { Count: > 0 } mainMenu } lobbyWorld
 					&& mainMenu.Records.Any(record => record.MenuId == MenuSelectionPacket.MainMenuId))
