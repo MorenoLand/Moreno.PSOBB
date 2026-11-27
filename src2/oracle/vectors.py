@@ -807,6 +807,29 @@ def allmul_vectors(read):
     write("0085ADA0.json", vectors)
 
 
+def shift_right_vectors(read, address, size, name, values):
+    """A 64-bit right shift by the count in cl: the count is read from cl and every count from zero to 255 is tried."""
+    counts = [0, 1, 31, 32, 33, 63, 64, 65, 127, 255]
+    vectors = []
+    for value in values:
+        for count in counts:
+            eax, edx, _ = run(read, address, size, registers={"eax": value & 0xFFFFFFFF, "edx": value >> 32, "ecx": count})
+            vectors.append({"value": f"{value:016x}", "count": count, "result": f"{(edx << 32) | eax:016x}"})
+    write(name, vectors)
+
+
+def allshr_vectors(read):
+    """0x008CAC90 (__allshr): signed 64-bit shift right; counts of 64 or more fill with the sign bit."""
+    values = [0, 1, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF, 0x123456789ABCDEF0, 0x00000001FFFFFFFF]
+    shift_right_vectors(read, 0x008CAC90, 33, "008CAC90.json", values)
+
+
+def aullshr_vectors(read):
+    """0x008CB210 (__aullshr): unsigned 64-bit shift right; counts of 64 or more give zero."""
+    values = [0, 1, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF, 0x123456789ABCDEF0, 0x00000001FFFFFFFF]
+    shift_right_vectors(read, 0x008CB210, 31, "008CB210.json", values)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
