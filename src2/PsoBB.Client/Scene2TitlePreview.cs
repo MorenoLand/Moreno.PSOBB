@@ -189,6 +189,8 @@ public static class Scene2TitlePreview
 					registerFrame = new LoginDialogFrame
 					{
 						PanelTexture = panelTexture,
+						RowTexture = menu.Dialog.Frame.RowTexture,
+						RowColor = LoginDialogFrame.SkinColor,
 						Position = TitleRegisterDialog.PanelPosition,
 						Size = TitleRegisterDialog.PanelSize,
 						PanelHeaderWidth = 200f,
