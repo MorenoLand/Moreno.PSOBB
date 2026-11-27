@@ -915,6 +915,18 @@ def add12_vectors(read):
     write("00869924.json", vectors)
 
 
+def ip6_v4_vectors(read):
+    """0x008A8C52 (_IP6_GET_V4_ADDR@4): returns the dword at offset 12 of the address structure pointed to by its argument."""
+    base = 0x20000000
+    values = [bytes(range(16)), bytes([0xFF] * 16), bytes([0x00] * 12) + bytes([0x7F, 0x00, 0x00, 0x01]),
+              bytes([0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x11, 0x22, 0x33, 0x44, 0xC0, 0xA8, 0x01, 0x64])]
+    vectors = []
+    for data in values:
+        eax, _, _ = run(read, 0x008A8C52, 16, stack=[base], memory=[(base, data)])
+        vectors.append({"address": data.hex(), "result": f"{eax:08x}"})
+    write("008A8C52.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
