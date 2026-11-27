@@ -106,3 +106,35 @@
 0x0086A9EB	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
 0x00863AD0	The platform file interface replaces the original file handle table.
 0x008639D5	The platform file interface replaces the original file handle table.
+0x00857976	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x0085B6A4	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x0085790E	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x008578CC	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x008578EC	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x0085E3E8	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x00864CEF	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085AB18	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085AAF3	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085A063	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x00858FBD	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x00864B78	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x008CB57F	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x006A71C8	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x006A71D0	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085F628	The CLR allocator replaces the original small-block heap.
+0x0085F96B	The CLR allocator replaces the original small-block heap.
+0x0085FA22	The CLR allocator replaces the original small-block heap.
+0x0085FB28	The CLR allocator replaces the original small-block heap.
+0x0085FE07	The CLR allocator replaces the original small-block heap.
+0x008688D0	The CLR has no stack cookie to initialize or check; this buffer-security routine has no counterpart.
+0x00868936	The CLR has no stack cookie to initialize or check; this buffer-security routine has no counterpart.
+0x0086753C	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x008675FA	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x008678A0	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x00867ADF	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x00864FB0	The host starts with the .NET command line and environment; this CRT start-up routine has no counterpart.
+0x0086AE44	The host starts with the .NET command line and environment; this CRT start-up routine has no counterpart.
+0x0086A433	The host starts with the .NET command line and environment; this CRT start-up routine has no counterpart.
+0x0085CD1D	A Pentium FDIV startup probe; the port runs no such check and has no counterpart.
+0x0085CD5D	A Pentium FDIV startup probe; the port runs no such check and has no counterpart.
+0x00863BD3	The platform file interface replaces the original file handle table allocation.
