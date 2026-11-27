@@ -118,6 +118,33 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 	}
 
 	[Fact]
+	public void ModeNineteenFallsBackToOneWithoutTheMinusFlags()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(19);
+		Array.Fill(machine.FileFlags, 1);
+
+		machine.Advance();
+
+		Assert.Equal(1u, machine.Mode);
+		Assert.Equal(1, machine.Field11);
+	}
+
+	[Fact]
+	public void ModeNineteenFallsBackOnAZeroFlag()
+	{
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(19);
+		Array.Fill(machine.FileFlags, 1);
+		machine.FileFlags[0] = 0;
+
+		machine.Advance();
+
+		Assert.Equal(1u, machine.Mode);
+		Assert.Equal(1, machine.Field11);
+	}
+
+	[Fact]
 	public void ModeTwentyThreeUsesTheEntryStateForTitleLobbyOrExit()
 	{
 		Scene2StartGameModeMachine machine = new(_files);
