@@ -44,4 +44,19 @@ public static class FloatingPointMath
 			return int.MinValue;
 		return (int)value;
 	}
+
+	/// <summary>
+	/// Converts a double to a 64-bit integer by truncating toward zero, returning
+	/// <see cref="long.MinValue"/> for a NaN, an infinity or a value outside the integer range, as the x87
+	/// integer store does. The original <c>__ftol</c> returns this value in <c>edx:eax</c>.
+	/// </summary>
+	/// <param name="value">The value to convert.</param>
+	/// <returns>The truncated integer or the integer indefinite value.</returns>
+	[Original(0x008CB1E8, "__ftol")]
+	public static long TruncateToInt64(double value)
+	{
+		if (!(value >= -9223372036854775808.0 && value < 9223372036854775808.0))
+			return long.MinValue;
+		return (long)value;
+	}
 }

@@ -781,6 +781,19 @@ def matrix_scale_rows_vectors(read):
     write("0082FA0C.json", vectors)
 
 
+def ftol_vectors(read):
+    """0x008CB1E8 (__ftol): truncates st(0) to a 64-bit integer returned in edx:eax."""
+    values = [0.0, -0.0, 0.5, -0.5, 1.0, -1.0, 1.9, -1.9, 2.5, -2.5, 1234.75, -1234.75,
+              2147483647.0, 2147483648.0, -2147483648.0, -2147483649.0, 4294967295.0, 4294967296.0,
+              9223372036854775807.0, -9223372036854775808.0, 9223372036854775808.0, -9223372036854775809.0,
+              1e30, -1e30, float("inf"), float("-inf"), float("nan")]
+    vectors = []
+    for value in values:
+        eax, edx, _ = run(read, 0x008CB1E8, 39, registers={"st0": extended_from_double(value)})
+        vectors.append({"value": double_hex(value), "result": f"{(edx << 32) | eax:016x}"})
+    write("008CB1E8.json", vectors)
+
+
 def main():
     """Write every fixture used by the tests."""
     read = image_reader()
