@@ -41,7 +41,7 @@ The sole `ShellExecuteA` call is at `0x007A638E`. Its verb is the static string 
 the shell-open helper and is not on the scene 1 initialise, update or release path.
 
 `LoadLibraryA` is imported, but the shipped image contains no media-module name. The only dynamic
-module names in the image are `ephinea.dll`, `d3d8d.dll` and `d3d8.dll`. No DirectShow, Media
+module names in the image are the game module, `d3d8d.dll` and `d3d8.dll`. No DirectShow, Media
 Foundation or Windows Media Player object is created by the client.
 
 ## File evidence

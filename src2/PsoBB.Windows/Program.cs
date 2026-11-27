@@ -23,6 +23,8 @@ internal static class Program
 	private const int WindowWidth = 640;
 	private const int WindowHeight = 480;
 	private const int PreviewDecompressionLimit = 16 * 1024 * 1024;
+	private const string DefaultLoginHost = "127.0.0.1";
+	private const ushort DefaultLoginPort = 12000;
 
 	/// <summary>
 	/// Runs the Windows client until the window closes.
@@ -124,27 +126,21 @@ internal static class Program
 		host.RequestStop();
 	}
 
-	private static SceneNetworkOptions? CreateNetworkOptions()
+	private static SceneNetworkOptions CreateNetworkOptions()
 	{
-		string? host = Environment.GetEnvironmentVariable("PSOBB_LOGIN_HOST");
-		string? portText = Environment.GetEnvironmentVariable("PSOBB_LOGIN_PORT");
-		if (string.IsNullOrWhiteSpace(host) || !int.TryParse(portText, out int port) || port <= 0 || port > ushort.MaxValue)
-			return null;
-		string user = Environment.GetEnvironmentVariable("PSOBB_LOGIN_USER") ?? string.Empty;
-		string password = Environment.GetEnvironmentVariable("PSOBB_LOGIN_PASSWORD") ?? string.Empty;
-		ServerHostTable hosts = new(host, host, host, host, host, host, host);
+		ServerHostTable hosts = new(DefaultLoginHost, DefaultLoginHost, DefaultLoginHost, DefaultLoginHost, DefaultLoginHost, DefaultLoginHost, DefaultLoginHost);
 		ClientLoginPacket login = new()
 		{
-			Username = ByteString.FromText(user) ?? ByteString.Empty,
-			Password = ByteString.FromText(password) ?? ByteString.Empty,
+			Username = ByteString.Empty,
+			Password = ByteString.Empty,
 			HardwareId = CreateHardwareId(),
 			ClientConfig = CreateClientConfig(),
 		};
 		return new SceneNetworkOptions(hosts, login, () => new WindowsGameConnection())
 		{
 			ClientMode = 1,
-			RuntimeHost = host,
-			RuntimePort = (ushort)port,
+			RuntimeHost = DefaultLoginHost,
+			RuntimePort = DefaultLoginPort,
 		};
 	}
 
