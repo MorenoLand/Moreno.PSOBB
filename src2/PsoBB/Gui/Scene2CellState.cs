@@ -69,6 +69,12 @@ public sealed class Scene2CellState
 		return state;
 	}
 
+	/// <summary>
+	/// Writes the 900000 value at offset 28, as <c>0x0072E0E4</c> does.
+	/// </summary>
+	[Original(0x0072E0E4)]
+	public void ResetValue() => SetFloat(28, 900000f);
+
 	private int Int(int offset) => BinaryPrimitives.ReadInt32LittleEndian(Data.AsSpan(offset));
 	private void SetInt(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(Data.AsSpan(offset), value);
 	private void SetFloat(int offset, float value) => BinaryPrimitives.WriteSingleLittleEndian(Data.AsSpan(offset), value);
