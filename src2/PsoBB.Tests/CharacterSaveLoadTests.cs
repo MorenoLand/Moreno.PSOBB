@@ -38,6 +38,7 @@ public sealed class CharacterSaveLoadTests : IDisposable
 		Assert.Equal(CharacterSaveLoad.PlayerVersion, CharacterSaveLoad.PlayerRecord![3]);
 		Assert.Equal(0, CharacterSaveLoad.ApplyFlag);
 		Assert.True(image.AsSpan().SequenceEqual(CharacterSaveLoad.LoadBuffer!));
+		Assert.True(image.AsSpan(CharacterSaveLoad.SystemChunkOffset + CharacterSaveFixup.NameOffset, CharacterSaveFixup.NameLength).SequenceEqual(CharacterSaveFixup.NameBuffer!));
 	}
 
 	[Fact]
