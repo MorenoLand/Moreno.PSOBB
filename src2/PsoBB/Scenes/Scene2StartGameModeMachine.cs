@@ -183,6 +183,9 @@ public sealed class Scene2StartGameModeMachine
 			case 15:
 				Mode15();
 				break;
+			case 17:
+				Mode17();
+				break;
 			default:
 				throw new NotSupportedException($"The handler for mode {Mode} is not ported.");
 		}
@@ -347,6 +350,17 @@ public sealed class Scene2StartGameModeMachine
 		SaveFileCheck.Check(_files, 0, SaveFileCheck.GuildCardName);
 		GuildSave.Wait(_files);
 		FileFlags[2 + 2 * slot] = 0;
+	}
+
+	[Original(0x00403F54)]
+	private void Mode17()
+	{
+		Timer++;
+		if (SystemSave.BuildMode() != 0 || SystemSave.Pending != 0)
+			return;
+		SaveFileCheck.Status();
+		FileFlags[2 + 2 * SlotIndex] = 1;
+		SetMode(19);
 	}
 
 	[Original(0x00403B68)]
