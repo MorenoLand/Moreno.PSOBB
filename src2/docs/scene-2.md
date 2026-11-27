@@ -293,7 +293,7 @@ Ported update handlers: `0x004031E8` (0), `0x004033E8` (1), `0x00403864` (2),
 `0x00403AF0` (3), `0x00403B68` (4), `0x00403B94` (6), `0x00403BD4` (7), `0x00403CCC` (8),
 `0x00403D08` (9), `0x00403D48` (10), `0x00403D90` (11), `0x00403DD4` (12),
 `0x00403E1C` (13), `0x00403E60` (14), `0x00403EB4` (15), `0x00403F14` (16),
-`0x00403F54` (17), `0x004041D0` (19), `0x00404450` (20), `0x00404CA4` (23),
+`0x00403F54` (17), `0x00403FB4` (18), `0x004041D0` (19), `0x00404450` (20), `0x00404CA4` (23),
 `0x00404558` (24), `0x004050F0` (25), `0x004046D4` (26), `0x00404D60` (27) and
 `0x004048E8` (28). Mode 21 and the timeout mode share the `0x004044E0` confirm handler.
 Mode 5 is an entry-only transition to mode 6.
@@ -315,9 +315,10 @@ returns without building text because `0x00403770` is the constant `90 - 50000`,
 and both the mode-22 and mode-25 callbacks leave the text-box factory `0x00402F0C` as a host seam.
 `0x00403784` and `0x00404A34` create and release the element and cursor slots and are ported.
 
-Remaining boundary: `0x00403FB4` (mode 18) has no pseudo or `asm/index.tsv` entry; the mode-20,
-mode-24, mode-26, mode-27 and mode-28 entry callbacks (`0x004054C0`, `0x00405358`, `0x00404E28`,
-`0x00404DFC`, `0x00404CD8`) need the unported network/UI objects, and `0x00402F0C` still needs the
-runtime list grid at `0x009F310C`/`0x009F30E8`. The running `--startgame` diagnostic confirms the
-state-9 rows at frame 10 using a synthetic `PSO_CHARACTER`, then the scene-11 `Connecting..` label
-at frame 60.
+All update handlers in the `0x009A2DA4` table except the entry-only mode 5 are now ported; mode 18
+was recovered from a headless Ghidra dossier because the existing lift had no entry for
+`0x00403FB4`. Remaining boundary: the mode-20, mode-24, mode-26, mode-27 and mode-28 entry callbacks
+(`0x004054C0`, `0x00405358`, `0x00404E28`, `0x00404DFC`, `0x00404CD8`) need the unported network/UI
+objects, and `0x00402F0C` still needs the runtime list grid at `0x009F310C`/`0x009F30E8`. The
+running `--startgame` diagnostic confirms the state-9 rows at frame 10 using a synthetic
+`PSO_CHARACTER`, then the scene-11 `Connecting..` label at frame 60.

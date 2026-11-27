@@ -416,6 +416,9 @@ public sealed class Scene2StartGameModeMachine
 			case 17:
 				Mode17();
 				break;
+			case 18:
+				Mode18();
+				break;
 			case 19:
 				Mode19();
 				break;
@@ -826,6 +829,71 @@ public sealed class Scene2StartGameModeMachine
 		if (GuildSave.BeginTime(0) != 0)
 			return;
 		ChangeMode(17);
+	}
+
+	/// <summary>
+	/// Selects the mode for the first missing or one-valued file flag at <c>0x00403FB4</c>.
+	/// </summary>
+	[Original(0x00403FB4)]
+	private void Mode18()
+	{
+		bool allSet = true;
+		bool anyOne = false;
+		for (int index = 0; index < FileFlags.Length; index++)
+		{
+			allSet &= FileFlags[index] != 0;
+			if (index > 0)
+				anyOne |= FileFlags[index] == 1;
+		}
+		if (allSet && (FileFlags[0] != -1 || !anyOne))
+		{
+			SetMode(1);
+			return;
+		}
+		if (FileFlags[0] == 0)
+		{
+			Field10 = 1;
+			SetMode(8);
+			return;
+		}
+		for (int slot = 0; slot < 4; slot++)
+		{
+			if (FileFlags[1 + 2 * slot] == 0)
+			{
+				SlotIndex = slot;
+				Field10 = 1;
+				SetMode(10);
+				return;
+			}
+			if (FileFlags[2 + 2 * slot] == 0)
+			{
+				SlotIndex = slot;
+				Field10 = 1;
+				SetMode(12);
+				return;
+			}
+		}
+		if (FileFlags[0] == -1)
+		{
+			for (int slot = 0; slot < 4; slot++)
+			{
+				if (FileFlags[1 + 2 * slot] == 1)
+				{
+					SlotIndex = slot;
+					Field10 = 1;
+					SetMode(10);
+					return;
+				}
+				if (FileFlags[2 + 2 * slot] == 1)
+				{
+					SlotIndex = slot;
+					Field10 = 1;
+					SetMode(12);
+					return;
+				}
+			}
+		}
+		SetMode(1);
 	}
 
 	[Original(0x00403F54)]
