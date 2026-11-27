@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using PsoBB.Imaging;
 
 namespace PsoBB.Scene;
 
@@ -57,6 +58,24 @@ public sealed class MapTextureList
 			indices[index] = objectOffset == 0 ? 0 : ReadGlobalIndex(data, objectOffset, index);
 		}
 		return new MapTextureList(names, indices);
+	}
+
+	/// <summary>
+	/// Fills the zero object slots in archive order, as <c>0x0081A7D8</c> copies the loaded texture
+	/// records into the scene list.
+	/// </summary>
+	/// <param name="textures">The archive textures in order.</param>
+	/// <returns>The list with resolved global indices.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="textures"/> is null.</exception>
+	[Original(0x0081A7D8, "MapTextureList_Fill_0081a7d8")]
+	public MapTextureList Fill(IReadOnlyList<XvmTexture> textures)
+	{
+		ArgumentNullException.ThrowIfNull(textures);
+		uint[] indices = new uint[_names.Length];
+		int count = Math.Min(indices.Length, textures.Count);
+		for (int index = 0; index < count; index++)
+			indices[index] = textures[index].GlobalIndex;
+		return new MapTextureList(_names, indices);
 	}
 
 	private static string ReadName(ReadOnlySpan<byte> data, int nameOffset, int index)

@@ -63,12 +63,14 @@ The node walker is the original `0x00831D40` walk: evaluation flags `7` keep the
 
 The original per-frame pass selector at `0x00806184` returns indexes into the `0x00A11478` render-state callback table. Those callbacks, the three scene hooks at `0x00AAFC34`, `0x00AAFC38` and `0x00AAFC3C`, and the animated-tree playback at `0x00805FD4` are not ported. The merged `SceneRenderer` supplies the opaque, alpha-tested and blended pass order instead, and animated trees draw their stored node pose.
 
-`PsoBB.Scenes.FieldScene` submits a bound map through `MapSceneRenderer.Render` with the host camera. Scene 10 has no draw entry that fixes the order between the map and the object systems, so `DrawMap` and `DrawModels` are separate stages and `Draw` composes the map stage first. Map texture-list entries bind only when a host-supplied `TextureCache` holds the resolved global index; zero or missing indices stay unbound. A `0x80000` chunk has no map-id table input in the scene, so the port always draws its static trees without the `0x10000` filter; trees with the `0x200` bit resolve the indirect node but skip the extra texture bind. Raw `n.rel` files carry texture names with zero object pointers; resolving those names to loaded textures is the texture loader's boundary, so `GlobalIndices` is zero until that loader fills the entries.
+`PsoBB.Scenes.FieldScene` submits a bound map through `MapSceneRenderer.Render` with the host camera. Scene 10 has no draw entry that fixes the order between the map and the object systems, so `DrawMap` and `DrawModels` are separate stages and `Draw` composes the map stage first. Map texture-list entries bind when a host-supplied `TextureCache` holds the resolved global index; zero or missing indices stay unbound. A `0x80000` chunk has no map-id table input in the scene, so the port always draws its static trees without the `0x10000` filter; trees with the `0x200` bit resolve the indirect node but skip the extra texture bind. Raw `n.rel` files carry texture names with zero object pointers. `MapTextureArchive.TryLoad` reads the named XVM or PRS-XVM in archive order, `MapTextureList.Fill` copies the global indices into the entries, and `MapRenderGeometryFile.Parse(container, archive)` applies the fill. The loader name is built from the map name by `0x0078E574`, so the host still supplies that name.
 
 ## Original addresses
 
 | Address | Original function | Port |
 | --- | --- | --- |
+| `0x00800BC0` | `MapTextureArchive_Load_00800bc0` | `MapTextureArchive.TryLoad` |
+| `0x0081A7D8` | `MapTextureList_Fill_0081a7d8` | `MapTextureList.Fill` |
 | `0x008060FC` | `MapRenderer_Render_008060fc` | `MapSceneRenderer.BuildScene` |
 | `0x00806184` | `MapRenderer_SelectPass_00806184` | not ported; `SceneRenderer` pass order |
 | `0x008061E0` | `MapRenderer_DrawChunks_008061e0` | `MapSceneRenderer.BuildScene` |
