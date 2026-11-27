@@ -66,7 +66,7 @@ public sealed class TitleRegisterDialog : IDisposable
 		_frame = frame;
 		if (_frame is not null)
 			_frame.RowAreaTop = RowTop - PanelPosition.Y;
-		_header = CreateLabel(text.GetLoginScreenText(LoginScreenText.InputUserId), PanelPosition + new Vector2(10f, -LoginDialogFrame.HeaderOverhang), new Vector2(PanelSize.X - 20f, 20f), surface);
+		_header = CreateHeader(text.GetLoginScreenText(LoginScreenText.InputUserId), surface);
 		_userIdLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.UserId), new Vector2(PanelPosition.X + 10f, RowTop), new Vector2(60f, RowHeight), surface);
 		_passwordLabel = CreateLabel(text.GetLoginScreenText(LoginScreenText.Password), new Vector2(PanelPosition.X + 10f, RowTop + RowHeight), new Vector2(60f, RowHeight), surface);
 		Vector2 valueSize = new(PanelPosition.X + PanelSize.X - ValueColumn - 10f, RowHeight);
@@ -203,6 +203,25 @@ public sealed class TitleRegisterDialog : IDisposable
 		_userIdEditor.Dispose();
 		_passwordEditor.Dispose();
 		_buttons.Dispose();
+	}
+
+	/// <summary>
+	/// Creates the orange header label. It covers the header pill and centres its text across the pill and vertically within it, as the title menu's header does.
+	/// </summary>
+	private static UiLabel CreateHeader(string text, IUiTextSurface surface)
+	{
+		UiLabel header = new()
+		{
+			Position = PanelPosition - new Vector2(0f, LoginDialogFrame.HeaderOverhang),
+			Size = new Vector2(LoginDialogFrame.HeaderWidth, LoginDialogFrame.HeaderHeight),
+			TextSurface = surface,
+		};
+		header.SetText(text);
+		header.SetTextColor(0xFF000000u);
+		header.TextOffset = new Vector2(
+			MathF.Max(0f, (LoginDialogFrame.HeaderWidth - surface.Measure(text)) * 0.5f),
+			(LoginDialogFrame.HeaderHeight - BitmapFont.GlyphHeight) * 0.5f);
+		return header;
 	}
 
 	private static UiLabel CreateLabel(string text, Vector2 position, Vector2 size, IUiTextSurface surface)
