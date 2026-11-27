@@ -160,6 +160,27 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets a value indicating whether mode 25 selected non-empty text.</summary>
 	public bool Mode25Ready { get; private set; }
 
+	/// <summary>Gets or sets the shared message buffer at byte offset 132.</summary>
+	public string MessageText { get; set; } = "";
+
+	/// <summary>Gets the mode-27 text copied from the shared buffer.</summary>
+	public string? Mode27Text { get; private set; }
+
+	/// <summary>Gets a value indicating whether mode 27 has non-empty text.</summary>
+	public bool Mode27Ready { get; private set; }
+
+	/// <summary>Gets the mode-20 message text, or <see langword="null"/>.</summary>
+	public string? Mode20Text { get; private set; }
+
+	/// <summary>Gets the first mode-20 option label, or <see langword="null"/>.</summary>
+	public string? Mode20OptionA { get; private set; }
+
+	/// <summary>Gets the second mode-20 option label, or <see langword="null"/>.</summary>
+	public string? Mode20OptionB { get; private set; }
+
+	/// <summary>Gets a value indicating whether mode 20 selected non-empty text.</summary>
+	public bool Mode20Ready { get; private set; }
+
 	/// <summary>Gets the mode-22 message text, or <see langword="null"/>.</summary>
 	public string? Mode22Text { get; private set; }
 
@@ -223,6 +244,9 @@ public sealed class Scene2StartGameModeMachine
 			case 16:
 				EnterMode16();
 				break;
+			case 20:
+				EnterMode20();
+				break;
 			case 21:
 				EnterMode21();
 				break;
@@ -234,6 +258,9 @@ public sealed class Scene2StartGameModeMachine
 				break;
 			case 25:
 				EnterMode25();
+				break;
+			case 27:
+				EnterMode27();
 				break;
 			case 0:
 			case 1:
@@ -254,6 +281,60 @@ public sealed class Scene2StartGameModeMachine
 			default:
 				throw new NotSupportedException($"The entry callback for mode {mode} is not ported.");
 		}
+	}
+
+	/// <summary>
+	/// Selects the mode-20 message pair at <c>0x004054C0</c>.
+	/// </summary>
+	/// <remarks>
+	/// The condition is the nine-flag helper at <c>0x00404ADC</c>; the text-box creation at
+	/// <c>0x00402F0C</c> is the same host seam as modes 22 and 25.
+	/// </remarks>
+	[Original(0x004054C0)]
+	private void EnterMode20()
+	{
+		Mode20Text = null;
+		Mode20OptionA = null;
+		Mode20OptionB = null;
+		Mode20Ready = false;
+		Children.Ensure(this);
+		Children.Release();
+		if (TextTable is null)
+			return;
+		bool firstPair = Mode20UsesFirstPair();
+		string first = TextTable.GetString(29, firstPair ? 23 : 25);
+		string second = TextTable.GetString(29, firstPair ? 24 : 26);
+		Mode20Text = first + "\n" + second;
+		Mode20OptionA = TextTable.GetString(29, 20);
+		Mode20OptionB = TextTable.GetString(29, 21);
+		Mode20Ready = Mode20Text.Length > 0;
+		MessageText = Mode20Text;
+	}
+
+	/// <summary>
+	/// Returns the <c>0x00404ADC</c> result for the nine file flags.
+	/// </summary>
+	/// <returns><see langword="true"/> when the first message pair is selected.</returns>
+	[Original(0x00404ADC)]
+	private bool Mode20UsesFirstPair()
+	{
+		bool allNonZero = true;
+		bool anyOtherOne = false;
+		bool allMinusOne = true;
+		for (int index = 0; index < FileFlags.Length; index++)
+		{
+			allNonZero &= FileFlags[index] != 0;
+			allMinusOne &= FileFlags[index] == -1;
+			if (index > 0)
+				anyOtherOne |= FileFlags[index] == 1;
+		}
+		if (!allNonZero)
+			return true;
+		if (FileFlags[0] == -1 && anyOtherOne)
+			return true;
+		if (allMinusOne)
+			return false;
+		return FileFlags[0] != 1;
 	}
 
 	/// <summary>
@@ -289,6 +370,7 @@ public sealed class Scene2StartGameModeMachine
 		string second = TextTable.GetString(29, 34);
 		Mode22Text = first + "\n" + second;
 		Mode22Ready = Mode22Text.Length > 0;
+		MessageText = Mode22Text;
 	}
 
 	[Original(0x00405168)]
@@ -318,6 +400,22 @@ public sealed class Scene2StartGameModeMachine
 		};
 		Mode25Text = TextTable.GetString(71, index);
 		Mode25Ready = Mode25Text.Length > 0;
+		MessageText = Mode25Text;
+	}
+
+	/// <summary>
+	/// Displays the shared message buffer at <c>0x00404DFC</c>.
+	/// </summary>
+	/// <remarks>
+	/// The text-box creation at <c>0x00402F0C</c> remains the host seam.
+	/// </remarks>
+	[Original(0x00404DFC)]
+	private void EnterMode27()
+	{
+		Children.Ensure(this);
+		Children.Release();
+		Mode27Text = MessageText;
+		Mode27Ready = Mode27Text.Length > 0;
 	}
 
 	[Original(0x00405670)]

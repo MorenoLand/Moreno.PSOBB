@@ -310,17 +310,20 @@ The four character rows use the shipped pairs at `0x008F8940`/`0x008F8944`: x 28
 unported; the screen draws only the four character rows.
 
 Ported entry callbacks: `0x00405734` (5), `0x00405670` (14), `0x00405600` (15),
-`0x00405580` (16), `0x0040544C` (21), `0x004053E0` (22) and `0x00405168` (25). The mode-21 callback
-returns without building text because `0x00403770` is the constant `90 - 50000`, so its
-`budget > 0` body is unreachable. The mode-22 callback selects unitxt list 29 strings 27 and 34,
-and both the mode-22 and mode-25 callbacks leave the text-box factory `0x00402F0C` as a host seam.
-`0x00403784` and `0x00404A34` create and release the element and cursor slots and are ported.
+`0x00405580` (16), `0x004054C0` (20), `0x0040544C` (21), `0x004053E0` (22),
+`0x00405168` (25) and `0x00404DFC` (27). The mode-20 callback uses the nine-flag condition at
+`0x00404ADC` to select unitxt list 29 strings 23/24 or 25/26, with 20 and 21 as the option labels.
+The mode-21 callback returns without building text because `0x00403770` is the constant
+`90 - 50000`, so its `budget > 0` body is unreachable. The mode-22 callback selects list 29 strings
+27 and 34; mode 27 displays the shared byte-132 message buffer set by the preceding entries. The
+text-box factory `0x00402F0C` remains the host seam for modes 20, 22, 25 and 27. `0x00403784` and
+`0x00404A34` create and release the element and cursor slots and are ported.
 
 All update handlers in the `0x009A2DA4` table except the entry-only mode 5 are now ported; mode 18
 was recovered from a headless Ghidra dossier because the existing lift had no entry for
-`0x00403FB4`. Remaining boundary: the mode-20, mode-24, mode-26, mode-27 and mode-28 entry callbacks
-(`0x004054C0`, `0x00405358`, `0x00404E28`, `0x00404DFC`, `0x00404CD8`) need the unported network/UI
-objects. The `0x00402F0C` text-box and scroll-control factory still needs its cell composition: the
+`0x00403FB4`. Remaining boundary: the mode-24, mode-26 and mode-28 entry callbacks
+(`0x00405358`, `0x00404E28`, `0x00404CD8`) need the unported network/world-list objects. The
+`0x00402F0C` text-box and scroll-control factory still needs its cell composition: the
 shared templates' column word is written at runtime, `0x009F30EC` by `0x007354FC`/`0x00735708`/
 `0x00735884` and `0x009F3248` by `0x0073B1E8`, so the zero column count in the static image is not
 an unknown grid. The cell constructors and text-box draw path remain unported. The running
