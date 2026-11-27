@@ -42,6 +42,8 @@ public static class Scene2TitlePreview
 		ControllerButtonState? controller = null;
 		bool startGame = false;
 		bool machineStopped = false;
+		SceneDirectory? directory = null;
+		ISceneScreen? online = null;
 		bool confirmEdge = false;
 		using TitleAudio? audio = TitleAudio.TryCreate(host, files);
 		InputManager input = new(host.GameInput);
@@ -99,10 +101,8 @@ public static class Scene2TitlePreview
 						startScreen.TextSurface = textSurface;
 				}
 				machine ??= new Scene2StartGameModeMachine(files);
-				if (startGameDiagnostic && machine.Mode == Scene2StartGameModeMachine.InitialMode)
-					machine.SetMode(0);
 				controller ??= new ControllerButtonState();
-				bool confirm = input.WasActionPressed(InputAction.Confirm);
+				bool confirm = input.WasActionPressed(InputAction.Confirm) || (startGameDiagnostic && frame == 10);
 				machine.Controller = controller;
 				machine.GameEvent = () => confirmEdge ? 0xF : 0;
 				controller.Buttons = confirm ? 0x101u : 0u;
@@ -112,7 +112,20 @@ public static class Scene2TitlePreview
 				}
 				confirmEdge = confirm;
 				if (machine.Mode == 23 && machine.EntryState == 0)
+				{
 					Scene2.SelectLobbyScreenState();
+					directory ??= new SceneDirectory(files, host.Renderer);
+					online ??= directory.Create(OnlineScene.SceneNumber);
+				}
+			}
+			if (online is not null)
+			{
+				online.Update(input);
+				UiDrawList ui = new();
+				online.Draw(ui);
+				RenderRows(host.Renderer, ui, frame, capture);
+				frame++;
+				continue;
 			}
 			if (startGame && startScreen is not null)
 			{
@@ -125,6 +138,7 @@ public static class Scene2TitlePreview
 			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, menuVisible, hidden, frame, capture);
 			frame++;
 		}
+		directory?.Dispose();
 	}
 
 	private static void RenderRows(IRenderer renderer, UiDrawList rows, int frame, Action<int>? capture)
@@ -245,6 +259,11 @@ public static class Scene2TitlePreview
 		renderer.EndFrame();
 	}
 }
+
+
+
+
+
 
 
 
