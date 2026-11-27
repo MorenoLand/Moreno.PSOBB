@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
+using PsoBB.Mathematics;
 using System.Text;
 using PsoBB.Compression;
 using PsoBB.Data;
@@ -222,7 +223,7 @@ public sealed class Scene2TitleArt : IDisposable
 	/// <exception cref="ArgumentNullException"><paramref name="draw"/> is null.</exception>
 	/// <exception cref="ObjectDisposedException">The title art is released.</exception>
 	[Original(0x006FF0D4, "TitleMenu_DrawSelector_006ff0d4")]
-	public void DrawSelectorStrip(TitleArtDrawList draw)
+	public void DrawSelectorStrip(TitleArtDrawList draw, int frame = 0)
 	{
 		ArgumentNullException.ThrowIfNull(draw);
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -235,9 +236,22 @@ public sealed class Scene2TitleArt : IDisposable
 			new TitleArtVertex(right, new Vector2(SelectorTextureCoordinates.Z, SelectorTextureCoordinates.Y)),
 			new TitleArtVertex(bottom, new Vector2(SelectorTextureCoordinates.Z, SelectorTextureCoordinates.W)),
 			new TitleArtVertex(leftBottom, new Vector2(SelectorTextureCoordinates.X, SelectorTextureCoordinates.W)),
-			0xFFFFFFFFu,
+			GetSelectorColor(frame),
 			1f,
 			TitleArtBlend.Alpha));
+	}
+
+	/// <summary>
+	/// Returns the press-enter strip colour for a controller frame: white with a sine alpha that repeats every 120 frames, as <c>0x006FEDE0</c> stores it for <c>0x006FF0D4</c>.
+	/// </summary>
+	/// <param name="frame">The controller frame counter.</param>
+	/// <returns>The 0xAARRGGBB colour.</returns>
+	[Original(0x006FEDE0)]
+	public static uint GetSelectorColor(int frame)
+	{
+		int angle = (int)(3 * (frame % 120) * 65536.0 / 360.0);
+		float alpha = (float)((FixedPointTrigonometry.Sine(angle) + 1.0) / 2.0);
+		return ((uint)(255f * alpha) << 24) | 0x00FFFFFFu;
 	}
 
 	/// <summary>

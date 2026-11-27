@@ -109,6 +109,16 @@ public sealed class TitleStartupTests : IDisposable
 	}
 
 	[Fact]
+	public void SelectorStripAlphaFollowsTheSineWithAPeriodOfOneHundredTwentyFrames()
+	{
+		Assert.Equal(0x7FFFFFFFu, Scene2TitleArt.GetSelectorColor(0));
+		Assert.Equal(0xFFFFFFFFu, Scene2TitleArt.GetSelectorColor(30));
+		Assert.Equal(0x7FFFFFFFu, Scene2TitleArt.GetSelectorColor(60));
+		Assert.Equal(0x00FFFFFFu, Scene2TitleArt.GetSelectorColor(90));
+		Assert.Equal(Scene2TitleArt.GetSelectorColor(7), Scene2TitleArt.GetSelectorColor(127));
+	}
+
+	[Fact]
 	public void TitleBlendStatesKeepTheAlphaTestAndTheOriginalFactors()
 	{
 		using DataFileRegistry files = Scene2TitleTestData.Registry();
