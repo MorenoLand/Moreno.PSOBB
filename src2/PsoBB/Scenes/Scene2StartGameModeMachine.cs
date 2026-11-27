@@ -166,6 +166,9 @@ public sealed class Scene2StartGameModeMachine
 	/// <summary>Gets a value indicating whether mode 22 selected non-empty text.</summary>
 	public bool Mode22Ready { get; private set; }
 
+	/// <summary>Gets the element and cursor slots the entry callbacks create.</summary>
+	public Scene2WindowChildren Children { get; } = new();
+
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
 	/// </summary>
@@ -259,6 +262,8 @@ public sealed class Scene2StartGameModeMachine
 	{
 		Mode22Text = null;
 		Mode22Ready = false;
+		Children.Ensure(this);
+		Children.Release();
 		if (TextTable is null)
 			return;
 		string first = TextTable.GetString(29, 27);
