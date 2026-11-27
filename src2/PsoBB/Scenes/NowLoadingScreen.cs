@@ -49,7 +49,7 @@ public sealed class NowLoadingScreen : IDisposable
 	public const float EmblemScale = 2f;
 
 	/// <summary>The drawn emblem rectangle after the 2x scale around the element centre.</summary>
-	public static readonly Vector2 EmblemDrawPosition = new(496f, 416f);
+	public static readonly Vector2 EmblemDrawPosition = new(288f, 224f);
 
 	/// <summary>The drawn emblem size after the 2x scale.</summary>
 	public static readonly Vector2 EmblemDrawSize = new(64f, 64f);

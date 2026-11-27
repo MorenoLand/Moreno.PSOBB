@@ -52,8 +52,8 @@ public sealed class TitleStartupTests : IDisposable
 		loading.Draw(draw);
 		Assert.Equal(NowLoadingScreen.RotationStep, loading.Rotation);
 		Assert.Equal(new Vector2(496f, 416f), NowLoadingScreen.EmblemPosition);
-		Assert.Equal(new Vector2(496f, 416f), draw.OverlayQuads[0].P0.Position);
-		Assert.Equal(new Vector2(560f, 480f), draw.OverlayQuads[0].P2.Position);
+		Assert.Equal(new Vector2(288f, 224f), draw.OverlayQuads[0].P0.Position);
+		Assert.Equal(new Vector2(352f, 288f), draw.OverlayQuads[0].P2.Position);
 		Assert.Equal(new Vector2(368f, 352f), draw.OverlayQuads[1].P0.Position);
 		Assert.Equal(new Vector2(497f, 480f), draw.OverlayQuads[1].P2.Position);
 		Assert.Equal(new Vector2(496f, 352f), draw.OverlayQuads[2].P0.Position);
