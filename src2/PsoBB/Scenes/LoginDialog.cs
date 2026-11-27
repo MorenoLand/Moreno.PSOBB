@@ -119,6 +119,7 @@ public sealed class LoginDialog : IDisposable
 	public LoginDialog(GameText text, string hintText = DefaultHint, IUiTextSurface? textSurface = null, Vector2? panelPosition = null)
 	{
 		ArgumentNullException.ThrowIfNull(text);
+		Text = text;
 		Vector2 position = panelPosition ?? TitlePanelPosition;
 		_header = new UiLabel
 		{
@@ -148,6 +149,9 @@ public sealed class LoginDialog : IDisposable
 		_menu.SelectedIndex = 0;
 		TextSurface = textSurface;
 	}
+
+	/// <summary>Gets the account text table this panel reads.</summary>
+	public GameText Text { get; }
 
 	/// <summary>Gets the header label that carries unitxt list 41 string 2.</summary>
 	public UiLabel Header => _header;
@@ -246,6 +250,9 @@ public sealed class LoginDialog : IDisposable
 		if (input.WasActionPressed(InputAction.Confirm))
 			ConfirmSelected();
 	}
+
+	/// <summary>Clears the last requested action without closing the panel.</summary>
+	public void ClearRequest() => _requestedAction = null;
 
 	/// <summary>
 	/// Closes the account panel and clears any earlier non-closing request.

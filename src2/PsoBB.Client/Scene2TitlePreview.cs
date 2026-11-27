@@ -40,6 +40,7 @@ public static class Scene2TitlePreview
 		using Scene2TitleMenu? menu = dialog is null ? null : new Scene2TitleMenu(dialog);
 		Scene2StartGameScreen? startScreen = null;
 		Scene2StartGameModeMachine? machine = null;
+		TitleExitConfirm? confirm = null;
 		ControllerButtonState? controller = null;
 		bool startGame = false;
 		bool machineStopped = false;
@@ -71,7 +72,22 @@ public static class Scene2TitlePreview
 			input.Update(TimeSpan.FromSeconds(FrameSeconds));
 			bool hidden = TitleFade.Advance(ref fade);
 			LoginDialogAction? action = null;
-			if (menuVisible && menu is not null)
+			if (confirm is not null)
+			{
+				confirm.Update(input);
+				if (confirm.Confirmed)
+				{
+					confirm.Dispose();
+					return;
+				}
+				if (confirm.Cancelled)
+				{
+					confirm.Dispose();
+					confirm = null;
+					menu?.Dialog.ClearRequest();
+				}
+			}
+			else if (menuVisible && menu is not null)
 			{
 				menu.Update(input);
 				action = menu.RequestedAction;
@@ -90,8 +106,11 @@ public static class Scene2TitlePreview
 				menuVisible = true;
 				fade = TitleFade.Initial;
 			}
-			if (action == LoginDialogAction.ExitGame)
-				return;
+			if (action == LoginDialogAction.ExitGame && confirm is null && menu is not null && textSurface is not null)
+			{
+				confirm = new TitleExitConfirm(menu.Dialog.Text, textSurface);
+				menu.Dialog.ClearRequest();
+			}
 			if (action == LoginDialogAction.StartGame || (startGameDiagnostic && frame == 3 && !startGame))
 			{
 				if (startGameDiagnostic && !startGame)
@@ -118,15 +137,15 @@ public static class Scene2TitlePreview
 			}
 			if (startGame && machine is not null && controller is not null)
 			{
-				bool confirm = input.WasActionPressed(InputAction.Confirm) || (startGameDiagnostic && frame == 10);
+				bool confirmPress = input.WasActionPressed(InputAction.Confirm) || (startGameDiagnostic && frame == 10);
 				machine.Controller = controller;
 				machine.GameEvent = () => confirmEdge ? 0xF : 0;
-				controller.Buttons = confirm ? 0x101u : 0u;
+				controller.Buttons = confirmPress ? 0x101u : 0u;
 				if (!machineStopped)
 				{
 					try { machine.Advance(); } catch (NotSupportedException) { machineStopped = true; }
 				}
-				confirmEdge = confirm;
+				confirmEdge = confirmPress;
 				if (machine.Mode == 23 && machine.EntryState == 0)
 				{
 					Scene2.SelectLobbyScreenState();
@@ -161,9 +180,10 @@ public static class Scene2TitlePreview
 				frame++;
 				continue;
 			}
-			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, menuVisible, hidden, frame, capture);
+			Render(host.Renderer, art, menuVisible ? menu?.Dialog : null, confirm, menuVisible, hidden, frame, capture);
 			frame++;
 		}
+		confirm?.Dispose();
 		directory?.Dispose();
 	}
 
@@ -253,7 +273,7 @@ public static class Scene2TitlePreview
 		}
 	}
 
-	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, bool menuVisible, bool hidden, int frame, Action<int>? capture)
+	private static void Render(IRenderer renderer, Scene2TitleArt art, LoginDialog? dialog, TitleExitConfirm? confirm, bool menuVisible, bool hidden, int frame, Action<int>? capture)
 	{
 		renderer.BeginFrame();
 		renderer.SetViewport(0, 0, renderer.Settings.Width, renderer.Settings.Height);
@@ -279,6 +299,7 @@ public static class Scene2TitlePreview
 			renderer.SetRenderState(RenderStateId.Lighting, 0);
 			UiDrawList ui = new();
 			dialog.Draw(ui);
+			confirm?.Draw(ui);
 			ui.Render(renderer);
 		}
 		capture?.Invoke(frame);
