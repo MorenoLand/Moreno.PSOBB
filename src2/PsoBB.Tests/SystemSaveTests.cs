@@ -85,6 +85,24 @@ public sealed class SystemSaveTests : IDisposable
 	}
 
 	[Fact]
+	public void ThePumpCompletesThePendingSystemLoad()
+	{
+		Files files = new();
+		files.Add(SaveFileCheck.SystemName, CreateSystem(valid: true));
+		byte[] block = new byte[SystemSave.SaveLength];
+		SystemSave.Attach(block, new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		SystemSave.Start(files);
+		Assert.Equal(SystemSave.SystemPending, SystemSave.Pending);
+
+		SystemSave.Pump();
+
+		Assert.Equal(0, SystemSave.Pending);
+		Assert.Equal(0, SystemSave.LoadActive);
+		Assert.Equal(SystemSave.Version, BinaryPrimitives.ReadUInt16LittleEndian(block.AsSpan(4)));
+		Assert.Equal(SystemSave.Timestamp, BinaryPrimitives.ReadInt32LittleEndian(block.AsSpan(8)));
+	}
+
+	[Fact]
 	public void AMissingSystemFileReturnsTheCheckStatus()
 	{
 		Files files = new();

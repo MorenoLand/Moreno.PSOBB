@@ -17,9 +17,19 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 {
 	private readonly Files _files = new();
 
-	public Scene2StartGameModeMachineTests() => SystemSave.Reset();
+	public Scene2StartGameModeMachineTests()
+	{
+		SystemSave.Reset();
+		CharacterSaveLoad.Reset();
+		GuildSave.Reset();
+	}
 
-	public void Dispose() => SystemSave.Reset();
+	public void Dispose()
+	{
+		SystemSave.Reset();
+		CharacterSaveLoad.Reset();
+		GuildSave.Reset();
+	}
 
 	[Fact]
 	public void TheShippedConstructorStartsInModeTwentySix()
@@ -369,6 +379,99 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 
 		Assert.Equal(state, GameState.SceneScreenState);
 		Assert.Equal(0u, GameState.SceneTransition);
+	}
+
+	[Fact]
+	public void ModeThreeStartsTheSystemLoadAndSelectsModeFour()
+	{
+		_files.Add(SaveFileCheck.SystemName, new byte[SystemSave.SaveLength]);
+		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.SetMode(3);
+
+		machine.Advance();
+
+		Assert.Equal(4u, machine.Mode);
+		Assert.Equal(SystemSave.SystemPending, SystemSave.Pending);
+		Assert.Equal(1, SystemSave.LoadActive);
+	}
+
+	[Fact]
+	public void ModeFourCompletesTheLoadThroughTheHostPumpAndReachesModeSix()
+	{
+		_files.Add(SaveFileCheck.SystemName, new byte[SystemSave.SaveLength]);
+		SystemSave.Attach(new byte[SystemSave.SaveLength], new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		SystemSave.Pending = SystemSave.SystemPending;
+		Scene2StartGameModeMachine machine = new(_files)
+		{
+			PumpSave = SystemSave.Pump,
+		};
+		machine.SetMode(4);
+
+		machine.Advance();
+
+		Assert.Equal(6u, machine.Mode);
+		Assert.Equal(0, SystemSave.Pending);
+	}
+
+	[Fact]
+	public void ModeSevenValidatesEverySlotAndSelectsTheLobby()
+	{
+		CharacterSaveLoad.Attach(
+			new byte[CharacterSaveLoad.PlayerChunkLength],
+			new byte[CharacterSaveLoad.SystemChunkLength],
+			new byte[CharacterSaveLoad.SaveLength],
+			new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		CharacterSaveCodec.Seal(CharacterSaveLoad.LoadBuffer!);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.FileFlags[1] = machine.FileFlags[3] = machine.FileFlags[5] = machine.FileFlags[7] = 1;
+
+		for (int slot = 0; slot < 4; slot++)
+		{
+			machine.SetMode(7);
+			machine.Advance();
+		}
+
+		Assert.Equal(23u, machine.Mode);
+		Assert.Equal(0, machine.EntryState);
+	}
+
+	[Fact]
+	public void ModeSevenFallsBackToModeOneForAnInvalidImage()
+	{
+		CharacterSaveLoad.Attach(
+			new byte[CharacterSaveLoad.PlayerChunkLength],
+			new byte[CharacterSaveLoad.SystemChunkLength],
+			new byte[CharacterSaveLoad.SaveLength],
+			new byte[SystemSave.DefaultPages << SystemSave.PageShift]);
+		Scene2StartGameModeMachine machine = new(_files);
+		machine.FileFlags[1] = machine.FileFlags[3] = machine.FileFlags[5] = machine.FileFlags[7] = 1;
+		machine.SlotIndex = 3;
+
+		machine.SetMode(7);
+		machine.Advance();
+
+		Assert.Equal(1u, machine.Mode);
+		Assert.Equal(1, machine.RepeatFlag);
+		Assert.Equal(0, machine.FileFlags[7]);
+	}
+
+	[Fact]
+	public void ModeThreeWhileWaitingClearsTheProgressObjects()
+	{
+		Scene2StartGameModeMachine machine = new(_files)
+		{
+			ProgressObject25 = 1,
+			ProgressObject26 = 2,
+			CounterA = 1,
+		};
+		machine.SetMode(3);
+
+		machine.Advance();
+
+		Assert.Equal(3u, machine.Mode);
+		Assert.Equal(0, machine.ProgressObject25);
+		Assert.Equal(0, machine.ProgressObject26);
 	}
 
 	[Fact]
