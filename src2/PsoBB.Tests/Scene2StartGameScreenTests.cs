@@ -3,6 +3,8 @@ using System.Text;
 using PsoBB.Core;
 using PsoBB.Game;
 using PsoBB.Gui;
+using PsoBB.Input;
+using PsoBB.Platform;
 using PsoBB.Save;
 using PsoBB.Scenes;
 using PsoBB.Text;
@@ -125,6 +127,41 @@ public sealed class Scene2StartGameScreenTests : IDisposable
 		GameState.SceneScreenState = 2;
 		Assert.Null(menu.Confirm());
 		Assert.Equal(2u, GameState.SceneScreenState);
+	}
+
+	[Fact]
+	public void TheFadePathCreatesTheStateNineScreenThroughTheInterface()
+	{
+		Scene2Screen? created = null;
+		using Scene2Interface ui = new(state => state == 9 ? created = Scene2StartGameScreenFactory.Create(CreateText(), CreateSave("HUNTER")) : null);
+		using Scene2 scene = new(ui);
+		InputManager input = new(new MemoryGameInput());
+		input.Update(TimeSpan.Zero);
+		scene.Start();
+
+		scene.Update(input, 0f);
+		scene.Update(input, 0f);
+		Assert.Null(ui.CurrentScreen);
+
+		Scene2.SelectStartGame();
+		scene.Update(input, 0f);
+		scene.Update(input, 0f);
+
+		Assert.NotNull(created);
+		Assert.Same(created, ui.CurrentScreen);
+		UiDrawList draw = new();
+		scene.Draw(draw);
+		Assert.NotEmpty(draw.Quads);
+	}
+
+	[Fact]
+	public void TheInterfaceLeavesTheScreenEmptyWhenTheSaveIsMissing()
+	{
+		using Scene2Interface ui = new(state => state == 9 ? Scene2StartGameScreenFactory.Create(CreateText(), null) : null);
+
+		ui.CreateScreen(9);
+
+		Assert.Null(ui.CurrentScreen);
 	}
 
 	private static CharacterSave CreateSave(string name)
