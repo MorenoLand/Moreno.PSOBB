@@ -1,5 +1,6 @@
 using PsoBB.Data;
 using PsoBB.Game;
+using PsoBB.Input;
 using PsoBB.Save;
 
 namespace PsoBB.Scenes;
@@ -83,6 +84,37 @@ public sealed class Scene2StartGameModeMachine
 
 	/// <summary>Gets or sets the event query used by mode 24.</summary>
 	public Func<int>? GameEvent { get; set; }
+
+	/// <summary>Gets or sets the controller the mode-26 camera checks read.</summary>
+	public ControllerButtonState? Controller { get; set; }
+
+	/// <summary>Gets or sets the keyboard the mode-26 camera checks read.</summary>
+	public KeyboardKeyState? Keyboard { get; set; }
+
+	/// <summary>Gets or sets the network pump mode 26 runs while its object is present.</summary>
+	public Action? PumpNetwork { get; set; }
+
+	/// <summary>Gets or sets the camera angle at offset 0xA4.</summary>
+	public float CameraRotation { get; set; }
+
+	/// <summary>Gets or sets the object at offset 4740.</summary>
+	public int InterfaceObject1185 { get; set; }
+
+	/// <summary>Gets or sets the flag the mode-26 object tests.</summary>
+	public bool InterfaceObject1185Flag { get; set; }
+
+	/// <summary>Gets or sets the object at offset 4744.</summary>
+	public int InterfaceObject1186 { get; set; }
+
+	/// <summary>Gets or sets the flag at offset 4748.</summary>
+	public int InterfaceObject1187 { get; set; }
+
+	/// <summary>Gets or sets the choice flag at <c>0x00A3A940</c>.</summary>
+	public int GlobalA3A940 { get; set; }
+
+	/// <summary>Gets or sets the flag at <c>0x00A3A938</c>.</summary>
+	[OriginalGlobal(0x00A3A938)]
+	public static int GlobalA3A938 { get; set; }
 
 	/// <summary>
 	/// Changes the mode, resets the timer and calls the entry callback when the mode differs.
@@ -212,6 +244,9 @@ public sealed class Scene2StartGameModeMachine
 				break;
 			case 25:
 				Mode25();
+				break;
+			case 26:
+				Mode26();
 				break;
 			default:
 				throw new NotSupportedException($"The handler for mode {Mode} is not ported.");
@@ -435,6 +470,61 @@ public sealed class Scene2StartGameModeMachine
 			return;
 		EntryState = 1;
 		SetMode(23);
+	}
+
+	/// <summary>
+	/// Runs the idle character-screen handler at <c>0x004046D4</c>: camera rotation, the network
+	/// pump while the interface object exists, and the four-controller confirm to mode 23 or 24.
+	/// </summary>
+	[Original(0x004046D4)]
+	private void Mode26()
+	{
+		if (Flag27 != 0)
+		{
+			if (Controller?.IsPressed(0x00010000) == true)
+				CameraRotation += -6f;
+			else if (Controller?.IsPressed(0x00020000) == true)
+				CameraRotation += 6f;
+			else if (Keyboard?.IsKeyDown(8) == true)
+				CameraRotation += -140f;
+			else if (Keyboard?.IsKeyDown(9) == true)
+				CameraRotation += 140f;
+		}
+		if (InterfaceObject1185 != 0)
+		{
+			if (InterfaceObject1185Flag)
+			{
+				if (GlobalA3A938 == 0)
+					InterfaceObject1186 = 0;
+				InterfaceObject1185 = 0;
+			}
+			else
+			{
+				PumpNetwork?.Invoke();
+				return;
+			}
+		}
+		bool pressed = false;
+		for (int index = 0; index < 4; index++)
+			pressed |= Controller?.IsPressed(0x101) == true;
+		if (!pressed)
+			return;
+		if (InterfaceObject1187 != 0)
+		{
+			SceneManager.RequestScene(SceneManager.ExitScene);
+			return;
+		}
+		InterfaceObject1186 = 0;
+		if (GlobalA3A940 != 0)
+		{
+			EntryState = 1;
+			ChangeMode(23);
+		}
+		else
+		{
+			EntryState = 0;
+			ChangeMode(24);
+		}
 	}
 
 	[Original(0x00404CA4)]

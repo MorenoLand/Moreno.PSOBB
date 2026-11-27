@@ -1,5 +1,6 @@
 using PsoBB.Data;
 using PsoBB.Game;
+using PsoBB.Input;
 using PsoBB.Save;
 using PsoBB.Scenes;
 
@@ -23,7 +24,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		Scene2StartGameModeMachine machine = new(_files);
 
 		Assert.Equal((uint)Scene2StartGameModeMachine.InitialMode, machine.Mode);
-		Assert.Throws<NotSupportedException>(machine.Advance);
+		machine.Advance();
+		Assert.Equal((uint)Scene2StartGameModeMachine.InitialMode, machine.Mode);
 	}
 
 	[Fact]
@@ -115,6 +117,55 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		machine.Advance();
 
 		Assert.Equal(3u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwentySixRotatesTheCameraFromTheController()
+	{
+		Scene2StartGameModeMachine machine = new(_files) { Flag27 = 1, Controller = new ControllerButtonState { Buttons = 0x00010000 } };
+
+		machine.Advance();
+
+		Assert.Equal(-6f, machine.CameraRotation);
+		Assert.Equal(26u, machine.Mode);
+	}
+
+	[Fact]
+	public void ModeTwentySixPumpsTheNetworkWhileTheObjectIsPresent()
+	{
+		int pumps = 0;
+		Scene2StartGameModeMachine machine = new(_files) { InterfaceObject1185 = 1, PumpNetwork = () => ++pumps };
+
+		machine.Advance();
+
+		Assert.Equal(1, pumps);
+		Assert.Equal(1, machine.InterfaceObject1185);
+	}
+
+	[Fact]
+	public void ModeTwentySixSelectsModeTwentyFourOrTwentyThree()
+	{
+		Scene2StartGameModeMachine machine = new(_files) { Controller = new ControllerButtonState { Buttons = 1 } };
+		machine.Advance();
+		Assert.Equal(24u, machine.Mode);
+		Assert.Equal(0, machine.EntryState);
+
+		Scene2StartGameModeMachine choose = new(_files) { Controller = new ControllerButtonState { Buttons = 1 }, GlobalA3A940 = 1 };
+		choose.Advance();
+		Assert.Equal(23u, choose.Mode);
+		Assert.Equal(1, choose.EntryState);
+	}
+
+	[Fact]
+	public void ModeTwentySixRequestsExitForTheThirdObject()
+	{
+		Scene2StartGameModeMachine machine = new(_files) { Controller = new ControllerButtonState { Buttons = 1 }, InterfaceObject1187 = 1 };
+		GameState.Reset();
+
+		machine.Advance();
+
+		Assert.Equal(1u, GameState.SceneTransition);
+		Assert.Equal(0u, GameState.RequestedScene);
 	}
 
 	[Fact]
@@ -403,6 +454,8 @@ public sealed class Scene2StartGameModeMachineTests : IDisposable
 		}
 	}
 }
+
+
 
 
 
