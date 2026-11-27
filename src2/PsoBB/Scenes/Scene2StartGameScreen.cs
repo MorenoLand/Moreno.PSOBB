@@ -70,14 +70,20 @@ public sealed class Scene2StartGameScreen : IDisposable
 	/// <summary>The row spacing from the four pairs at <c>0x008F8940</c>.</summary>
 	public const float RowStep = 43f;
 
+	/// <summary>The selection width from <c>0x008F8988</c>.</summary>
+	public const float RowWidth = 180f;
+
+	/// <summary>The selection height from <c>0x008F8984</c>.</summary>
+	public const float RowHeight = 38f;
+
 	/// <summary>The shared state the successful network path selects.</summary>
 	public const uint LobbySharedScreenState = 6;
 
 	/// <summary>The shared state the return-to-title path selects.</summary>
 	public const uint TitleSharedScreenState = 0;
 
-	/// <summary>The full-screen row area the port uses until the original row tables are ported.</summary>
-	public static readonly Vector2 RowAreaSize = new(640f, 480f);
+	/// <summary>The four-row area the list widget uses.</summary>
+	public static readonly Vector2 RowAreaSize = new(RowWidth, RowStep * CharacterSlotCount);
 
 	private readonly CharacterSave _save;
 	private readonly UiPanel _root;
