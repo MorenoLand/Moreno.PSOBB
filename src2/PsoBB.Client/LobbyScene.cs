@@ -11,7 +11,7 @@ using PsoBB.Scenes;
 namespace PsoBB.Client;
 
 /// <summary>
-/// Runs scene 11 from the title hand-off through the online connection and into the field or lobby.
+/// Runs scene 11 from the online request through the game-server connection and into the field or lobby.
 /// </summary>
 /// <remarks>
 /// Scene 11 stays current while the redirected game server feeds <see cref="LobbyWorld"/>, so this
@@ -117,19 +117,6 @@ public sealed class LobbyScene : IWorldSceneScreen
 
 	/// <summary>Gets the exact unsupported or failed step, or <see langword="null"/>.</summary>
 	public string? Diagnostic => _diagnostic;
-
-	/// <summary>
-	/// Requests scene 11 when the title dialog confirmed Start Game.
-	/// </summary>
-	/// <param name="action">The action the title dialog reported.</param>
-	/// <returns><see langword="true"/> when the online scene was requested.</returns>
-	public static bool RequestFromTitle(LoginDialogAction? action)
-	{
-		if (action != LoginDialogAction.StartGame)
-			return false;
-		SceneManager.RequestScene(OnlineScene.SceneNumber);
-		return true;
-	}
 
 	/// <summary>
 	/// Pumps the online flow until the lobby arrives, then advances the field and controller.

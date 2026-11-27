@@ -50,18 +50,6 @@ public sealed class LobbySceneTests : IDisposable
 	}
 
 	[Fact]
-	public void StartGameRequestsTheOnlineSceneAndOtherActionsDoNot()
-	{
-		using LoginDialog dialog = new(CreateText());
-
-		Assert.Equal(LoginDialogAction.StartGame, dialog.ConfirmSelected());
-		Assert.True(LobbyScene.RequestFromTitle(dialog.RequestedAction));
-		Assert.Equal(1u, GameState.SceneTransition);
-		Assert.Equal(OnlineScene.SceneNumber, GameState.RequestedScene);
-		Assert.False(LobbyScene.RequestFromTitle(LoginDialogAction.ExitGame));
-	}
-
-	[Fact]
 	public void TheDirectoryBindsSceneElevenToTheLobbyScene()
 	{
 		using DataFileRegistry files = OnlineTestData.Registry();

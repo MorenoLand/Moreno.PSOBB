@@ -79,9 +79,9 @@ renderer, input device, clock, dispatcher or file system of its own.
 
 `SceneDirectorTests` uses synthetic screens for entry, update, draw, release order, transitions 1
 through 3, a transition outside that range, initialiser and release overrides, the pre-init clear,
-scene zero, missing and out-of-table numbers, and disposal. `LobbySceneTests` covers the Start Game
-request, the host endpoint table, the redirect, lobby creation, controller movement, map then player
-draw order, the missing field host and release. `SceneDirectoryTests` uses synthetic GSL
+scene zero, missing and out-of-table numbers, and disposal. `LobbySceneTests` covers the host
+endpoint table, the redirect, lobby creation, controller movement, map then player draw order, the
+missing field host and release. `SceneDirectoryTests` uses synthetic GSL
 data, a synthetic connection and a synthetic host table for the three login endpoint selections,
 the login phases through character selection, the redirect and redirected connection, a rejected
 login, cancel, exit, loading without a host table, and release; it also runs scene 2's
