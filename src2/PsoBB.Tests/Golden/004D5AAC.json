@@ -1,0 +1,162 @@
+[
+	{
+		"controllerEye": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"startTarget": [
+			1092616192,
+			1092616192,
+			0
+		],
+		"endTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"stepSpeed": 1069547520,
+		"elapsed": 0,
+		"moveFrames": 10,
+		"holdFrames": 5,
+		"viewFlags": 1,
+		"taskFlagsOutput": 0,
+		"elapsedOutput": 1,
+		"endTargetOutput": [
+			1069547520,
+			1092616192,
+			0
+		],
+		"cutsceneViewFlagsOutput": 1,
+		"cutsceneEyeOutput": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"cutsceneTargetOutput": [
+			1069547520,
+			1092616192,
+			0
+		]
+	},
+	{
+		"controllerEye": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"startTarget": [
+			1092616192,
+			1092616192,
+			0
+		],
+		"endTarget": [
+			1092091904,
+			1092616192,
+			0
+		],
+		"stepSpeed": 1069547520,
+		"elapsed": 14,
+		"moveFrames": 10,
+		"holdFrames": 5,
+		"viewFlags": 1,
+		"taskFlagsOutput": 1,
+		"elapsedOutput": 15,
+		"endTargetOutput": [
+			1092616192,
+			1092616192,
+			0
+		],
+		"cutsceneViewFlagsOutput": 1,
+		"cutsceneEyeOutput": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"cutsceneTargetOutput": [
+			1092616192,
+			1092616192,
+			0
+		]
+	},
+	{
+		"controllerEye": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"startTarget": [
+			1092616192,
+			1092616192,
+			0
+		],
+		"endTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"stepSpeed": 1069547520,
+		"elapsed": 2,
+		"moveFrames": 10,
+		"holdFrames": 5,
+		"viewFlags": 0,
+		"taskFlagsOutput": 1,
+		"elapsedOutput": 3,
+		"endTargetOutput": [
+			1069547520,
+			1092616192,
+			0
+		],
+		"cutsceneViewFlagsOutput": 0,
+		"cutsceneEyeOutput": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetOutput": [
+			0,
+			0,
+			0
+		]
+	},
+	{
+		"controllerEye": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"startTarget": [
+			1092616192,
+			1092616192,
+			0
+		],
+		"endTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"stepSpeed": 1069547520,
+		"elapsed": 2,
+		"moveFrames": 10,
+		"holdFrames": 5,
+		"viewFlags": 2,
+		"taskFlagsOutput": 0,
+		"elapsedOutput": 3,
+		"endTargetOutput": [
+			1069547520,
+			1092616192,
+			0
+		],
+		"cutsceneViewFlagsOutput": 2,
+		"cutsceneEyeOutput": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetOutput": [
+			0,
+			0,
+			0
+		]
+	}
+]

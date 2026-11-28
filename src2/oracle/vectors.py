@@ -1561,6 +1561,12 @@ def main():
     bezier_evaluate_vectors(read)
     camera_cutscene_apply_anchor_vectors(read)
     camera_cutscene_sync_status_vectors(read)
+    camera_set_orientation_axes_vectors(read)
+    camera_set_global_up_axis_vectors(read)
+    camera_linear_pan_init_vectors(read)
+    camera_linear_pan_step_vectors(read)
+    camera_path_task_init_vectors(read)
+    camera_path_task_step_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -3359,6 +3365,7 @@ def camera_cutscene_post_update_vectors(read):
             [],
             registers={"ecx": MODE, "fpcw": 0x027F},
             memory=[
+                (0x00000000, b"\x00" * 16),
                 (CTRL, bytes(ctrl)),
                 (MODE, bytes(mode)),
                 (STACK, b"\x00" * 256),
@@ -3809,6 +3816,279 @@ def camera_cutscene_sync_status_vectors(read):
             "outputFlags": out_flags,
         })
     write("004D6864.json", vectors)
+
+
+def camera_set_orientation_axes_vectors(read):
+    """0x004D44CC: computes camera right and up basis vectors from explicit pitch and yaw angles."""
+    STACK = 0x50004400
+    vectors = []
+    for pitch, yaw in [(0, 0), (0x1000, 0x2000), (-0x800, 0x4000), (0x2000, -0x3000)]:
+        _, _, captured = run(
+            read,
+            0x004D44CC,
+            0,
+            [pitch, yaw],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (STACK, b"\x00" * 256),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00AF0380, struct.pack("<I", 128)),
+                (0x00AF0384, struct.pack("<I", 0)),
+                (0x00A489E8, b"\x00" * 12),
+                (0x00A489DC, b"\x00" * 12),
+            ],
+            capture=[(0x00A489E8, 12), (0x00A489DC, 12)],
+        )
+        vectors.append({
+            "pitch": pitch,
+            "yaw": yaw,
+            "rightAxis": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A489E8])],
+            "upAxis": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A489DC])],
+        })
+    write("004D44CC.json", vectors)
+
+
+def camera_set_global_up_axis_vectors(read):
+    """0x004D45A0: copies a three-float up-axis vector into the global camera up axis."""
+    VEC = 0x50002000
+    vectors = []
+    for axis in [(0.0, 1.0, 0.0), (0.5, 0.70710677, -0.5), (-1.0, 0.0, 0.25)]:
+        _, _, captured = run(
+            read,
+            0x004D45A0,
+            0,
+            [VEC],
+            memory=[(VEC, struct.pack("<3f", *axis)), (0x00A489CC, b"\x00" * 12)],
+            capture=[(0x00A489CC, 12)],
+        )
+        vectors.append({
+            "axis": [float_bits(v) for v in axis],
+            "outputAxis": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A489CC])],
+        })
+    write("004D45A0.json", vectors)
+
+
+def camera_linear_pan_init_vectors(read):
+    """0x004D5B98: constructs the linear cutscene camera pan task from controller eye/target and destination."""
+    CTRL = 0x50000000
+    TASK = 0x50001000
+    DEST = 0x50002000
+    vectors = []
+    for ceye, ctgt, dest, move_frames, hold_frames in [
+        ((0.0, 20.0, 40.0), (0.0, 10.0, 0.0), (30.0, 20.0, 10.0), 60, 30),
+        ((10.0, 5.0, -20.0), (10.0, 5.0, -20.0), (10.0, 5.0, -20.0), 0, 15),
+        ((-15.0, 12.0, 8.0), (5.0, 10.0, -4.0), (25.0, 30.0, 12.0), 120, 0),
+    ]:
+        ctrl = bytearray(468)
+        struct.pack_into("<3f", ctrl, 0x178, *ceye)
+        struct.pack_into("<3f", ctrl, 0x184, *ctgt)
+        _, _, captured = run(
+            read,
+            0x004D5B98,
+            0,
+            [DEST, move_frames, hold_frames, 0],
+            registers={"ecx": TASK, "fpcw": 0x027F},
+            memory=[
+                (0x00000000, b"\x00" * 16),
+                (CTRL, bytes(ctrl)),
+                (TASK, b"\x00" * 64),
+                (DEST, struct.pack("<3f", *dest)),
+                (0x00A48A54, struct.pack("<I", CTRL)),
+                (0x00A48B74, bytes([0])),
+                (0x00A48B68, b"\x00" * 12),
+                (0x00A48B5C, b"\x00" * 12),
+            ],
+            capture=[(TASK, 64), (0x00A48B74, 1), (0x00A48B68, 12), (0x00A48B5C, 12)],
+        )
+        out = captured[TASK]
+        vectors.append({
+            "controllerEye": [float_bits(v) for v in ceye],
+            "controllerTarget": [float_bits(v) for v in ctgt],
+            "destination": [float_bits(v) for v in dest],
+            "moveFrames": move_frames,
+            "holdFrames": hold_frames,
+            "stepSpeed": float_bits(struct.unpack_from("<f", out, 0x1C)[0]),
+            "elapsedFrames": struct.unpack_from("<H", out, 0x20)[0],
+            "moveFramesOutput": struct.unpack_from("<H", out, 0x22)[0],
+            "holdFramesOutput": struct.unpack_from("<H", out, 0x24)[0],
+            "startTarget": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x28)],
+            "endTarget": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x34)],
+            "cutsceneViewFlags": captured[0x00A48B74][0],
+            "cutsceneEye": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B68])],
+            "cutsceneTarget": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B5C])],
+        })
+    write("004D5B98.json", vectors)
+
+
+def camera_linear_pan_step_vectors(read):
+    """0x004D5AAC: advances the linear cutscene camera pan by one frame and retires when finished."""
+    CTRL = 0x50000000
+    TASK = 0x50001000
+    vectors = []
+    for ceye, start_tgt, end_tgt, step_speed, elapsed, move_frames, hold_frames, view_flags in [
+        ((0.0, 20.0, 40.0), (10.0, 10.0, 0.0), (0.0, 10.0, 0.0), 1.5, 0, 10, 5, 1),
+        ((0.0, 20.0, 40.0), (10.0, 10.0, 0.0), (9.5, 10.0, 0.0), 1.5, 14, 10, 5, 1),
+        ((0.0, 20.0, 40.0), (10.0, 10.0, 0.0), (0.0, 10.0, 0.0), 1.5, 2, 10, 5, 0),
+        ((0.0, 20.0, 40.0), (10.0, 10.0, 0.0), (0.0, 10.0, 0.0), 1.5, 2, 10, 5, 2),
+    ]:
+        ctrl = bytearray(468)
+        struct.pack_into("<3f", ctrl, 0x178, *ceye)
+        task = bytearray(64)
+        struct.pack_into("<f", task, 0x1C, step_speed)
+        struct.pack_into("<HHH", task, 0x20, elapsed, move_frames, hold_frames)
+        struct.pack_into("<3f", task, 0x28, *start_tgt)
+        struct.pack_into("<3f", task, 0x34, *end_tgt)
+        _, _, captured = run(
+            read,
+            0x004D5AAC,
+            0,
+            [],
+            registers={"ecx": TASK, "fpcw": 0x027F},
+            memory=[
+                (0x00000000, b"\x00" * 16),
+                (CTRL, bytes(ctrl)),
+                (TASK, bytes(task)),
+                (0x00A48A54, struct.pack("<I", CTRL)),
+                (0x00A48B74, bytes([view_flags])),
+                (0x00A48B68, b"\x00" * 12),
+                (0x00A48B5C, b"\x00" * 12),
+            ],
+            capture=[(TASK, 64), (0x00A48B74, 1), (0x00A48B68, 12), (0x00A48B5C, 12)],
+        )
+        out = captured[TASK]
+        vectors.append({
+            "controllerEye": [float_bits(v) for v in ceye],
+            "startTarget": [float_bits(v) for v in start_tgt],
+            "endTarget": [float_bits(v) for v in end_tgt],
+            "stepSpeed": float_bits(step_speed),
+            "elapsed": elapsed,
+            "moveFrames": move_frames,
+            "holdFrames": hold_frames,
+            "viewFlags": view_flags,
+            "taskFlagsOutput": struct.unpack_from("<H", out, 0x08)[0],
+            "elapsedOutput": struct.unpack_from("<H", out, 0x20)[0],
+            "endTargetOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x34)],
+            "cutsceneViewFlagsOutput": captured[0x00A48B74][0],
+            "cutsceneEyeOutput": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B68])],
+            "cutsceneTargetOutput": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B5C])],
+        })
+    write("004D5AAC.json", vectors)
+
+
+def camera_path_task_init_vectors(read):
+    """0x004D5D5C: initializes scripted spline camera task for fixed-target or player-tracking view."""
+    TASK = 0x50001000
+    EYE_NODES = 0x50002000
+    TGT_NODES = 0x50003000
+    eye_sample = (1.0, 2.0, 3.0, 10.0)
+    tgt_sample = (4.0, 5.0, 6.0, 10.0)
+    vectors = []
+    for has_eye, has_tgt, count, speed, target_id, loop in [
+        (True, True, 3, 2.5, 0xFFFF, 1),
+        (True, False, 3, 1.5, 2, 0),
+        (True, True, 1, 1.0, 0xFFFF, 0),
+        (False, True, 3, 1.0, 0xFFFF, 0),
+    ]:
+        eye_ptr = EYE_NODES if has_eye else 0
+        tgt_ptr = TGT_NODES if has_tgt else 0
+        _, _, captured = run(
+            read,
+            0x004D5D5C,
+            0,
+            [eye_ptr, tgt_ptr, count, float_bits(speed), target_id, loop, 0],
+            registers={"ecx": TASK, "fpcw": 0x027F},
+            memory=[
+                (0x00000000, b"\x00" * 16),
+                (TASK, b"\x00" * 64),
+                (EYE_NODES, struct.pack("<4f", *eye_sample)),
+                (TGT_NODES, struct.pack("<4f", *tgt_sample)),
+                (0x00A48B74, bytes([0])),
+                (0x00A48B68, b"\x00" * 12),
+                (0x00A48B5C, b"\x00" * 12),
+                (0x009ACED8, struct.pack("<h", -1)),
+            ],
+            capture=[(TASK, 64), (0x00A48B74, 1), (0x00A48B68, 12), (0x00A48B5C, 12), (0x009ACED8, 2)],
+        )
+        out = captured[TASK]
+        vectors.append({
+            "hasEye": has_eye,
+            "hasTarget": has_tgt,
+            "count": count,
+            "speed": float_bits(speed),
+            "targetClientId": target_id,
+            "loop": loop,
+            "taskFlags": struct.unpack_from("<H", out, 0x08)[0],
+            "cutsceneViewFlags": captured[0x00A48B74][0],
+            "cutsceneEye": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B68])],
+            "cutsceneTarget": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B5C])],
+            "cutsceneTargetClientId": struct.unpack("<h", captured[0x009ACED8])[0],
+        })
+    write("004D5D5C.json", vectors)
+
+
+def camera_path_task_step_vectors(read):
+    """0x004D5E88: advances scripted polyline camera task and updates cutscene view globals."""
+    TASK = 0x50001000
+    EYE_NODES = 0x50002000
+    TGT_NODES = 0x50003000
+    eye_nodes = [
+        (0.0, 10.0, 0.0, 10.0),
+        (10.0, 10.0, 0.0, 20.0),
+        (10.0, 30.0, 0.0, 20.0),
+    ]
+    tgt_nodes = [
+        (0.0, 0.0, 0.0, 10.0),
+        (0.0, 10.0, 0.0, 20.0),
+        (10.0, 10.0, 0.0, 20.0),
+    ]
+    eye_buf = bytearray(len(eye_nodes) * 16)
+    tgt_buf = bytearray(len(tgt_nodes) * 16)
+    for i, node in enumerate(eye_nodes):
+        struct.pack_into("<4f", eye_buf, i * 16, *node)
+    for i, node in enumerate(tgt_nodes):
+        struct.pack_into("<4f", tgt_buf, i * 16, *node)
+    vectors = []
+    for has_eye, has_tgt, frame_in, speed, target_id, loop in [
+        (False, False, 0, 2.5, 0xFFFF, 0),
+        (True, True, 1, 2.5, 0xFFFF, 0),
+        (True, True, 5, 2.5, 0xFFFF, 1),
+        (True, False, 2, 2.5, 1, 0),
+    ]:
+        task = bytearray(64)
+        struct.pack_into("<IIfhhhh", task, 0x1C, EYE_NODES if has_eye else 0, TGT_NODES if has_tgt else 0, speed, 3, target_id if target_id < 0x8000 else target_id - 0x10000, frame_in, loop)
+        _, _, captured = run(
+            read,
+            0x004D5E88,
+            0,
+            [],
+            registers={"ecx": TASK, "fpcw": 0x027F},
+            memory=[
+                (TASK, bytes(task)),
+                (EYE_NODES, bytes(eye_buf)),
+                (TGT_NODES, bytes(tgt_buf)),
+                (0x00A48B74, bytes([0])),
+                (0x00A48B68, b"\x00" * 12),
+                (0x00A48B5C, b"\x00" * 12),
+                (0x009ACED8, struct.pack("<h", -1)),
+            ],
+            capture=[(TASK, 64), (0x00A48B74, 1), (0x00A48B68, 12), (0x00A48B5C, 12), (0x009ACED8, 2)],
+        )
+        out = captured[TASK]
+        vectors.append({
+            "hasEye": has_eye,
+            "hasTarget": has_tgt,
+            "frameInput": frame_in,
+            "speed": float_bits(speed),
+            "targetClientId": target_id,
+            "loop": loop,
+            "taskFlags": struct.unpack_from("<H", out, 0x08)[0],
+            "frameOutput": struct.unpack_from("<h", out, 0x2C)[0],
+            "cutsceneViewFlags": captured[0x00A48B74][0],
+            "cutsceneEye": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B68])],
+            "cutsceneTarget": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48B5C])],
+            "cutsceneTargetClientId": struct.unpack("<h", captured[0x009ACED8])[0],
+        })
+    write("004D5E88.json", vectors)
 
 
 if __name__ == "__main__":

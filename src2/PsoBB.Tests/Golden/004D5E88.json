@@ -1,0 +1,90 @@
+[
+	{
+		"hasEye": false,
+		"hasTarget": false,
+		"frameInput": 0,
+		"speed": 1075838976,
+		"targetClientId": 65535,
+		"loop": 0,
+		"taskFlags": 1,
+		"frameOutput": 0,
+		"cutsceneViewFlags": 0,
+		"cutsceneEye": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTarget": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetClientId": -1
+	},
+	{
+		"hasEye": true,
+		"hasTarget": true,
+		"frameInput": 1,
+		"speed": 1075838976,
+		"targetClientId": 65535,
+		"loop": 0,
+		"taskFlags": 0,
+		"frameOutput": 2,
+		"cutsceneViewFlags": 1,
+		"cutsceneEye": [
+			1084227584,
+			1092616192,
+			0
+		],
+		"cutsceneTarget": [
+			0,
+			1084227584,
+			0
+		],
+		"cutsceneTargetClientId": -1
+	},
+	{
+		"hasEye": true,
+		"hasTarget": true,
+		"frameInput": 5,
+		"speed": 1075838976,
+		"targetClientId": 65535,
+		"loop": 1,
+		"taskFlags": 0,
+		"frameOutput": 6,
+		"cutsceneViewFlags": 1,
+		"cutsceneEye": [
+			1092616192,
+			1097859072,
+			0
+		],
+		"cutsceneTarget": [
+			1084227584,
+			1092616192,
+			0
+		],
+		"cutsceneTargetClientId": -1
+	},
+	{
+		"hasEye": true,
+		"hasTarget": false,
+		"frameInput": 2,
+		"speed": 1075838976,
+		"targetClientId": 1,
+		"loop": 0,
+		"taskFlags": 0,
+		"frameOutput": 3,
+		"cutsceneViewFlags": 2,
+		"cutsceneEye": [
+			1089470464,
+			1092616192,
+			0
+		],
+		"cutsceneTarget": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetClientId": 1
+	}
+]

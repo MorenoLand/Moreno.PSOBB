@@ -510,6 +510,14 @@ public class FieldCameraFollowMode : FieldCameraMode
 	}
 
 	/// <summary>
+	/// Forwards a fixed cutscene eye and target override to <see cref="SetCutsceneFixedView"/>.
+	/// </summary>
+	/// <param name="eye">The cutscene camera eye position.</param>
+	/// <param name="target">The cutscene camera look target.</param>
+	[Original(0x004D5D48)]
+	public static void ApplyCutsceneFixedView(Vector3 eye, Vector3 target) => SetCutsceneFixedView(eye, target);
+
+	/// <summary>
 	/// Enables a cutscene view from a fixed eye looking at the player in <paramref name="targetClientId"/>.
 	/// </summary>
 	/// <param name="eye">The cutscene camera eye position.</param>

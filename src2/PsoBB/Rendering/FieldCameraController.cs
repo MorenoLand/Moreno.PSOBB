@@ -467,6 +467,31 @@ public sealed class FieldCameraController
 	}
 
 	/// <summary>
+	/// Recomputes the horizontal right and vertical up basis vectors from explicit pitch and yaw angles.
+	/// </summary>
+	/// <param name="pitch">The pitch angle in 16-bit turn units.</param>
+	/// <param name="yaw">The yaw angle in 16-bit turn units.</param>
+	[Original(0x004D44CC)]
+	public static void SetOrientationAxes(int pitch, int yaw)
+	{
+		RightAxis = Matrix4x4.Identity.RotateY(yaw).TransformDirection(new Vector3(1.0f, 0.0f, 0.0f));
+		UpAxis = Matrix4x4.Identity.RotateX(pitch).TransformDirection(new Vector3(0.0f, 1.0f, 0.0f));
+	}
+
+	/// <summary>
+	/// Returns the most recently captured global inverse view matrix.
+	/// </summary>
+	[Original(0x004D455C)]
+	public static Matrix4x4 GetGlobalInverseViewMatrix() => GlobalInverseViewMatrix;
+
+	/// <summary>
+	/// Sets the global camera up axis used when refreshing or offsetting the look-at transform.
+	/// </summary>
+	/// <param name="upAxis">The replacement up-axis vector.</param>
+	[Original(0x004D45A0)]
+	public static void SetGlobalUpAxis(Vector3 upAxis) => GlobalUpAxis = upAxis;
+
+	/// <summary>
 	/// Advances the vertical camera offset countdown by one frame and updates the active offset.
 	/// </summary>
 	[Original(0x004D3DF4)]
