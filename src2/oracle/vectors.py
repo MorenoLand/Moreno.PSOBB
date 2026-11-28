@@ -1536,6 +1536,20 @@ def main():
     camera_pad_center_vectors(read)
     camera_pad_orbit_vectors(read)
     camera_pad_snap_behind_vectors(read)
+    matrix_rotate_z_vectors(read)
+    camera_step_angle_vectors(read)
+    camera_step_scalar_vectors(read)
+    camera_smooth_scalar_vectors(read)
+    camera_set_follow_preset_vectors(read)
+    camera_follow_relative_offsets_vectors(read)
+    camera_follow_attach_target_vectors(read)
+    camera_follow_cutscene_view_vectors(read)
+    camera_follow_eye_from_yaw_vectors(read)
+    camera_follow_target_vertical_aim_vectors(read)
+    camera_follow_look_ahead_vectors(read)
+    camera_follow_lock_target_vectors(read)
+    camera_close_follow_lock_target_vectors(read)
+    camera_close_follow_focus_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -2712,6 +2726,594 @@ def camera_pad_snap_behind_vectors(read):
             "eyeOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
         })
     write("004D1E50.json", vectors)
+
+
+def matrix_rotate_z_vectors(read):
+    """0x00830C04: applies a fixed-point Z rotation to a 4x4 matrix."""
+    MATRIX = 0x50001000
+    vectors = []
+    rng = random.Random(0x830C04)
+    base_matrices = [
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [float(i + 1) for i in range(16)],
+    ]
+    for _ in range(4):
+        base_matrices.append([round(rng.uniform(-10.0, 10.0), 3) for _ in range(16)])
+    angles = [0, 0x1000, 0x4000, 0x8000, 0xC000, -0x2345]
+    for mat in base_matrices:
+        for angle in angles:
+            if len(vectors) >= 15:
+                break
+            raw = struct.pack("<16f", *mat)
+            _, _, captured = run(
+                read,
+                0x00830C04,
+                0,
+                [],
+                registers={"ecx": MATRIX, "edx": angle & 0xFFFFFFFF, "fpcw": 0x027F},
+                memory=[(MATRIX, raw)],
+                capture=[(MATRIX, 64)],
+            )
+            out = struct.unpack("<16f", captured[MATRIX])
+            vectors.append({
+                "matrix": [float_bits(v) for v in mat],
+                "angle": angle & 0xFFFFFFFF,
+                "result": [float_bits(v) for v in out],
+            })
+    write("00830C04.json", vectors)
+
+
+def camera_step_angle_vectors(read):
+    """0x004D6370: steps an integer yaw angle by 127 * speed unless inside threshold."""
+    vectors = []
+    for current, target, speed in [
+        (0, 0x4000, 5),
+        (0, 200, 2),
+        (0x1000, 0x1080, 1),
+        (0xFFFF, 0x0100, 1),
+        (0x8000, 0x7E00, 2),
+        (0x4000, 0x3FFF, 1),
+        (-0x1000, 0x2000, 5),
+        (0x1000, 0x1000 + 364 * 127, 364),
+    ]:
+        res, _, _ = run(read, 0x004D6370, 0, [current & 0xFFFFFFFF, target & 0xFFFFFFFF, speed])
+        vectors.append({
+            "current": current,
+            "target": target,
+            "speed": speed,
+            "result": ctypes.c_int32(res).value,
+        })
+    write("004D6370.json", vectors)
+
+
+def camera_step_scalar_vectors(read):
+    """0x004D6540: moves current scalar toward target by at most max_delta."""
+    vectors = []
+    for current, target, max_delta in [
+        (0.0, 10.0, 2.5),
+        (10.0, 0.0, 2.5),
+        (5.0, 5.0, 1.0),
+        (5.0, 5.5, 1.0),
+        (5.5, 5.0, 1.0),
+        (-3.0, 0.0, 0.5),
+        (0.0, -3.0, 0.672),
+    ]:
+        SRC = 0x50001000
+        DST = 0x50001004
+        OUT = 0x50001008
+        m, e = math.frexp(max_delta)
+        mant = round(m * (1 << 64))
+        ext = mant.to_bytes(8, "little") + (16382 + e).to_bytes(2, "little")
+        _, _, captured = run(
+            read,
+            0x004D6540,
+            0,
+            [],
+            registers={"eax": SRC, "edx": DST, "ecx": OUT, "st0": ext, "fpcw": 0x027F},
+            memory=[
+                (SRC, struct.pack("<f", current)),
+                (DST, struct.pack("<f", target)),
+                (OUT, struct.pack("<f", 0.0)),
+            ],
+            capture=[(OUT, 4)],
+        )
+        out = struct.unpack("<f", captured[OUT])[0]
+        vectors.append({
+            "current": float_bits(current),
+            "target": float_bits(target),
+            "maxDelta": float_bits(max_delta),
+            "result": float_bits(out),
+        })
+    write("004D6540.json", vectors)
+
+
+def camera_smooth_scalar_vectors(read):
+    """0x004D64D8: smoothly approaches target scalar and reports completion."""
+    SRC = 0x50001000
+    DST = 0x50001004
+    vectors = []
+    for current, target, rate in [
+        (0.0, -3.0, 1.4),
+        (-2.5, -3.0, 1.4),
+        (-3.0, 0.0, 1.4),
+        (10.0, 10.0, 1.4),
+        (1.0, 2.0, 6.25),
+        (-1.0, 1.0, 0.5),
+    ]:
+        res, _, captured = run(
+            read,
+            0x004D64D8,
+            0,
+            [SRC, DST, u32_from_float(rate)],
+            registers={"fpcw": 0x027F},
+            memory=[(SRC, struct.pack("<f", current)), (DST, struct.pack("<f", target))],
+            capture=[(SRC, 4)],
+        )
+        out = struct.unpack("<f", captured[SRC])[0]
+        vectors.append({
+            "currentInput": float_bits(current),
+            "target": float_bits(target),
+            "rate": float_bits(rate),
+            "reached": res != 0,
+            "currentOutput": float_bits(out),
+        })
+    write("004D64D8.json", vectors)
+
+
+def u32_from_float(value):
+    return struct.unpack("<I", struct.pack("<f", value))[0]
+
+
+def camera_set_follow_preset_vectors(read):
+    """0x004D83CC: clamps follow preset index to 0..4 and stores it in 0x009ACEDC."""
+    vectors = []
+    for index in [-5, -1, 0, 1, 2, 4, 5, 99]:
+        res, _, captured = run(
+            read,
+            0x004D83CC,
+            0,
+            [],
+            registers={"eax": index & 0xFFFFFFFF},
+            capture=[(0x009ACEDC, 4)],
+        )
+        vectors.append({
+            "input": index,
+            "result": ctypes.c_int32(res).value,
+            "stored": struct.unpack("<i", captured[0x009ACEDC])[0],
+        })
+    write("004D83CC.json", vectors)
+
+
+def camera_follow_relative_offsets_vectors(read):
+    """0x004D7614: sets follow target/eye with relative offset and optional collision hit."""
+    MODE = 0x50001000
+    PLAYER = 0x50004000
+    OFFSET = 0x50004400
+    vectors = []
+    for has_player, preset_idx, ppos, offset, with_hit in [
+        (True, 0, (10.0, 2.0, -5.0), (0.0, 10.0, 20.0), False),
+        (True, 1, (0.0, 0.0, 0.0), (5.0, 20.0, 40.0), False),
+        (True, 2, (0.0, 0.0, 0.0), (0.0, 0.0, 40.0), True),
+        (False, 1, (1.0, 2.0, 3.0), (0.0, 10.0, 20.0), False),
+    ]:
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x00, 0x00AFCA90)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        mem = [
+            (MODE, bytes(mode)),
+            (PLAYER, bytes(player)),
+            (OFFSET, struct.pack("<3f", *offset)),
+            (0x009ACEDC, struct.pack("<i", preset_idx)),
+        ] + _collision_memory(with_hit, (-100.0, -100.0, 15.0), (0.0, 100.0, 15.0), (100.0, -100.0, 15.0), (0.0, 0.0, -1.0))
+        _, _, captured = run(
+            read,
+            0x004D7614,
+            0,
+            [PLAYER if has_player else 0, OFFSET],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=mem,
+            capture=[(MODE, 272)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "hasPlayer": has_player,
+            "presetIndex": preset_idx,
+            "playerPosition": [float_bits(v) for v in ppos],
+            "offset": [float_bits(v) for v in offset],
+            "withHit": with_hit,
+            "eye": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
+            "target": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x48)],
+        })
+    write("004D7614.json", vectors)
+
+
+def camera_follow_attach_target_vectors(read):
+    """0x004D74D8: computes initial behind-target follow eye/target and steps away from wall hits."""
+    MODE = 0x50001000
+    PLAYER = 0x50004000
+    STACK = 0x50004400
+    vectors = []
+    for has_player, preset_idx, ppos, heading, with_hit in [
+        (True, 0, (10.0, 2.0, -5.0), 0, False),
+        (True, 1, (-4.0, 5.0, 8.0), 0x4000, False),
+        (True, 1, (0.0, 0.0, 0.0), 0, True),
+        (False, 1, (0.0, 0.0, 0.0), 0, False),
+    ]:
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x00, 0x00AFCA90)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        struct.pack_into("<i", player, 0x60, heading)
+        mem = [
+            (MODE, bytes(mode)),
+            (PLAYER, bytes(player)),
+            (STACK, b"\x00" * 256),
+            (0x009ACEDC, struct.pack("<i", preset_idx)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+        ] + _collision_memory(with_hit, (-100.0, -100.0, -20.0), (100.0, -100.0, -20.0), (0.0, 100.0, -20.0), (0.0, 0.0, 1.0))
+        _, _, captured = run(
+            read,
+            0x004D74D8,
+            0,
+            [PLAYER if has_player else 0],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=mem,
+            capture=[(MODE, 272)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "hasPlayer": has_player,
+            "presetIndex": preset_idx,
+            "playerPosition": [float_bits(v) for v in ppos],
+            "heading": heading,
+            "withHit": with_hit,
+            "yaw": struct.unpack_from("<i", out, 0x30)[0],
+            "eye": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
+            "target": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x48)],
+        })
+    write("004D74D8.json", vectors)
+
+
+def camera_follow_cutscene_view_vectors(read):
+    """0x004D7998: applies scripted cutscene fixed or player-tracking view."""
+    MODE = 0x50001000
+    PLAYER = 0x50002000
+    vectors = []
+    for flags, eye, target, cid, ppos in [
+        (0, (1.0, 2.0, 3.0), (4.0, 5.0, 6.0), 0, (0.0, 0.0, 0.0)),
+        (1, (10.0, 20.0, 30.0), (-5.0, 6.0, 7.0), 0, (0.0, 0.0, 0.0)),
+        (2, (10.0, 20.0, 30.0), (-5.0, 6.0, 7.0), 1, (100.0, 5.0, -25.0)),
+        (2, (10.0, 20.0, 30.0), (-5.0, 6.0, 7.0), 7, (0.0, 0.0, 0.0)),
+    ]:
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x38, 5)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        slots = [0] * 12
+        if cid < 4:
+            slots[cid] = PLAYER
+        mem = [
+            (MODE, bytes(mode)),
+            (PLAYER, bytes(player)),
+            (0x00A94254, struct.pack("<12I", *slots)),
+            (0x00A48B74, bytes([flags])),
+            (0x00A48B68, struct.pack("<3f", *eye)),
+            (0x00A48B5C, struct.pack("<3f", *target)),
+            (0x009ACED8, struct.pack("<h", cid)),
+        ]
+        res, _, captured = run(read, 0x004D7998, 0, [], registers={"ecx": MODE, "fpcw": 0x027F}, memory=mem, capture=[(MODE, 272)])
+        out = captured[MODE]
+        vectors.append({
+            "flags": flags,
+            "cutsceneEye": [float_bits(v) for v in eye],
+            "cutsceneTarget": [float_bits(v) for v in target],
+            "clientId": cid,
+            "playerPosition": [float_bits(v) for v in ppos],
+            "applied": res != 0,
+            "modeFlags": struct.unpack_from("<I", out, 0x38)[0],
+            "eye": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
+            "target": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x48)],
+        })
+    write("004D7998.json", vectors)
+
+
+def camera_follow_eye_from_yaw_vectors(read):
+    """0x004D7CE4: places mode eye by rotating PresetEyeOffset by YawAngle around entity."""
+    MODE = 0x50001000
+    PLAYER = 0x50002000
+    STACK = 0x50003000
+    vectors = []
+    for yaw, offset, ppos in [
+        (0, (0.0, 25.43, 45.42), (10.0, 2.0, -5.0)),
+        (0x4000, (0.0, 18.0, 25.0), (0.0, 5.0, 10.0)),
+        (0xA123, (-5.0, 26.9, 53.6), (-12.5, 3.5, 7.25)),
+    ]:
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x1C, PLAYER)
+        struct.pack_into("<i", mode, 0x30, yaw)
+        struct.pack_into("<3f", mode, 0xDC, *offset)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        _, _, captured = run(
+            read,
+            0x004D7CE4,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[
+                (MODE, bytes(mode)),
+                (PLAYER, bytes(player)),
+                (STACK, b"\x00" * 256),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00AF0380, struct.pack("<I", 128)),
+                (0x00AF0384, struct.pack("<I", 0)),
+            ],
+            capture=[(MODE, 272)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "yaw": yaw,
+            "eyeOffset": [float_bits(v) for v in offset],
+            "playerPosition": [float_bits(v) for v in ppos],
+            "eye": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
+        })
+    write("004D7CE4.json", vectors)
+
+
+def camera_follow_target_vertical_aim_vectors(read):
+    """0x004D7D40: computes velocity-led look target with combat aim height smoothing."""
+    MODE = 0x50001000
+    PLAYER = 0x50002000
+    STACK = 0x50003000
+    vectors = []
+    for ppos, prevpos, heading, offset, first_person, aim_height in [
+        ((10.0, 2.0, -5.0), (10.0, 2.0, -5.0), 0, (0.0, 19.8, -5.0), 0, 0.0),
+        ((10.5, 2.0, -4.0), (10.0, 2.0, -4.5), 0x4000, (0.0, 16.4, -5.0), 1, 0.0),
+        ((-5.0, 1.0, 2.0), (-5.2, 1.0, 1.8), 0xB000, (0.0, 19.8, -5.0), 0, -2.5),
+    ]:
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x1C, PLAYER)
+        struct.pack_into("<3f", mode, 0xE8, *offset)
+        struct.pack_into("<I", mode, 0x100, first_person)
+        struct.pack_into("<f", mode, 0x108, aim_height)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        struct.pack_into("<3f", player, 0x44, *prevpos)
+        struct.pack_into("<i", player, 0x60, heading)
+        _, _, captured = run(
+            read,
+            0x004D7D40,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[
+                (MODE, bytes(mode)),
+                (PLAYER, bytes(player)),
+                (STACK, b"\x00" * 256),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00AF0380, struct.pack("<I", 128)),
+                (0x00AF0384, struct.pack("<I", 0)),
+                (0x00AAFC9C, struct.pack("<i", 0)),
+            ],
+            capture=[(MODE, 272)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "playerPosition": [float_bits(v) for v in ppos],
+            "previousPosition": [float_bits(v) for v in prevpos],
+            "heading": heading,
+            "targetOffset": [float_bits(v) for v in offset],
+            "firstPerson": first_person,
+            "aimHeightInput": float_bits(aim_height),
+            "target": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x48)],
+            "aimHeightOutput": float_bits(struct.unpack_from("<f", out, 0x108)[0]),
+        })
+    write("004D7D40.json", vectors)
+
+
+def camera_follow_look_ahead_vectors(read):
+    """0x004D235C: sweeps look-ahead probe segment for obstructions between eye and target."""
+    CTRL = 0x50000000
+    MODE = 0x50001000
+    PLAYER = 0x50004000
+    STACK = 0x50004400
+    vectors = []
+    for ppos, prevpos, heading, ceye, ctgt, cyaw, with_hit in [
+        ((0.0, 0.0, 0.0), (0.0, 0.0, 2.0), 0, (0.0, 25.0, 45.0), (0.0, 20.0, -5.0), 0, False),
+        ((0.0, 0.0, 0.0), (0.0, 0.0, -2.0), 0, (0.0, 20.0, 45.0), (0.0, 20.0, -5.0), 0, True),
+        ((0.0, 0.0, 0.0), (0.5, 0.0, 0.0), 0x4000, (0.0, 20.0, 45.0), (0.0, 20.0, -5.0), 0, True),
+    ]:
+        ctrl = bytearray(468)
+        struct.pack_into("<3f", ctrl, 0x178, *ceye)
+        struct.pack_into("<3f", ctrl, 0x184, *ctgt)
+        struct.pack_into("<i", ctrl, 0x194, cyaw)
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x1C, PLAYER)
+        struct.pack_into("<i", mode, 0x28, 10)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        struct.pack_into("<3f", player, 0x44, *prevpos)
+        struct.pack_into("<i", player, 0x60, heading)
+        mem = [
+            (CTRL, bytes(ctrl)),
+            (MODE, bytes(mode)),
+            (PLAYER, bytes(player)),
+            (STACK, b"\x00" * 256),
+            (0x00A48A54, struct.pack("<I", CTRL)),
+            (0x00A48A38, struct.pack("<h", 2)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+        ] + _collision_memory(with_hit, (-100.0, -100.0, 20.0), (100.0, -100.0, 20.0), (0.0, 100.0, 20.0), (0.0, 0.0, 1.0))
+        res, _, captured = run(read, 0x004D235C, 0, [], registers={"ecx": MODE, "fpcw": 0x027F}, memory=mem, capture=[(MODE, 272)])
+        out = captured[MODE]
+        vectors.append({
+            "playerPosition": [float_bits(v) for v in ppos],
+            "previousPosition": [float_bits(v) for v in prevpos],
+            "heading": heading,
+            "controllerEye": [float_bits(v) for v in ceye],
+            "controllerTarget": [float_bits(v) for v in ctgt],
+            "controllerYaw": cyaw,
+            "withHit": with_hit,
+            "hit": res != 0,
+            "stepState": struct.unpack_from("<i", out, 0x28)[0],
+            "collisionPoint": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x60)],
+        })
+    write("004D235C.json", vectors)
+
+
+def camera_follow_lock_target_vectors(read):
+    """0x004D88E8: sets smoothing and collision/distance flags and resets follow presets."""
+    CTRL = 0x50000000
+    MODE = 0x50001000
+    PLAYER = 0x50004000
+    STACK = 0x50004400
+    vectors = []
+    for op_mode, preset_idx, ppos, prevpos, heading, ceye, ctgt in [
+        (0, 1, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 0x1000, (0.0, 10.0, 10.0), (0.0, 10.0, 0.0)),
+        (2, 3, (5.0, 1.0, -2.0), (5.0, 1.0, -2.0), 0x4000, (0.0, 30.0, 40.0), (0.0, 10.0, 0.0)),
+    ]:
+        ctrl = bytearray(468)
+        struct.pack_into("<3f", ctrl, 0x178, *ceye)
+        struct.pack_into("<3f", ctrl, 0x184, *ctgt)
+        mode = bytearray(272)
+        struct.pack_into("<I", mode, 0x00, 0x00AFCA90)
+        struct.pack_into("<I", mode, 0x1C, PLAYER)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        struct.pack_into("<3f", player, 0x44, *prevpos)
+        struct.pack_into("<i", player, 0x60, heading)
+        mem = [
+            (CTRL, bytes(ctrl)),
+            (MODE, bytes(mode)),
+            (PLAYER, bytes(player)),
+            (STACK, b"\x00" * 256),
+            (0x00A48A54, struct.pack("<I", CTRL)),
+            (0x00A48A3C, struct.pack("<i", op_mode)),
+            (0x009ACEDC, struct.pack("<i", preset_idx)),
+            (0x00A48A38, struct.pack("<h", 2)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+            (0x00AAFC9C, struct.pack("<i", op_mode)),
+            (0x009FF3D4, b"\x00"),
+        ] + _collision_memory(False, (-100.0, -100.0, 0.0), (100.0, -100.0, 0.0), (0.0, 100.0, 0.0), (0.0, 0.0, 1.0))
+        _, _, captured = run(read, 0x004D88E8, 0, [], registers={"ecx": MODE, "fpcw": 0x027F}, memory=mem, capture=[(MODE, 272)])
+        out = captured[MODE]
+        vectors.append({
+            "operationMode": op_mode,
+            "presetIndex": preset_idx,
+            "playerPosition": [float_bits(v) for v in ppos],
+            "heading": heading,
+            "controllerEye": [float_bits(v) for v in ceye],
+            "controllerTarget": [float_bits(v) for v in ctgt],
+            "flags": struct.unpack_from("<I", out, 0x38)[0],
+            "eyeSmoothing": float_bits(struct.unpack_from("<f", out, 0x58)[0]),
+            "behaviorFlags": struct.unpack_from("<I", out, 0xFC)[0],
+            "desiredYaw": struct.unpack_from("<i", out, 0x10C)[0],
+            "presetEyeOffset": [float_bits(v) for v in struct.unpack_from("<3f", out, 0xDC)],
+            "presetTargetOffset": [float_bits(v) for v in struct.unpack_from("<3f", out, 0xE8)],
+        })
+    write("004D88E8.json", vectors)
+
+
+def camera_close_follow_lock_target_vectors(read):
+    """0x004D1B00: initializes close-follow mode smoothing and fixed close offsets."""
+    CTRL = 0x50000000
+    MODE = 0x50001000
+    PLAYER = 0x50004000
+    STACK = 0x50004400
+    vectors = []
+    for ctgt, mtgt, ppos in [
+        ((0.0, 20.0, 0.0), (0.0, 20.0, 0.0), (0.0, 0.0, 0.0)),
+        ((30.0, 25.0, -40.0), (10.0, 5.0, 10.0), (1.0, 2.0, 3.0)),
+    ]:
+        ctrl = bytearray(468)
+        struct.pack_into("<3f", ctrl, 0x184, *ctgt)
+        mode = bytearray(304)
+        struct.pack_into("<I", mode, 0x00, 0x00AFC3E8)
+        struct.pack_into("<I", mode, 0x1C, PLAYER)
+        struct.pack_into("<3f", mode, 0x48, *mtgt)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        struct.pack_into("<3f", player, 0x44, *ppos)
+        mem = [
+            (CTRL, bytes(ctrl)),
+            (MODE, bytes(mode)),
+            (PLAYER, bytes(player)),
+            (STACK, b"\x00" * 256),
+            (0x00A48A54, struct.pack("<I", CTRL)),
+            (0x00A48A38, struct.pack("<h", 2)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+        ] + _collision_memory(False, (-100.0, -100.0, 0.0), (100.0, -100.0, 0.0), (0.0, 100.0, 0.0), (0.0, 0.0, 1.0))
+        _, _, captured = run(read, 0x004D1B00, 0, [], registers={"ecx": MODE, "fpcw": 0x027F}, memory=mem, capture=[(MODE, 304)])
+        out = captured[MODE]
+        vectors.append({
+            "controllerTarget": [float_bits(v) for v in ctgt],
+            "modeTarget": [float_bits(v) for v in mtgt],
+            "playerPosition": [float_bits(v) for v in ppos],
+            "flags": struct.unpack_from("<I", out, 0x38)[0],
+            "eyeSmoothing": float_bits(struct.unpack_from("<f", out, 0x58)[0]),
+            "targetSmoothing": float_bits(struct.unpack_from("<f", out, 0x5C)[0]),
+            "presetEyeOffset": [float_bits(v) for v in struct.unpack_from("<3f", out, 0xDC)],
+            "presetTargetOffset": [float_bits(v) for v in struct.unpack_from("<3f", out, 0xE8)],
+        })
+    write("004D1B00.json", vectors)
+
+
+def camera_close_follow_focus_vectors(read):
+    """0x004D1870: positions close-follow camera to frame a world focus point."""
+    MODE = 0x50001000
+    PLAYER = 0x50002000
+    FOCUS = 0x50002400
+    vectors = []
+    for focus_state, ppos, focus, locked_tgt, locked_eye in [
+        (0, (0.0, 2.0, 0.0), (120.0, 10.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+        (0, (0.0, 0.0, 0.0), (30.0, 75.0, 40.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+        (1, (10.0, 5.0, -5.0), (20.0, 10.0, 0.0), (5.0, 4.0, 3.0), (-15.0, 15.0, -10.0)),
+        (1, (0.0, 0.0, 0.0), (200.0, 0.0, 0.0), (5.0, 4.0, 3.0), (-15.0, 15.0, -10.0)),
+    ]:
+        mode = bytearray(304)
+        struct.pack_into("<I", mode, 0x00, 0x00AFC3E8)
+        struct.pack_into("<I", mode, 0x1C, PLAYER)
+        struct.pack_into("<i", mode, 0x114, focus_state)
+        struct.pack_into("<3f", mode, 0x118, *locked_tgt)
+        struct.pack_into("<3f", mode, 0x124, *locked_eye)
+        player = bytearray(128)
+        struct.pack_into("<3f", player, 0x38, *ppos)
+        _, _, captured = run(
+            read,
+            0x004D1870,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[
+                (MODE, bytes(mode)),
+                (PLAYER, bytes(player)),
+                (FOCUS, struct.pack("<3f", *focus)),
+                (0x00A447C4, struct.pack("<I", FOCUS)),
+            ],
+            capture=[(MODE, 304)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "focusStateInput": focus_state,
+            "playerPosition": [float_bits(v) for v in ppos],
+            "focusPosition": [float_bits(v) for v in focus],
+            "lockedTargetInput": [float_bits(v) for v in locked_tgt],
+            "lockedEyeInput": [float_bits(v) for v in locked_eye],
+            "focusStateOutput": struct.unpack_from("<i", out, 0x114)[0],
+            "eyeOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
+            "targetOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x48)],
+            "lockedTargetOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x118)],
+            "lockedEyeOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x124)],
+        })
+    write("004D1870.json", vectors)
 
 
 if __name__ == "__main__":

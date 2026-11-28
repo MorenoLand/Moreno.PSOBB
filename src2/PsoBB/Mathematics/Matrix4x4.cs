@@ -167,6 +167,28 @@ public readonly record struct Matrix4x4(
 	}
 
 	/// <summary>
+	/// Applies a rotation around the depth axis before the current matrix.
+	/// </summary>
+	/// <param name="angle">The rotation in 16-bit turn units.</param>
+	/// <returns>The rotated matrix.</returns>
+	[Original(0x00830C04)]
+	public Matrix4x4 RotateZ(int angle)
+	{
+		(float sine, float cosine) = FixedPointTrigonometry.SineCosine(angle);
+		return this with
+		{
+			M11 = (float)((double)sine * M21 + (double)cosine * M11),
+			M12 = (float)((double)sine * M22 + (double)cosine * M12),
+			M13 = (float)((double)sine * M23 + (double)cosine * M13),
+			M14 = (float)((double)sine * M24 + (double)cosine * M14),
+			M21 = (float)((double)M21 * cosine + -(double)sine * M11),
+			M22 = (float)((double)M22 * cosine + -(double)sine * M12),
+			M23 = (float)((double)M23 * cosine + -(double)sine * M13),
+			M24 = (float)((double)M24 * cosine + -(double)sine * M14),
+		};
+	}
+
+	/// <summary>
 	/// Computes the determinant of this 4x4 matrix following the original intermediate single-precision and double-precision rounding.
 	/// </summary>
 	/// <returns>The matrix determinant.</returns>

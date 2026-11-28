@@ -1,0 +1,44 @@
+[
+	{
+		"current": 0,
+		"target": 1092616192,
+		"maxDelta": 1075838976,
+		"result": 1075838976
+	},
+	{
+		"current": 1092616192,
+		"target": 0,
+		"maxDelta": 1075838976,
+		"result": 1089470464
+	},
+	{
+		"current": 1084227584,
+		"target": 1084227584,
+		"maxDelta": 1065353216,
+		"result": 1084227584
+	},
+	{
+		"current": 1084227584,
+		"target": 1085276160,
+		"maxDelta": 1065353216,
+		"result": 1085276160
+	},
+	{
+		"current": 1085276160,
+		"target": 1084227584,
+		"maxDelta": 1065353216,
+		"result": 1084227584
+	},
+	{
+		"current": 3225419776,
+		"target": 0,
+		"maxDelta": 1056964608,
+		"result": 3223322624
+	},
+	{
+		"current": 0,
+		"target": 3225419776,
+		"maxDelta": 1059850289,
+		"result": 3207333937
+	}
+]

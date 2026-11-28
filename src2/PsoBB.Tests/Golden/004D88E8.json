@@ -1,0 +1,70 @@
+[
+	{
+		"operationMode": 0,
+		"presetIndex": 1,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"heading": 4096,
+		"controllerEye": [
+			0,
+			1092616192,
+			1092616192
+		],
+		"controllerTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"flags": 5,
+		"eyeSmoothing": 1059816735,
+		"behaviorFlags": 0,
+		"desiredYaw": 36864,
+		"presetEyeOffset": [
+			0,
+			1103851684,
+			1110814228
+		],
+		"presetTargetOffset": [
+			0,
+			1100899942,
+			3231711232
+		]
+	},
+	{
+		"operationMode": 2,
+		"presetIndex": 3,
+		"playerPosition": [
+			1084227584,
+			1065353216,
+			3221225472
+		],
+		"heading": 16384,
+		"controllerEye": [
+			0,
+			1106247680,
+			1109393408
+		],
+		"controllerTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"flags": 5,
+		"eyeSmoothing": 1057971241,
+		"behaviorFlags": 4,
+		"desiredYaw": 49152,
+		"presetEyeOffset": [
+			0,
+			1105408819,
+			1115108147
+		],
+		"presetTargetOffset": [
+			0,
+			1095866778,
+			3231711232
+		]
+	}
+]

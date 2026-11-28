@@ -56,6 +56,14 @@ public sealed class Matrix4x4GoldenTests
 			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
 		});
 
+	public static IEnumerable<object[]> RotateZVectors() => GoldenVectors.Load("00830C04.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			unchecked((int)vector.GetProperty("angle").GetUInt32()),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
 	public static IEnumerable<object[]> TransformDirectionVectors() => GoldenVectors.Load("0083A610.json")
 		.Select(vector => new object[]
 		{
@@ -114,6 +122,11 @@ public sealed class Matrix4x4GoldenTests
 	[MemberData(nameof(RotateXVectors))]
 	public void RotateXMatchesTheMachineCode(Matrix4x4 matrix, int angle, Matrix4x4 expected) =>
 		GoldenVectors.AssertMatrix(expected, matrix.RotateX(angle));
+
+	[Theory]
+	[MemberData(nameof(RotateZVectors))]
+	public void RotateZMatchesTheMachineCode(Matrix4x4 matrix, int angle, Matrix4x4 expected) =>
+		GoldenVectors.AssertMatrix(expected, matrix.RotateZ(angle));
 
 	[Theory]
 	[MemberData(nameof(TransformDirectionVectors))]

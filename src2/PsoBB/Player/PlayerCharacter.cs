@@ -79,6 +79,18 @@ public sealed class PlayerCharacter
 	/// <summary>Gets the number of consecutive rejected running steps.</summary>
 	public int StuckCounter { get; private set; }
 
+	/// <summary>Gets or sets the active area or map instance identifier used to detect area changes.</summary>
+	public int MapId { get; set; }
+
+	/// <summary>Gets or sets the player character's current action state index.</summary>
+	public short ActionId { get; set; }
+
+	/// <summary>Gets or sets the auxiliary entity state bitmask.</summary>
+	public uint StatusFlags { get; set; }
+
+	/// <summary>Gets or sets the squared distance to the currently locked target, when tracking an active target.</summary>
+	public float? LockedTargetDistanceSquared { get; set; }
+
 	/// <summary>Gets the selected animation and its clock.</summary>
 	public PlayerAnimation Animation { get; }
 

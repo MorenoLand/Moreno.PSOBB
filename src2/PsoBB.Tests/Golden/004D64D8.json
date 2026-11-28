@@ -1,0 +1,44 @@
+[
+	{
+		"currentInput": 0,
+		"target": 3225419776,
+		"rate": 1068708659,
+		"reached": false,
+		"currentOutput": 3207333937
+	},
+	{
+		"currentInput": 3223322624,
+		"target": 3225419776,
+		"rate": 1068708659,
+		"reached": false,
+		"currentOutput": 3223792386
+	},
+	{
+		"currentInput": 3225419776,
+		"target": 0,
+		"rate": 1068708659,
+		"reached": false,
+		"currentOutput": 3222601204
+	},
+	{
+		"currentInput": 1092616192,
+		"target": 1092616192,
+		"rate": 1068708659,
+		"reached": true,
+		"currentOutput": 1092616192
+	},
+	{
+		"currentInput": 1065353216,
+		"target": 1073741824,
+		"rate": 1086849024,
+		"reached": false,
+		"currentOutput": 1073741824
+	},
+	{
+		"currentInput": 3212836864,
+		"target": 1065353216,
+		"rate": 1056964608,
+		"reached": false,
+		"currentOutput": 3210152510
+	}
+]

@@ -101,6 +101,49 @@ public sealed class FieldCameraController
 	public static int StoredMode5FieldOfView { get; set; }
 
 	/// <summary>
+	/// Gets or sets the active follow distance preset index in the range zero through four.
+	/// </summary>
+	[OriginalGlobal(0x009ACEDC)]
+	public static int FollowPresetIndex { get; set; } = 1;
+
+	/// <summary>
+	/// Gets the five shipped follow-camera eye and target offset presets.
+	/// </summary>
+	[OriginalGlobal(0x009ACE60)]
+	public static IReadOnlyList<FieldCameraModeSettings> FollowPresets { get; } = Array.AsReadOnly(
+	[
+		new FieldCameraModeSettings(new Vector3(0.0f, 18.0f, 25.0f), new Vector3(0.0f, 19.8f, -5.0f)),
+		new FieldCameraModeSettings(new Vector3(0.0f, 25.43f, 45.42f), new Vector3(0.0f, 19.8f, -5.0f)),
+		new FieldCameraModeSettings(new Vector3(0.0f, 26.9f, 53.6f), new Vector3(0.0f, 16.4f, -5.0f)),
+		new FieldCameraModeSettings(new Vector3(0.0f, 28.4f, 61.8f), new Vector3(0.0f, 13.1f, -5.0f)),
+		new FieldCameraModeSettings(new Vector3(0.0f, 30.0f, 70.0f), new Vector3(0.0f, 9.8f, -5.0f)),
+	]);
+
+	/// <summary>
+	/// Gets or sets the scripted cutscene camera override flags.
+	/// </summary>
+	[OriginalGlobal(0x00A48B74)]
+	public static byte CutsceneViewFlags { get; set; }
+
+	/// <summary>
+	/// Gets or sets the fixed eye position used by scripted cutscene views.
+	/// </summary>
+	[OriginalGlobal(0x00A48B68)]
+	public static Vector3 CutsceneEye { get; set; }
+
+	/// <summary>
+	/// Gets or sets the fixed target position used by scripted cutscene views.
+	/// </summary>
+	[OriginalGlobal(0x00A48B5C)]
+	public static Vector3 CutsceneTarget { get; set; }
+
+	/// <summary>
+	/// Gets or sets the client slot tracked by player-targeted cutscene views, or minus one when unset.
+	/// </summary>
+	[OriginalGlobal(0x009ACED8)]
+	public static short CutsceneTargetClientId { get; set; } = -1;
+
+	/// <summary>
 	/// Gets or sets whether the camera controller ran an active update on the current frame.
 	/// </summary>
 	public bool IsActiveFrame { get; set; }
@@ -219,6 +262,96 @@ public sealed class FieldCameraController
 		GlobalUpAxis = default;
 		RenderRefreshDisabled = 1;
 		StoredMode5FieldOfView = 0;
+		FollowPresetIndex = 1;
+		CutsceneViewFlags = 0;
+		CutsceneEye = default;
+		CutsceneTarget = default;
+		CutsceneTargetClientId = -1;
+	}
+
+	/// <summary>
+	/// Sets the active follow distance preset index, clamping it between zero and four.
+	/// </summary>
+	/// <param name="index">The desired preset index.</param>
+	/// <returns>The clamped preset index stored in <see cref="FollowPresetIndex"/>.</returns>
+	[Original(0x004D83CC)]
+	public static int SetFollowPreset(int index)
+	{
+		if (index < 0)
+			index = 0;
+		if (index >= 5)
+			index = 4;
+		FollowPresetIndex = index;
+		return index;
+	}
+
+	/// <summary>
+	/// Steps back to the previous follow camera distance preset.
+	/// </summary>
+	/// <returns>The updated preset index.</returns>
+	[Original(0x004D83B8)]
+	public static int SelectPreviousFollowPreset() => SetFollowPreset(FollowPresetIndex - 1);
+
+	/// <summary>
+	/// Advances to the next follow camera distance preset.
+	/// </summary>
+	/// <returns>The updated preset index.</returns>
+	[Original(0x004D83E4)]
+	public static int SelectNextFollowPreset() => SetFollowPreset(FollowPresetIndex + 1);
+
+	/// <summary>
+	/// Moves a 16-bit angle toward <paramref name="target"/> using a fixed step multiplier, returning <paramref name="target"/> when already inside range.
+	/// </summary>
+	/// <param name="current">The starting angle in 16-bit turn units.</param>
+	/// <param name="target">The destination angle in 16-bit turn units.</param>
+	/// <param name="speed">The speed multiplier scaled by 127 per step.</param>
+	/// <returns>The advanced angle or <paramref name="target"/> when within range.</returns>
+	[Original(0x004D6370)]
+	public static int StepAngleTowards(int current, int target, int speed)
+	{
+		int step = 127 * speed;
+		if (Angle.Difference(unchecked((ushort)target), unchecked((ushort)current)) >= step)
+			return Angle.StepTowards(unchecked((ushort)current), unchecked((ushort)target), step);
+		return target;
+	}
+
+	/// <summary>
+	/// Advances a scalar value toward <paramref name="target"/> by at most <paramref name="maxDelta"/>.
+	/// </summary>
+	/// <param name="current">The current value.</param>
+	/// <param name="target">The destination value.</param>
+	/// <param name="maxDelta">The maximum change per step.</param>
+	/// <returns>The stepped scalar value.</returns>
+	[Original(0x004D6540)]
+	public static float StepScalar(float current, float target, float maxDelta)
+	{
+		float diff = FloatingPointMath.Absolute(current - target);
+		if (diff == 0.0f || diff <= maxDelta)
+			return target;
+		return (double)current >= (double)target
+			? (float)((double)current - maxDelta)
+			: (float)((double)current + maxDelta);
+	}
+
+	/// <summary>
+	/// Smoothly advances <paramref name="current"/> toward <paramref name="target"/> at a rate proportional to their remaining gap.
+	/// </summary>
+	/// <param name="current">The scalar value updated in place.</param>
+	/// <param name="target">The target value.</param>
+	/// <param name="rate">The smoothing speed multiplier.</param>
+	/// <returns><see langword="true"/> when the value reached <paramref name="target"/>; otherwise <see langword="false"/>.</returns>
+	[Original(0x004D64D8)]
+	public static bool SmoothScalar(ref float current, float target, float rate)
+	{
+		float diff = FloatingPointMath.Absolute(current - target);
+		double step = 0.16f * (double)diff * rate;
+		if (diff <= step)
+		{
+			current = target;
+			return true;
+		}
+		current = StepScalar(current, target, (float)step);
+		return false;
 	}
 
 	/// <summary>

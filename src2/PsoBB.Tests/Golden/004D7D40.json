@@ -1,0 +1,80 @@
+[
+	{
+		"playerPosition": [
+			1092616192,
+			1073741824,
+			3231711232
+		],
+		"previousPosition": [
+			1092616192,
+			1073741824,
+			3231711232
+		],
+		"heading": 0,
+		"targetOffset": [
+			0,
+			1100899942,
+			3231711232
+		],
+		"firstPerson": 0,
+		"aimHeightInput": 0,
+		"target": [
+			1092616192,
+			1101948518,
+			0
+		],
+		"aimHeightOutput": 0
+	},
+	{
+		"playerPosition": [
+			1093140480,
+			1073741824,
+			3229614080
+		],
+		"previousPosition": [
+			1092616192,
+			1073741824,
+			3230662656
+		],
+		"heading": 16384,
+		"targetOffset": [
+			0,
+			1099117363,
+			3231711232
+		],
+		"firstPerson": 1,
+		"aimHeightInput": 0,
+		"target": [
+			1103364096,
+			1099813617,
+			1084227584
+		],
+		"aimHeightOutput": 3207333937
+	},
+	{
+		"playerPosition": [
+			3231711232,
+			1065353216,
+			1073741824
+		],
+		"previousPosition": [
+			3232130662,
+			1065353216,
+			1072064102
+		],
+		"heading": 45056,
+		"targetOffset": [
+			0,
+			1100899942,
+			3231711232
+		],
+		"firstPerson": 0,
+		"aimHeightInput": 3223322624,
+		"target": [
+			3233849076,
+			1100407111,
+			1080815878
+		],
+		"aimHeightOutput": 3220722156
+	}
+]

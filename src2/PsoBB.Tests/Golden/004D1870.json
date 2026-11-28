@@ -1,0 +1,178 @@
+[
+	{
+		"focusStateInput": 0,
+		"playerPosition": [
+			0,
+			1073741824,
+			0
+		],
+		"focusPosition": [
+			1123024896,
+			1092616192,
+			0
+		],
+		"lockedTargetInput": [
+			0,
+			0,
+			0
+		],
+		"lockedEyeInput": [
+			0,
+			0,
+			0
+		],
+		"focusStateOutput": 0,
+		"eyeOutput": [
+			3258297876,
+			1099431936,
+			0
+		],
+		"targetOutput": [
+			1123024896,
+			1092616192,
+			0
+		],
+		"lockedTargetOutput": [
+			0,
+			0,
+			0
+		],
+		"lockedEyeOutput": [
+			0,
+			0,
+			0
+		]
+	},
+	{
+		"focusStateInput": 0,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"focusPosition": [
+			1106247680,
+			1117126656,
+			1109393408
+		],
+		"lockedTargetInput": [
+			0,
+			0,
+			0
+		],
+		"lockedEyeInput": [
+			0,
+			0,
+			0
+		],
+		"focusStateOutput": 1,
+		"eyeOutput": [
+			3252290585,
+			1097859072,
+			3255916560
+		],
+		"targetOutput": [
+			1106247680,
+			1114636288,
+			1109393408
+		],
+		"lockedTargetOutput": [
+			1106247680,
+			1114636288,
+			1109393408
+		],
+		"lockedEyeOutput": [
+			3252290585,
+			1097859072,
+			3255916560
+		]
+	},
+	{
+		"focusStateInput": 1,
+		"playerPosition": [
+			1092616192,
+			1084227584,
+			3231711232
+		],
+		"focusPosition": [
+			1101004800,
+			1092616192,
+			0
+		],
+		"lockedTargetInput": [
+			1084227584,
+			1082130432,
+			1077936128
+		],
+		"lockedEyeInput": [
+			3245342720,
+			1097859072,
+			3240099840
+		],
+		"focusStateOutput": 1,
+		"eyeOutput": [
+			3231711232,
+			1101004800,
+			3245342720
+		],
+		"targetOutput": [
+			1097859072,
+			1091567616,
+			3221225472
+		],
+		"lockedTargetOutput": [
+			1084227584,
+			1082130432,
+			1077936128
+		],
+		"lockedEyeOutput": [
+			3245342720,
+			1097859072,
+			3240099840
+		]
+	},
+	{
+		"focusStateInput": 1,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"focusPosition": [
+			1128792064,
+			0,
+			0
+		],
+		"lockedTargetInput": [
+			1084227584,
+			1082130432,
+			1077936128
+		],
+		"lockedEyeInput": [
+			3245342720,
+			1097859072,
+			3240099840
+		],
+		"focusStateOutput": 0,
+		"eyeOutput": [
+			3245342720,
+			1097859072,
+			3240099840
+		],
+		"targetOutput": [
+			1084227584,
+			1082130432,
+			1077936128
+		],
+		"lockedTargetOutput": [
+			1084227584,
+			1082130432,
+			1077936128
+		],
+		"lockedEyeOutput": [
+			3245342720,
+			1097859072,
+			3240099840
+		]
+	}
+]

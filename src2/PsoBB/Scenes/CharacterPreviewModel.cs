@@ -70,7 +70,6 @@ public sealed class CharacterPreviewModel : IDisposable
 	/// <param name="motion">The shared motion to use when the entry carries none.</param>
 	/// <returns><see langword="true"/> when the entry supplied a model.</returns>
 	/// <exception cref="ArgumentNullException">A parameter is null.</exception>
-	[Original(0x004D7E70, "CharacterPreview_LoadModel_004d7e70")]
 	public bool Load(BmlFile file, IRenderer renderer, NinjaMotion? motion = null)
 	{
 		ArgumentNullException.ThrowIfNull(file);
@@ -93,7 +92,6 @@ public sealed class CharacterPreviewModel : IDisposable
 	/// Advances the motion clock and wraps at the motion length.
 	/// </summary>
 	/// <param name="frames">The number of frames to add.</param>
-	[Original(0x004D80A4, "CharacterPreview_Advance_004d80a4")]
 	public void Advance(float frames)
 	{
 		if (Model is null)
