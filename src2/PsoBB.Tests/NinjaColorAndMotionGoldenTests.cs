@@ -37,6 +37,30 @@ public class NinjaColorAndMotionGoldenTests
 			vector.GetProperty("renderFlagsOut").GetUInt32(),
 		});
 
+	public static IEnumerable<object[]> EulerToQuaternionVectors() => GoldenVectors.Load("00846FAC.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("xAngle").GetInt32(),
+			vector.GetProperty("yAngle").GetInt32(),
+			vector.GetProperty("zAngle").GetInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("x")),
+			GoldenVectors.ReadFloat(vector.GetProperty("y")),
+			GoldenVectors.ReadFloat(vector.GetProperty("z")),
+			GoldenVectors.ReadFloat(vector.GetProperty("w")),
+		});
+
+	public static IEnumerable<object[]> EulerAlternateToQuaternionVectors() => GoldenVectors.Load("00847074.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("xAngle").GetInt32(),
+			vector.GetProperty("yAngle").GetInt32(),
+			vector.GetProperty("zAngle").GetInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("x")),
+			GoldenVectors.ReadFloat(vector.GetProperty("y")),
+			GoldenVectors.ReadFloat(vector.GetProperty("z")),
+			GoldenVectors.ReadFloat(vector.GetProperty("w")),
+		});
+
 	[Theory]
 	[MemberData(nameof(LocateKeyframes16Vectors))]
 	public void LocateKeyframes16MatchesTheMachineCode(
@@ -111,5 +135,41 @@ public class NinjaColorAndMotionGoldenTests
 		{
 			NinjaColorState.ResetGlobals();
 		}
+	}
+
+	[Theory]
+	[MemberData(nameof(EulerToQuaternionVectors))]
+	public void FromEulerMatchesTheMachineCode(
+		int xAngle,
+		int yAngle,
+		int zAngle,
+		float expectedX,
+		float expectedY,
+		float expectedZ,
+		float expectedW)
+	{
+		NinjaQuaternion actual = NinjaQuaternion.FromEuler(xAngle, yAngle, zAngle);
+		GoldenVectors.AssertFloat(expectedX, actual.X);
+		GoldenVectors.AssertFloat(expectedY, actual.Y);
+		GoldenVectors.AssertFloat(expectedZ, actual.Z);
+		GoldenVectors.AssertFloat(expectedW, actual.W);
+	}
+
+	[Theory]
+	[MemberData(nameof(EulerAlternateToQuaternionVectors))]
+	public void FromEulerAlternateMatchesTheMachineCode(
+		int xAngle,
+		int yAngle,
+		int zAngle,
+		float expectedX,
+		float expectedY,
+		float expectedZ,
+		float expectedW)
+	{
+		NinjaQuaternion actual = NinjaQuaternion.FromEulerAlternate(xAngle, yAngle, zAngle);
+		GoldenVectors.AssertFloat(expectedX, actual.X);
+		GoldenVectors.AssertFloat(expectedY, actual.Y);
+		GoldenVectors.AssertFloat(expectedZ, actual.Z);
+		GoldenVectors.AssertFloat(expectedW, actual.W);
 	}
 }

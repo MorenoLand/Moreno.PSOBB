@@ -1604,6 +1604,8 @@ def main():
     locate_keyframes_16_vectors(read)
     ninja_color_apply_ambient_vectors(read)
     ninja_color_resolve_vectors(read)
+    ninja_quaternion_euler_vectors(read)
+    ninja_vertex_transform_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -5816,6 +5818,151 @@ def ninja_color_resolve_vectors(read):
             "renderFlagsOut": struct.unpack("<I", captured[0x00ACD538])[0],
         })
     write("0084A338.json", vectors)
+
+
+def ninja_quaternion_euler_vectors(read):
+    """0x00846FAC and 0x00847074: converts 16-bit Euler angles into Ninja quaternions."""
+    ANGLES = 0x50001800
+    QUAT = 0x50002000
+    angle_sets = [
+        (0, 0, 0),
+        (0x2000, -0x1500, 0x3800),
+        (-0x4000, 0x1234, -0x0900),
+        (0x7FFF, -0x3333, 0x4001),
+    ]
+    for ea, filename in [(0x00846FAC, "00846FAC.json"), (0x00847074, "00847074.json")]:
+        vectors = []
+        for ax, ay, az in angle_sets:
+            _, _, captured = run(
+                read,
+                ea,
+                0,
+                [ANGLES, QUAT],
+                registers={"fpcw": 0x027F},
+                memory=[
+                    (ANGLES, struct.pack("<3i", ax, ay, az)),
+                    (QUAT, b"\x00" * 16),
+                ],
+                capture=[(QUAT, 16)],
+            )
+            w, x, y, z = struct.unpack("<4f", captured[QUAT])
+            vectors.append({
+                "xAngle": ax,
+                "yAngle": ay,
+                "zAngle": az,
+                "w": float_bits(w),
+                "x": float_bits(x),
+                "y": float_bits(y),
+                "z": float_bits(z),
+            })
+        write(filename, vectors)
+
+
+def ninja_vertex_transform_vectors(read):
+    """0x00845494..0x00846CCC: transforms Ninja chunk vertex lists into the 32-byte vertex scratch buffer."""
+    CHUNK = 0x50001000
+    VBUF = 0x50002000
+    # 3x4 view-space transform stored in AE6EE0..AE6F1B (rows col0, col1, col2, col3 / translation at +0x30).
+    # Note: AE6EE0..AE6EE8 = col0, AE6EF0..AE6EF8 = col1, AE6F00..AE6F08 = col2, AE6F10..AE6F18 = trans.
+    mat16 = (
+        0.5, -0.25, 0.75, 0.0,
+        0.125, 1.25, -0.5, 0.0,
+        -0.75, 0.5, 0.875, 0.0,
+        -10.0, 4.5, 22.25, 1.0,
+    )
+    ambient = (0.25, -0.2, 0.35, 0.5)  # A, R, G, B at AF0370..AF037C
+
+    def run_vlist(ea, header_flags, index_offset, count, payload, seed_verts=None, init_max=0, init_rflags=0x400):
+        vbuf_init = bytearray(16 * 32)
+        if seed_verts:
+            for idx, vals in enumerate(seed_verts):
+                struct.pack_into("<6f2I", vbuf_init, idx * 32, *vals)
+        else:
+            for idx in range(16):
+                struct.pack_into("<6f2I", vbuf_init, idx * 32, 0.5, -1.0, 2.0, 0.1, 0.2, 0.3, 0x11223344, 0x55667788)
+
+        chunk = struct.pack("<2I", header_flags, (count << 16) | index_offset) + payload
+        _, _, captured = run(
+            read,
+            ea,
+            0,
+            [CHUNK],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (CHUNK, chunk),
+                (VBUF, bytes(vbuf_init)),
+                (0x00ACD534, struct.pack("<I", VBUF)),
+                (0x00ACD530, struct.pack("<I", init_max)),
+                (0x00ACD538, struct.pack("<I", init_rflags)),
+                (0x00AE6EE0, struct.pack("<16f", *mat16)),
+                (0x00AF0370, struct.pack("<4f", *ambient)),
+            ],
+            capture=[
+                (VBUF, 8 * 32),
+                (0x00ACD530, 4),
+                (0x00ACD538, 4),
+            ],
+        )
+        out_words = list(struct.unpack("<64I", captured[VBUF]))
+        return {
+            "headerFlags": header_flags,
+            "indexOffset": index_offset,
+            "count": count,
+            "initMax": init_max,
+            "initRenderFlags": init_rflags,
+            "matrix": [float_bits(v) for v in mat16],
+            "ambient": [float_bits(v) for v in ambient],
+            "payloadWords": list(struct.unpack(f"<{len(payload) // 4}I", payload)),
+            "initialVertexWords": list(struct.unpack("<64I", vbuf_init[: 8 * 32])),
+            "expectedVertexWords": out_words,
+            "expectedMaxCount": struct.unpack("<i", captured[0x00ACD530])[0],
+            "expectedRenderFlags": struct.unpack("<I", captured[0x00ACD538])[0],
+        }
+
+    p_pos_16 = (
+        struct.pack("<3fI", 1.5, -2.5, 4.0, 0x80204060)
+        + struct.pack("<3fI", -3.0, 6.25, -1.5, 0xFFAABBCC)
+    )
+    p_pos_24 = (
+        struct.pack("<3f3f", 1.5, -2.5, 4.0, 0.25, 0.5, -0.75)
+        + struct.pack("<3f3f", -3.0, 6.25, -1.5, -0.5, 0.125, 0.875)
+    )
+    p_pos_28 = (
+        struct.pack("<3f3fI", 1.5, -2.5, 4.0, 0.25, 0.5, -0.75, 0x80204060)
+        + struct.pack("<3f3fI", -3.0, 6.25, -1.5, -0.5, 0.125, 0.875, 0xFF90A0B0)
+    )
+    p_nf_28 = (
+        struct.pack("<3f3fI", 1.5, -2.5, 4.0, 0.25, 0.5, -0.75, (128 << 16) | 1)
+        + struct.pack("<3f3fI", -3.0, 6.25, -1.5, -0.5, 0.125, 0.875, (255 << 16) | 3)
+    )
+
+    simple_specs = [
+        (0x00846A24, "00846A24.json", p_pos_16),
+        (0x00846B04, "00846B04.json", p_pos_24),
+        (0x00846BE4, "00846BE4.json", p_pos_28),
+        (0x00845494, "00845494.json", p_pos_16),
+        (0x00845578, "00845578.json", p_pos_24),
+        (0x008456CC, "008456CC.json", p_pos_28),
+        (0x00845C84, "00845C84.json", p_pos_16),
+        (0x00845ED4, "00845ED4.json", p_pos_24),
+        (0x00846164, "00846164.json", p_pos_28),
+    ]
+    for ea, filename, payload in simple_specs:
+        write(filename, [
+            run_vlist(ea, 0, 1, 2, payload, init_max=0, init_rflags=0xF00),
+            run_vlist(ea, 0, 2, 2, payload, init_max=6, init_rflags=0x100),
+        ])
+
+    for ea, filename in [
+        (0x00846CCC, "00846CCC.json"),
+        (0x00845820, "00845820.json"),
+        (0x0084641C, "0084641C.json"),
+    ]:
+        write(filename, [
+            run_vlist(ea, 0x000, 0, 2, p_nf_28, init_max=0, init_rflags=0x900),
+            run_vlist(ea, 0x100, 1, 2, p_nf_28, init_max=5, init_rflags=0xF00),
+            run_vlist(ea, 0x200, 1, 2, p_nf_28, init_max=2, init_rflags=0x900),
+        ])
 
 
 if __name__ == "__main__":
