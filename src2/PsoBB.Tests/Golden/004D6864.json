@@ -1,0 +1,37 @@
+[
+	{
+		"modePresent": false,
+		"activeMode": 0,
+		"initialFlags": 0,
+		"returnedNull": true,
+		"outputFlags": 0
+	},
+	{
+		"modePresent": true,
+		"activeMode": 5,
+		"initialFlags": 0,
+		"returnedNull": false,
+		"outputFlags": 0
+	},
+	{
+		"modePresent": true,
+		"activeMode": 5,
+		"initialFlags": 2,
+		"returnedNull": false,
+		"outputFlags": 2
+	},
+	{
+		"modePresent": true,
+		"activeMode": 0,
+		"initialFlags": 0,
+		"returnedNull": false,
+		"outputFlags": 1
+	},
+	{
+		"modePresent": true,
+		"activeMode": 3,
+		"initialFlags": 4,
+		"returnedNull": false,
+		"outputFlags": 5
+	}
+]

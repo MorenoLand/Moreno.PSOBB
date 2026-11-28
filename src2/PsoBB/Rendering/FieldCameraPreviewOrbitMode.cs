@@ -56,6 +56,8 @@ public sealed class FieldCameraPreviewOrbitMode : FieldCameraMode
 		ViewportPreset = 2;
 		FrameCounter = 0;
 		AuxiliaryCounter = 0;
+		RadiusVelocity = 0.0f;
+		TargetHeightVelocity = 0.0f;
 		FieldOfView = 17294;
 	}
 
@@ -83,6 +85,12 @@ public sealed class FieldCameraPreviewOrbitMode : FieldCameraMode
 	/// <summary>Gets or sets an auxiliary timer counter cleared on construction.</summary>
 	public int AuxiliaryCounter { get; set; }
 
+	/// <summary>Gets or sets the damped radial velocity used during menu focus transitions.</summary>
+	public float RadiusVelocity { get; set; }
+
+	/// <summary>Gets or sets the damped vertical target velocity used during menu focus transitions.</summary>
+	public float TargetHeightVelocity { get; set; }
+
 	/// <summary>
 	/// Updates <see cref="FieldCameraMode.Eye"/> from the spherical radius, pitch, and yaw around <see cref="FieldCameraMode.Target"/>.
 	/// </summary>
@@ -103,13 +111,16 @@ public sealed class FieldCameraPreviewOrbitMode : FieldCameraMode
 	/// <param name="heightRatio">Normalized height slider value.</param>
 	/// <returns>The interpolated character height scale.</returns>
 	[Original(0x004E68D0)]
-	public static float ComputeCharacterHeightScale(byte classIndex, float heightRatio)
+	public static float ComputeCharacterHeightScale(byte classIndex, float heightRatio) =>
+		(float)ComputeCharacterHeightScaleExact(classIndex, heightRatio);
+
+	private static double ComputeCharacterHeightScaleExact(byte classIndex, float heightRatio)
 	{
 		float ratio = heightRatio < 0.0f || heightRatio > 1.0f ? 0.0f : heightRatio;
 		(float maxScale, float minScale) = classIndex < ClassBodyScaleRanges.Length
 			? ClassBodyScaleRanges[classIndex]
 			: (0.0f, 0.0f);
-		return (float)(((double)maxScale - minScale) * ratio + minScale);
+		return ((double)maxScale - minScale) * ratio + minScale;
 	}
 
 	/// <summary>
@@ -269,6 +280,157 @@ public sealed class FieldCameraPreviewOrbitMode : FieldCameraMode
 	}
 
 	/// <summary>
+	/// Smoothly transitions <see cref="FieldCameraMode.Target"/> height and <see cref="OrbitRadius"/> toward preset targets based on the active character-making menu step.
+	/// </summary>
+	/// <param name="menuStep">The active character-creation menu step index.</param>
+	/// <param name="hasPreviewCharacter">Whether a preview character model is currently loaded.</param>
+	/// <param name="classIndex">Character class index (0 through 11).</param>
+	/// <param name="heightRatio">Normalized height slider value.</param>
+	[Original(0x004EA854)]
+	public void UpdateMenuFocusTransition(int menuStep, bool hasPreviewCharacter, byte classIndex, float heightRatio)
+	{
+		int desiredPreset = menuStep < 0
+			? 2
+			: menuStep <= 2 || menuStep == 4
+				? 0
+				: menuStep == 6 || menuStep == 8
+					? 1
+					: 2;
+
+		if (desiredPreset == ViewportPreset)
+		{
+			PresetModeState = 0;
+		}
+		else
+		{
+			int elapsed = PresetModeState + 1;
+			if (elapsed <= 30)
+			{
+				PresetModeState = elapsed;
+			}
+			else
+			{
+				PresetModeState = 0;
+				ViewportPreset = desiredPreset;
+			}
+		}
+
+		if (!hasPreviewCharacter)
+			return;
+
+		double heightScale = ComputeCharacterHeightScaleExact(classIndex, heightRatio);
+		double targetRadius;
+		double targetHeight;
+		switch (ViewportPreset)
+		{
+			case 0:
+				targetRadius = 0.5f * heightScale;
+				targetHeight = 0.9100000262260437f * heightScale;
+				break;
+			case 1:
+				targetRadius = 25.0f;
+				targetHeight = 11.0f;
+				break;
+			case 2:
+				targetRadius = 1.25f * heightScale;
+				targetHeight = 0.550000011920929f * heightScale;
+				break;
+			default:
+				return;
+		}
+
+		float radius = OrbitRadius;
+		float radiusVelocity = RadiusVelocity;
+		StepFocusAxis(ref radius, ref radiusVelocity, targetRadius);
+		OrbitRadius = radius;
+		RadiusVelocity = radiusVelocity;
+
+		float targetY = Target.Y;
+		float targetHeightVelocity = TargetHeightVelocity;
+		StepFocusAxis(ref targetY, ref targetHeightVelocity, targetHeight);
+		Target = Target with { Y = targetY };
+		TargetHeightVelocity = targetHeightVelocity;
+
+		OrbitYawAngle = Angle.StepTowards(unchecked((ushort)OrbitYawAngle), 0, 192);
+		OrbitPitchAngle = Angle.StepTowards(unchecked((ushort)OrbitPitchAngle), 0, 192);
+	}
+
+	private static void StepFocusAxis(ref float value, ref float velocity, double target)
+	{
+		const float Acceleration = 0.003000000026077032f;
+		const float MinimumSpeed = 0.006666666828095913f;
+		const float MaximumSpeed = 0.10000000149011612f;
+		const float NegativeMinimumSpeed = -0.006666666828095913f;
+		const float NegativeMaximumSpeed = -0.10000000149011612f;
+
+		double delta = target - (double)value;
+		double step;
+		if (delta > (double)MaximumSpeed)
+		{
+			double next = (double)Acceleration + velocity;
+			if (next > (double)MaximumSpeed)
+			{
+				velocity = MaximumSpeed;
+				step = MaximumSpeed;
+			}
+			else
+			{
+				velocity = (float)next;
+				step = next;
+			}
+		}
+		else if ((double)MinimumSpeed < delta)
+		{
+			double next = (double)velocity - Acceleration;
+			if (next < (double)MinimumSpeed)
+			{
+				velocity = MinimumSpeed;
+				step = MinimumSpeed;
+			}
+			else
+			{
+				velocity = (float)next;
+				step = next;
+			}
+		}
+		else if ((double)NegativeMaximumSpeed > delta)
+		{
+			double next = (double)velocity - Acceleration;
+			if (next < (double)NegativeMaximumSpeed)
+			{
+				velocity = NegativeMaximumSpeed;
+				step = NegativeMaximumSpeed;
+			}
+			else
+			{
+				velocity = (float)next;
+				step = next;
+			}
+		}
+		else if (delta < (double)NegativeMinimumSpeed)
+		{
+			double next = (double)Acceleration + velocity;
+			if (next > (double)NegativeMinimumSpeed)
+			{
+				velocity = NegativeMinimumSpeed;
+				step = NegativeMinimumSpeed;
+			}
+			else
+			{
+				velocity = (float)next;
+				step = next;
+			}
+		}
+		else
+		{
+			velocity = 0.0f;
+			step = 0.0f;
+		}
+
+		value = (float)((double)value + step);
+	}
+
+	/// <summary>
 	/// Advances the active preview sub-state and recomputes <see cref="FieldCameraMode.Eye"/>.
 	/// </summary>
 	[Original(0x004EA58C)]
@@ -276,6 +438,9 @@ public sealed class FieldCameraPreviewOrbitMode : FieldCameraMode
 	{
 		switch (FieldCameraController.PreviewOrbitSubState)
 		{
+			case 0:
+				UpdateMenuFocusTransition(0, false, 0, 0.0f);
+				break;
 			case 1:
 				BeginPreviewIntro(0, 1.0f);
 				break;

@@ -176,4 +176,34 @@ public sealed class FieldCameraCutsceneMode : FieldCameraMode
 		CameraView.ApplyLookAt(controller.Eye, controller.Target, up);
 		FieldCameraController.GlobalEye = controller.Eye;
 	}
+
+	/// <summary>
+	/// Assigns the world-relative camera origin, motion origin, and motion yaw angle on mode five when initialized.
+	/// </summary>
+	/// <param name="cameraOrigin">The base world origin offset added to sampled camera eye positions.</param>
+	/// <param name="motionOrigin">The secondary motion origin vector.</param>
+	/// <param name="motionYawAngle">The world yaw angle in 16-bit turn units applied to relative camera paths.</param>
+	[Original(0x004D681C)]
+	public static void ApplyAnchor(Vector3 cameraOrigin, Vector3 motionOrigin, int motionYawAngle)
+	{
+		if (FieldCameraController.Modes[5] is not FieldCameraCutsceneMode cutscene)
+			return;
+		cutscene.CameraOrigin = cameraOrigin;
+		cutscene.MotionOrigin = motionOrigin;
+		cutscene.MotionYawAngle = motionYawAngle;
+	}
+
+	/// <summary>
+	/// Marks cutscene playback as finished when the controller has switched away from mode five and returns the cutscene mode.
+	/// </summary>
+	/// <returns>The active cutscene mode five instance, or <see langword="null"/> when none is installed.</returns>
+	[Original(0x004D6864)]
+	public static FieldCameraCutsceneMode? SyncPlaybackStatus()
+	{
+		if (FieldCameraController.Modes[5] is not FieldCameraCutsceneMode cutscene)
+			return null;
+		if (FieldCameraController.GetCurrentModeIndex() != 5)
+			cutscene.CutsceneFlags |= 1;
+		return cutscene;
+	}
 }

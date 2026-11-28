@@ -1555,6 +1555,12 @@ def main():
     camera_preview_intro_vectors(read)
     camera_preview_zoom_vectors(read)
     camera_preview_idle_orbit_vectors(read)
+    camera_preview_menu_focus_vectors(read)
+    polyline_sample_vectors(read)
+    binomial_coefficient_vectors(read)
+    bezier_evaluate_vectors(read)
+    camera_cutscene_apply_anchor_vectors(read)
+    camera_cutscene_sync_status_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -3529,6 +3535,280 @@ def camera_preview_idle_orbit_vectors(read):
             "subState": struct.unpack("<i", captured[0x00A72238])[0],
         })
     write("004EB1C8.json", vectors)
+
+
+def camera_preview_menu_focus_vectors(read):
+    """0x004EA854: smoothly transitions preview orbit radius and target height across character-making menus."""
+    MODE = 0x50001000
+    CHAR = 0x50002000
+    vectors = []
+    cases = [
+        (0, True, 0, 0.5, 0, 0, 5.0, 5.0, 0.0, 0.0, 0, 0),
+        (2, True, 2, 1.0, 0, 0, 10.7, 19.515, 0.05, 0.05, 300, -300),
+        (4, True, 6, 0.25, 0, 0, 20.0, 20.0, 0.0, 0.0, 0, 0),
+        (6, True, 0, 0.5, 1, 0, 25.0, 11.0, 0.05, -0.05, 400, -300),
+        (8, True, 0, 0.5, 1, 0, 25.05, 11.05, -0.05, -0.05, -50, 50),
+        (9, True, 11, 0.8, 2, 0, 10.0, 5.0, 0.0, 0.0, 100, -100),
+        (1, True, 0, 0.5, 2, 10, 25.0, 10.0, 0.0, 0.0, 0, 0),
+        (1, True, 0, 0.5, 2, 30, 25.0, 10.0, 0.0, 0.0, 0, 0),
+        (-1, False, 0, 0.5, 0, 30, 30.0, 12.0, 0.0, 0.0, 0, 0),
+    ]
+    for menu_step, has_char, class_id, height_ratio, preset_in, timer_in, radius_in, target_y_in, r_vel_in, y_vel_in, pitch_in, yaw_in in cases:
+        mode = bytearray(144)
+        struct.pack_into("<f", mode, 0x4C, target_y_in)
+        struct.pack_into("<f", mode, 0x6C, radius_in)
+        struct.pack_into("<i", mode, 0x70, pitch_in)
+        struct.pack_into("<i", mode, 0x74, yaw_in)
+        struct.pack_into("<i", mode, 0x78, preset_in)
+        struct.pack_into("<i", mode, 0x7C, timer_in)
+        struct.pack_into("<f", mode, 0x88, r_vel_in)
+        struct.pack_into("<f", mode, 0x8C, y_vel_in)
+        char = bytearray(128)
+        char[49] = class_id
+        struct.pack_into("<f", char, 76, height_ratio)
+        mem = [
+            (MODE, bytes(mode)),
+            (CHAR, bytes(char)),
+            (0x00A7256C, struct.pack("<i", menu_step)),
+            (0x00A4D7F8, struct.pack("<I", CHAR if has_char else 0)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004EA854,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=mem,
+            capture=[(MODE, 144)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "menuStep": menu_step,
+            "hasCharacter": has_char,
+            "classId": class_id,
+            "heightRatio": float_bits(height_ratio),
+            "presetInput": preset_in,
+            "presetTimerInput": timer_in,
+            "radiusInput": float_bits(radius_in),
+            "targetYInput": float_bits(target_y_in),
+            "radiusVelocityInput": float_bits(r_vel_in),
+            "targetYVelocityInput": float_bits(y_vel_in),
+            "pitchInput": pitch_in,
+            "yawInput": yaw_in,
+            "presetOutput": struct.unpack_from("<i", out, 0x78)[0],
+            "presetTimerOutput": struct.unpack_from("<i", out, 0x7C)[0],
+            "radiusOutput": float_bits(struct.unpack_from("<f", out, 0x6C)[0]),
+            "targetYOutput": float_bits(struct.unpack_from("<f", out, 0x4C)[0]),
+            "radiusVelocityOutput": float_bits(struct.unpack_from("<f", out, 0x88)[0]),
+            "targetYVelocityOutput": float_bits(struct.unpack_from("<f", out, 0x8C)[0]),
+            "pitchOutput": struct.unpack_from("<i", out, 0x70)[0],
+            "yawOutput": struct.unpack_from("<i", out, 0x74)[0],
+        })
+    write("004EA854.json", vectors)
+
+
+def polyline_sample_vectors(read):
+    """0x007BE414: samples a position along a polyline of 4-float nodes (x, y, z, segmentLength)."""
+    NODES = 0x50001000
+    OUT = 0x50002000
+    tri_nodes = [
+        (0.0, 0.0, 0.0, 10.0),
+        (10.0, 0.0, 0.0, 20.0),
+        (10.0, 20.0, 0.0, 20.0),
+    ]
+    zero_nodes = [
+        (1.0, 2.0, 3.0, 0.0),
+        (4.0, 5.0, 6.0, 0.0),
+    ]
+    single_node = [(1.0, 2.0, 3.0, 5.0)]
+    long_nodes = [
+        (0.0, 0.0, 0.0, 10.0),
+        (10.0, 0.0, 0.0, 10.0),
+        (10.0, 10.0, 0.0, 10.0),
+        (0.0, 10.0, 0.0, 10.0),
+        (0.0, 10.0, 10.0, 10.0),
+        (0.0, 0.0, 10.0, 10.0),
+    ]
+    vectors = []
+    for nodes, count, speed, frame, loop in [
+        (single_node, 1, 1.0, 0, False),
+        (zero_nodes, 2, 1.0, 5, False),
+        (tri_nodes, 3, 2.5, 2, False),
+        (tri_nodes, 3, 2.5, 6, False),
+        (tri_nodes, 3, 2.5, 15, False),
+        (tri_nodes, 3, 2.5, 16, True),
+        (tri_nodes, 3, 2.5, 25, True),
+        (long_nodes, 6, 3.5, 10, True),
+    ]:
+        buf = bytearray(len(nodes) * 16)
+        for i, node in enumerate(nodes):
+            struct.pack_into("<4f", buf, i * 16, *node)
+        eax, _, captured = run(
+            read,
+            0x007BE414,
+            0,
+            [NODES, count, float_bits(speed), frame, 1 if loop else 0, OUT],
+            registers={"fpcw": 0x027F},
+            memory=[(NODES, bytes(buf)), (OUT, b"\x00" * 12)],
+            capture=[(OUT, 12)],
+        )
+        out_vec = struct.unpack("<3f", captured[OUT])
+        vectors.append({
+            "nodes": [[float_bits(v) for v in n] for n in nodes],
+            "count": count,
+            "speed": float_bits(speed),
+            "frame": frame,
+            "loop": loop,
+            "result": eax,
+            "position": [float_bits(v) for v in out_vec],
+        })
+    write("007BE414.json", vectors)
+
+
+def binomial_coefficient_vectors(read):
+    """0x00844858: computes binomial coefficient C(n, k)."""
+    vectors = []
+    for n, k in [(0, 0), (1, 0), (1, 1), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (7, 3), (10, 5), (12, 6)]:
+        eax, _, _ = run(read, 0x00844858, 0, [], registers={"ecx": n, "edx": k})
+        vectors.append({"n": n, "k": k, "result": eax})
+    write("00844858.json", vectors)
+
+
+def bezier_evaluate_vectors(read):
+    """0x007BE6B8: evaluates open or closed Bezier curve at parameter t in [0, 1]."""
+    PTS = 0x50001000
+    OUT = 0x50002000
+    pts4 = [
+        (0.0, 0.0, 0.0, 0.0),
+        (10.0, 20.0, 5.0, 0.0),
+        (30.0, 15.0, -5.0, 0.0),
+        (40.0, 0.0, 10.0, 0.0),
+    ]
+    pts2 = [
+        (0.0, 0.0, 0.0, 0.0),
+        (10.0, 0.0, 0.0, 0.0),
+    ]
+    vectors = []
+    for pts, t, closed in [
+        (pts2, 0.5, False),
+        (pts4, 0.0, False),
+        (pts4, 0.25, False),
+        (pts4, 0.5, False),
+        (pts4, 1.0, False),
+        (pts4, 0.0, True),
+        (pts4, 0.35, True),
+        (pts4, 1.0, True),
+    ]:
+        buf = bytearray(len(pts) * 16)
+        for i, pt in enumerate(pts):
+            struct.pack_into("<4f", buf, i * 16, *pt)
+        eax, _, captured = run(
+            read,
+            0x007BE6B8,
+            0,
+            [PTS, len(pts), float_bits(t), 1 if closed else 0, OUT],
+            registers={"fpcw": 0x027F},
+            memory=[(PTS, bytes(buf)), (OUT, b"\x00" * 12), (0x00AE7F00, struct.pack("<I", 0x200))],
+            capture=[(OUT, 12)],
+        )
+        out_vec = struct.unpack("<3f", captured[OUT])
+        vectors.append({
+            "controlPoints": [[float_bits(v) for v in p] for p in pts],
+            "t": float_bits(t),
+            "closed": closed,
+            "result": eax,
+            "position": [float_bits(v) for v in out_vec],
+        })
+    write("007BE6B8.json", vectors)
+
+
+def camera_cutscene_apply_anchor_vectors(read):
+    """0x004D681C: copies cutscene origin, motion origin, and motion yaw angle onto mode five."""
+    MODE = 0x50001000
+    ORIGIN = 0x50002000
+    MOTION = 0x50002020
+    YAW = 0x50002040
+    vectors = []
+    for mode_present, origin, motion, yaw in [
+        (False, (1.0, 2.0, 3.0), (4.0, 5.0, 6.0), 0x1000),
+        (True, (10.5, -2.25, 30.0), (-5.0, 12.0, 8.5), -0x2000),
+        (True, (0.0, 0.0, 0.0), (100.0, 50.0, -75.0), 0x4000),
+    ]:
+        mode = bytearray(168)
+        yaw_buf = struct.pack("<ii", 0, yaw)
+        mem = [
+            (ORIGIN, struct.pack("<3f", *origin)),
+            (MOTION, struct.pack("<3f", *motion)),
+            (YAW, yaw_buf),
+            (0x00A48A14, struct.pack("<I", MODE if mode_present else 0)),
+        ]
+        if mode_present:
+            mem.append((MODE, bytes(mode)))
+        _, _, captured = run(
+            read,
+            0x004D681C,
+            0,
+            [ORIGIN, MOTION, YAW],
+            memory=mem,
+            capture=[(MODE, 168)] if mode_present else [],
+        )
+        if mode_present:
+            out = captured[MODE]
+            out_origin = struct.unpack_from("<3f", out, 0x6C)
+            out_motion = struct.unpack_from("<3f", out, 0x78)
+            out_yaw = struct.unpack_from("<i", out, 0x88)[0]
+        else:
+            out_origin = (0.0, 0.0, 0.0)
+            out_motion = (0.0, 0.0, 0.0)
+            out_yaw = 0
+        vectors.append({
+            "modePresent": mode_present,
+            "cameraOrigin": [float_bits(v) for v in origin],
+            "motionOrigin": [float_bits(v) for v in motion],
+            "motionYawAngle": yaw,
+            "outputCameraOrigin": [float_bits(v) for v in out_origin],
+            "outputMotionOrigin": [float_bits(v) for v in out_motion],
+            "outputMotionYawAngle": out_yaw,
+        })
+    write("004D681C.json", vectors)
+
+
+def camera_cutscene_sync_status_vectors(read):
+    """0x004D6864: marks mode five cutscene ended when another camera mode is active."""
+    MODE = 0x50001000
+    vectors = []
+    for mode_present, active_mode, initial_flags in [
+        (False, 0, 0),
+        (True, 5, 0),
+        (True, 5, 2),
+        (True, 0, 0),
+        (True, 3, 4),
+    ]:
+        mode = bytearray(168)
+        struct.pack_into("<H", mode, 0x9E, initial_flags)
+        mem = [
+            (0x00A48A14, struct.pack("<I", MODE if mode_present else 0)),
+            (0x00A489F4, bytes([active_mode])),
+        ]
+        if mode_present:
+            mem.append((MODE, bytes(mode)))
+        eax, _, captured = run(
+            read,
+            0x004D6864,
+            0,
+            [],
+            memory=mem,
+            capture=[(MODE, 168)] if mode_present else [],
+        )
+        out_flags = struct.unpack_from("<H", captured[MODE], 0x9E)[0] if mode_present else 0
+        vectors.append({
+            "modePresent": mode_present,
+            "activeMode": active_mode,
+            "initialFlags": initial_flags,
+            "returnedNull": eax == 0,
+            "outputFlags": out_flags,
+        })
+    write("004D6864.json", vectors)
 
 
 if __name__ == "__main__":

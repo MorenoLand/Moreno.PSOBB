@@ -1,0 +1,77 @@
+[
+	{
+		"modePresent": false,
+		"cameraOrigin": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"motionOrigin": [
+			1082130432,
+			1084227584,
+			1086324736
+		],
+		"motionYawAngle": 4096,
+		"outputCameraOrigin": [
+			0,
+			0,
+			0
+		],
+		"outputMotionOrigin": [
+			0,
+			0,
+			0
+		],
+		"outputMotionYawAngle": 0
+	},
+	{
+		"modePresent": true,
+		"cameraOrigin": [
+			1093140480,
+			3222274048,
+			1106247680
+		],
+		"motionOrigin": [
+			3231711232,
+			1094713344,
+			1091043328
+		],
+		"motionYawAngle": -8192,
+		"outputCameraOrigin": [
+			1093140480,
+			3222274048,
+			1106247680
+		],
+		"outputMotionOrigin": [
+			3231711232,
+			1094713344,
+			1091043328
+		],
+		"outputMotionYawAngle": -8192
+	},
+	{
+		"modePresent": true,
+		"cameraOrigin": [
+			0,
+			0,
+			0
+		],
+		"motionOrigin": [
+			1120403456,
+			1112014848,
+			3264610304
+		],
+		"motionYawAngle": 16384,
+		"outputCameraOrigin": [
+			0,
+			0,
+			0
+		],
+		"outputMotionOrigin": [
+			1120403456,
+			1112014848,
+			3264610304
+		],
+		"outputMotionYawAngle": 16384
+	}
+]

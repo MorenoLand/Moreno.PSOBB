@@ -434,3 +434,5 @@
 0x008CB35E	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
 0x008CB410	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
 0x004D2610	The CLR garbage collector replaces the camera controller destructor: it only clears the camera global, destroys the 13 mode objects and frees the object.
+0x004E68CC	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x004EA84C	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
