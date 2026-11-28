@@ -46,6 +46,8 @@ has been read for.
 
 ## Ported members
 
-`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`) names the proven fields: the eye at `+0x178`,
-the target at `+0x184` (the update subtracts the eye from the target to get the viewing direction), the eye and target
-the active mode asks for at `+0x1A0` and `+0x1AC`, and the eye recorded at `+0x1C8`. `SnapToDesired` is `0x004D3E90`.
+`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`) names the proven fields: the shake offset at `+0x68..+0x70`,
+the eye at `+0x178`, the target at `+0x184` (the update subtracts the eye from the target to get the viewing direction),
+the eye and target the active mode asks for at `+0x1A0` and `+0x1AC`, the offset countdown at `+0x1C0`, the offset
+amplitude at `+0x1C4`, and the eye recorded at `+0x1C8`. `StepOffsetCountdown` is `0x004D3DF4` and `SnapToDesired` is
+`0x004D3E90`.

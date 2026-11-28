@@ -11,7 +11,7 @@ from unicorn import UC_ARCH_X86, UC_MODE_32, Uc, UcError
 from unicorn import UC_HOOK_MEM_FETCH_UNMAPPED, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE_UNMAPPED
 from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX
 from unicorn.x86_const import UC_X86_REG_EBP, UC_X86_REG_EDI, UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP
-from unicorn.x86_const import UC_X86_REG_ST0, UC_X86_REG_XMM0
+from unicorn.x86_const import UC_X86_REG_FPCW, UC_X86_REG_ST0, UC_X86_REG_XMM0
 
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = ROOT / "src" / "image.bin"
@@ -160,6 +160,9 @@ def execute(read, pieces, address, size, stack=(), registers=None, memory=(), ca
     extended = (registers or {}).get("st0")
     if extended is not None:
         extension_write(machine, UC_X86_REG_ST0, extended)
+    fpcw = (registers or {}).get("fpcw")
+    if fpcw is not None:
+        machine.reg_write(UC_X86_REG_FPCW, fpcw)
     try:
         machine.emu_start(address, 0xFFFFFFFF, count=1000000)
     except UcError:
@@ -1131,6 +1134,25 @@ def camera_blocks(count, seed):
     return blocks
 
 
+def camera_offset_vectors(read):
+    """0x004D3DF4: steps the vertical offset countdown and writes the sine-scaled Y offset."""
+    countdowns = [0, 1, 2, 3, 4, 5, 10, 17, 20, 29, 30, 60, 100, 277, 483, 11796480, 2098545542, 0xFFFFFFFF]
+    vectors = []
+    for index, block in enumerate(camera_blocks(len(countdowns), 0x4D3DF4)):
+        patched = bytearray(block)
+        struct.pack_into("<I", patched, 0x1C0, countdowns[index])
+        _, _, captured = run(
+            read,
+            0x004D3DF4,
+            156,
+            registers={"ecx": CAMERA, "fpcw": 0x027F},
+            memory=[(CAMERA, bytes(patched))],
+            capture=[(CAMERA, CAMERA_SIZE)],
+        )
+        vectors.append({"input": bytes(patched).hex(), "output": bytes(captured[CAMERA]).hex()})
+    write("004D3DF4.json", vectors)
+
+
 def camera_snap_vectors(read):
     """0x004D3E90: the camera's current eye and target are set from the desired pair, and the eye is stored again."""
     vectors = []
@@ -1183,6 +1205,7 @@ def main():
     atoi64_vectors(read)
     shortsort_vectors(read)
     qsort_vectors(read)
+    camera_offset_vectors(read)
     camera_snap_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)

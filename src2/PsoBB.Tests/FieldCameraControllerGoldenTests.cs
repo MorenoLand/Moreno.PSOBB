@@ -8,11 +8,25 @@ namespace PsoBB.Tests;
 /// </summary>
 public sealed class FieldCameraControllerGoldenTests
 {
+	private const int OffsetOffset = 0x68;
 	private const int DesiredEyeOffset = 0x1A0;
 	private const int DesiredTargetOffset = 0x1AC;
 	private const int EyeOffset = 0x178;
 	private const int TargetOffset = 0x184;
+	private const int OffsetCountdownOffset = 0x1C0;
+	private const int OffsetAmplitudeOffset = 0x1C4;
 	private const int SnappedEyeOffset = 0x1C8;
+
+	/// <summary>
+	/// Loads the vectors for the offset countdown step.
+	/// </summary>
+	/// <returns>Camera object bytes before and after the call.</returns>
+	public static IEnumerable<object[]> OffsetVectors() => GoldenVectors.Load("004D3DF4.json")
+		.Select(vector => new object[]
+		{
+			Convert.FromHexString(vector.GetProperty("input").GetString()!),
+			Convert.FromHexString(vector.GetProperty("output").GetString()!),
+		});
 
 	/// <summary>
 	/// Loads the vectors for the snap to the requested position.
@@ -24,6 +38,29 @@ public sealed class FieldCameraControllerGoldenTests
 			Convert.FromHexString(vector.GetProperty("input").GetString()!),
 			Convert.FromHexString(vector.GetProperty("output").GetString()!),
 		});
+
+	/// <summary>
+	/// Stepping the offset countdown decrements it and updates the vertical offset exactly as the original does.
+	/// </summary>
+	/// <param name="input">The camera object before the call.</param>
+	/// <param name="output">The camera object after the call.</param>
+	[Theory]
+	[MemberData(nameof(OffsetVectors))]
+	public void StepOffsetCountdownMatchesTheMachineCode(byte[] input, byte[] output)
+	{
+		FieldCameraController controller = new()
+		{
+			Offset = ReadVector(input, OffsetOffset),
+			OffsetCountdown = BitConverter.ToUInt32(input, OffsetCountdownOffset),
+			OffsetAmplitude = BitConverter.ToSingle(input, OffsetAmplitudeOffset),
+		};
+
+		controller.StepOffsetCountdown();
+
+		GoldenVectors.AssertVector(ReadVector(output, OffsetOffset), controller.Offset);
+		Assert.Equal(BitConverter.ToUInt32(output, OffsetCountdownOffset), controller.OffsetCountdown);
+		Assert.Equal(BitConverter.ToSingle(output, OffsetAmplitudeOffset), controller.OffsetAmplitude);
+	}
 
 	/// <summary>
 	/// Snapping sets the current eye and target and records the eye exactly as the original does.

@@ -34,6 +34,39 @@ public sealed class FieldCameraController
 	public Vector3 SnappedEye { get; set; }
 
 	/// <summary>
+	/// Gets or sets the per-frame target offset applied when stepping a camera shake.
+	/// </summary>
+	public Vector3 Offset { get; set; }
+
+	/// <summary>
+	/// Gets or sets the remaining frames for the vertical camera offset oscillation.
+	/// </summary>
+	public uint OffsetCountdown { get; set; }
+
+	/// <summary>
+	/// Gets or sets the vertical amplitude per remaining frame of the offset oscillation.
+	/// </summary>
+	public float OffsetAmplitude { get; set; }
+
+	/// <summary>
+	/// Advances the vertical camera offset countdown by one frame and updates the active offset.
+	/// </summary>
+	[Original(0x004D3DF4)]
+	public void StepOffsetCountdown()
+	{
+		if (OffsetCountdown == 0)
+			return;
+
+		uint remaining = OffsetCountdown - 1;
+		OffsetCountdown = remaining;
+		int scaled = unchecked((int)(remaining * 40u));
+		int angle = FloatingPointMath.TruncateToInt32((scaled * 65536.0) / 360.0);
+		float amplitude = (float)(remaining * (double)OffsetAmplitude);
+		float vertical = (float)(FixedPointTrigonometry.Sine(angle) * amplitude);
+		Offset = new Vector3(0.0f, vertical, 0.0f);
+	}
+
+	/// <summary>
 	/// Moves the camera straight to the requested eye and target, without smoothing, and records the eye.
 	/// </summary>
 	[Original(0x004D3E90)]
