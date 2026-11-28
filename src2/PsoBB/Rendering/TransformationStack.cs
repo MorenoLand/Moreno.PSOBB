@@ -54,6 +54,34 @@ public sealed class TransformationStack
 	}
 
 	/// <summary>
+	/// Multiplies the matrix at the current stack depth in place by <paramref name="transform"/>.
+	/// </summary>
+	/// <param name="transform">The transform matrix applied after the current stack matrix.</param>
+	[Original(0x0083A668)]
+	public void MultiplyCurrent(Matrix4x4 transform)
+	{
+		CopyCurrentTo(out Matrix4x4 current);
+		MultiplyInto(ref current, transform);
+		ReplaceCurrent(current);
+	}
+
+	/// <summary>
+	/// Multiplies <paramref name="destination"/> in place by <paramref name="transform"/> matching the original summation order.
+	/// </summary>
+	/// <param name="destination">The matrix updated in place.</param>
+	/// <param name="transform">The right-hand matrix operand.</param>
+	public static void MultiplyInto(ref Matrix4x4 destination, Matrix4x4 transform) =>
+		destination = Matrix4x4.Multiply(destination, transform);
+
+	/// <summary>
+	/// Transforms <paramref name="point"/> by the matrix at the top of this stack.
+	/// </summary>
+	/// <param name="point">The 3D point to transform.</param>
+	/// <returns>The transformed point.</returns>
+	[Original(0x00835C3C)]
+	public Vector3 TransformPosition(Vector3 point) => _matrices[_depth].TransformPosition(point);
+
+	/// <summary>
 	/// Copies the current matrix to the next depth, which is how a model node starts a child transform.
 	/// </summary>
 	[Original(0x0082D7B0, "push_transformation_matrix_copy_head")]

@@ -1567,6 +1567,12 @@ def main():
     camera_linear_pan_step_vectors(read)
     camera_path_task_init_vectors(read)
     camera_path_task_step_vectors(read)
+    transform_position_vectors(read)
+    transform_multiply_matrix_vectors(read)
+    camera_apply_inverse_view_vectors(read)
+    camera_inverse_view_transform_point_vectors(read)
+    transform_matrix_point_vectors(read)
+    camera_orbit_align_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -4089,6 +4095,216 @@ def camera_path_task_step_vectors(read):
             "cutsceneTargetClientId": struct.unpack("<h", captured[0x009ACED8])[0],
         })
     write("004D5E88.json", vectors)
+
+
+def transform_position_vectors(read):
+    """0x00835C3C: transforms a 3D point by the matrix at the top of the transformation stack."""
+    STACK = 0x50004400
+    SRC = 0x50002000
+    DST = 0x50002020
+    matrices = [
+        (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 10.0, -5.0, 25.0, 1.0),
+        (0.5, -0.25, 0.75, 0.0, 0.125, 1.5, -0.5, 0.0, -0.75, 0.25, 0.875, 0.0, -12.0, 8.5, 4.25, 1.0),
+    ]
+    points = [(0.0, 0.0, 0.0), (2.0, -4.0, 6.0), (-3.5, 7.25, 1.5)]
+    vectors = []
+    for mat in matrices:
+        for pt in points:
+            _, _, captured = run(
+                read,
+                0x00835C3C,
+                0,
+                [SRC, DST],
+                registers={"fpcw": 0x027F},
+                memory=[
+                    (STACK, struct.pack("<16f", *mat)),
+                    (0x00AF0328, struct.pack("<I", STACK)),
+                    (SRC, struct.pack("<3f", *pt)),
+                    (DST, b"\x00" * 12),
+                ],
+                capture=[(DST, 12)],
+            )
+            vectors.append({
+                "matrix": [float_bits(v) for v in mat],
+                "point": [float_bits(v) for v in pt],
+                "result": [float_bits(v) for v in struct.unpack("<3f", captured[DST])],
+            })
+    write("00835C3C.json", vectors)
+
+
+def transform_multiply_matrix_vectors(read):
+    """0x0083A668: multiplies destination matrix (or current stack top) by transform matrix."""
+    STACK = 0x50004400
+    DST = 0x50002000
+    SRC = 0x50002040
+    left = (1.0, 0.2, -0.3, 0.0, -0.2, 0.9, 0.4, 0.0, 0.3, -0.4, 0.8, 0.0, 10.0, -5.0, 20.0, 1.0)
+    right = (0.7, -0.5, 0.1, 0.0, 0.5, 0.8, -0.2, 0.0, -0.1, 0.2, 1.1, 0.0, -3.0, 7.0, 4.0, 1.0)
+    ident = (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    vectors = []
+    for use_stack, dst_mat, src_mat in [(True, left, right), (True, right, left), (False, left, ident), (False, left, right)]:
+        mem = [
+            (STACK, struct.pack("<16f", *dst_mat) + b"\x00" * 192),
+            (DST, struct.pack("<16f", *dst_mat)),
+            (SRC, struct.pack("<16f", *src_mat)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+        ]
+        cap = [(STACK if use_stack else DST, 64)]
+        _, _, captured = run(
+            read,
+            0x0083A668,
+            0,
+            [0 if use_stack else DST, SRC],
+            registers={"fpcw": 0x027F},
+            memory=mem,
+            capture=cap,
+        )
+        out = struct.unpack("<16f", captured[STACK if use_stack else DST])
+        vectors.append({
+            "useStack": use_stack,
+            "destination": [float_bits(v) for v in dst_mat],
+            "transform": [float_bits(v) for v in src_mat],
+            "result": [float_bits(v) for v in out],
+        })
+    write("0083A668.json", vectors)
+
+
+def camera_apply_inverse_view_vectors(read):
+    """0x004D4564: multiplies the top of the transformation stack by the global inverse view matrix."""
+    STACK = 0x50004400
+    inv_view = (0.8, 0.0, -0.6, 0.0, 0.0, 1.0, 0.0, 0.0, 0.6, 0.0, 0.8, 0.0, 12.0, 4.0, -8.0, 1.0)
+    top = (1.0, 0.5, 0.0, 0.0, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 2.0, -3.0, 5.0, 1.0)
+    _, _, captured = run(
+        read,
+        0x004D4564,
+        0,
+        [],
+        registers={"fpcw": 0x027F},
+        memory=[
+            (STACK, struct.pack("<16f", *top) + b"\x00" * 192),
+            (0x00A48980, struct.pack("<16f", *inv_view)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+        ],
+        capture=[(STACK, 64)],
+    )
+    vectors = [{
+        "stackTop": [float_bits(v) for v in top],
+        "inverseView": [float_bits(v) for v in inv_view],
+        "result": [float_bits(v) for v in struct.unpack("<16f", captured[STACK])],
+    }]
+    write("004D4564.json", vectors)
+
+
+def camera_inverse_view_transform_point_vectors(read):
+    """0x004D4574: pushes stack copy, applies global inverse view matrix, transforms a point, and pops."""
+    STACK = 0x50004400
+    SRC = 0x50002000
+    DST = 0x50002020
+    inv_view = (0.8, 0.0, -0.6, 0.0, 0.0, 1.0, 0.0, 0.0, 0.6, 0.0, 0.8, 0.0, 12.0, 4.0, -8.0, 1.0)
+    top = (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 2.0, -3.0, 5.0, 1.0)
+    src = (3.0, -2.0, 7.0)
+    _, _, captured = run(
+        read,
+        0x004D4574,
+        0,
+        [SRC, DST],
+        registers={"fpcw": 0x027F},
+        memory=[
+            (STACK, struct.pack("<16f", *top) + b"\x00" * 256),
+            (SRC, struct.pack("<3f", *src)),
+            (DST, b"\x00" * 12),
+            (0x00A48980, struct.pack("<16f", *inv_view)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+        ],
+        capture=[(DST, 12)],
+    )
+    vectors = [{
+        "stackTop": [float_bits(v) for v in top],
+        "inverseView": [float_bits(v) for v in inv_view],
+        "point": [float_bits(v) for v in src],
+        "result": [float_bits(v) for v in struct.unpack("<3f", captured[DST])],
+    }]
+    write("004D4574.json", vectors)
+
+
+def transform_matrix_point_vectors(read):
+    """0x00830AA0: transforms a 3D point by an explicit matrix or current transformation stack top."""
+    STACK = 0x50004400
+    MAT = 0x50001800
+    SRC = 0x50002000
+    DST = 0x50002020
+    mat = (0.5, -0.25, 0.75, 0.0, 0.125, 1.5, -0.5, 0.0, -0.75, 0.25, 0.875, 0.0, -12.0, 8.5, 4.25, 1.0)
+    pt = (2.0, -4.0, 6.0)
+    vectors = []
+    for use_stack in [False, True]:
+        _, _, captured = run(
+            read,
+            0x00830AA0,
+            0,
+            [DST],
+            registers={"ecx": 0 if use_stack else MAT, "edx": SRC, "fpcw": 0x027F},
+            memory=[
+                (STACK, struct.pack("<16f", *mat)),
+                (MAT, struct.pack("<16f", *mat)),
+                (SRC, struct.pack("<3f", *pt)),
+                (DST, b"\x00" * 12),
+                (0x00AF0328, struct.pack("<I", STACK)),
+            ],
+            capture=[(DST, 12)],
+        )
+        vectors.append({
+            "useStack": use_stack,
+            "matrix": [float_bits(v) for v in mat],
+            "point": [float_bits(v) for v in pt],
+            "result": [float_bits(v) for v in struct.unpack("<3f", captured[DST])],
+        })
+    write("00830AA0.json", vectors)
+
+
+def camera_orbit_align_vectors(read):
+    """0x004D5188: computes orbit distance, pitch, and yaw angles from an eye and target pair."""
+    OBJ = 0x50001000
+    ORBIT = 0x50001800
+    EYE = 0x50002000
+    TGT = 0x50002020
+    vectors = []
+    for eye, tgt in [
+        ((0.0, 20.0, 40.0), (0.0, 10.0, 0.0)),
+        ((15.0, 35.0, -25.0), (-5.0, 10.0, 5.0)),
+        ((-30.0, 14.0, 12.0), (10.0, 12.0, -10.0)),
+        ((-5.0, 8.0, 20.0), (5.0, 15.0, -20.0)),
+    ]:
+        orbit = bytearray(128)
+        _, _, captured = run(
+            read,
+            0x004D5188,
+            0,
+            [EYE, TGT],
+            registers={"ecx": OBJ, "fpcw": 0x027F},
+            memory=[
+                (OBJ, b"\x00" * 64),
+                (ORBIT, bytes(orbit)),
+                (EYE, struct.pack("<3f", *eye)),
+                (TGT, struct.pack("<3f", *tgt)),
+                (0x00A48A18, struct.pack("<I", ORBIT)),
+                (0x00AE7F00, struct.pack("<I", 1)),
+            ],
+            capture=[(ORBIT, 128)],
+        )
+        out = captured[ORBIT]
+        vectors.append({
+            "eye": [float_bits(v) for v in eye],
+            "target": [float_bits(v) for v in tgt],
+            "distance": float_bits(struct.unpack_from("<f", out, 0x6C)[0]),
+            "pitchAngle": struct.unpack_from("<i", out, 0x2C)[0],
+            "yawAngle": struct.unpack_from("<i", out, 0x30)[0],
+        })
+    write("004D5188.json", vectors)
 
 
 if __name__ == "__main__":

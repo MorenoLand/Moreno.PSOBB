@@ -61,4 +61,25 @@ public sealed class FieldCameraOrbitMode : FieldCameraMode
 			(float)(-FixedPointTrigonometry.Sine(PitchAngle) * Distance + Target.Y),
 			(float)(FixedPointTrigonometry.Cosine(YawAngle) * horizontalRadius + Target.Z));
 	}
+
+	/// <summary>
+	/// Aligns the active orbit mode distance, pitch, and yaw to view <paramref name="target"/> from <paramref name="eye"/>.
+	/// </summary>
+	/// <param name="eye">The camera eye position.</param>
+	/// <param name="target">The camera look-at target position.</param>
+	[Original(0x004D5188)]
+	public static void AlignToView(Vector3 eye, Vector3 target)
+	{
+		if (FieldCameraController.Modes[6] is not FieldCameraOrbitMode orbit)
+			return;
+
+		float distance = (float)Vector3.Distance(eye, target);
+		orbit.Distance = distance;
+		Vector3 planar = new(target.X - eye.X, 0.0f, target.Z - eye.Z);
+		float horizontal = planar.Length();
+		const double TwoPi = 6.283184051513672;
+		int pitch = -FloatingPointMath.TruncateToInt32(Math.Acos((double)horizontal / distance) * 65536.0 / TwoPi);
+		orbit.PitchAngle = pitch;
+		orbit.YawAngle = Angle.HeadingBetween(target, eye);
+	}
 }

@@ -123,6 +123,7 @@ public sealed class Matrix4x4Tests
 		{
 			["Multiply"] = 0x00831308,
 			["Translate"] = 0x008316B4,
+			["TransformPosition"] = 0x00830AA0,
 			["TransformPositions"] = 0x0082F940,
 			["ScaleRows"] = 0x0082FA0C,
 			["TransformDirection"] = 0x0083A610,

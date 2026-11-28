@@ -96,6 +96,17 @@ public readonly record struct Matrix4x4(
 	}
 
 	/// <summary>
+	/// Transforms a single point vector by this matrix, adding the translation row.
+	/// </summary>
+	/// <param name="point">The point vector to transform.</param>
+	/// <returns>The transformed point.</returns>
+	[Original(0x00830AA0)]
+	public Vector3 TransformPosition(Vector3 point) => new(
+		(float)((double)M11 * point.X + (double)M21 * point.Y + (double)M31 * point.Z + M41),
+		(float)((double)M12 * point.X + (double)M22 * point.Y + (double)M32 * point.Z + M42),
+		(float)(((double)M13 * point.X + (double)M23 * point.Y) + (double)M33 * point.Z + M43));
+
+	/// <summary>
 	/// Returns the matrix with its first three rows scaled by the three factors, leaving the
 	/// translation row unchanged.
 	/// </summary>

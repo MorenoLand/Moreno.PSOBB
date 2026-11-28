@@ -485,6 +485,34 @@ public sealed class FieldCameraController
 	public static Matrix4x4 GetGlobalInverseViewMatrix() => GlobalInverseViewMatrix;
 
 	/// <summary>
+	/// Multiplies the top matrix on <paramref name="transformStack"/> by <see cref="GlobalInverseViewMatrix"/>.
+	/// </summary>
+	/// <param name="transformStack">The transformation stack to multiply.</param>
+	[Original(0x004D4564)]
+	public static void ApplyInverseViewMatrix(TransformationStack transformStack)
+	{
+		ArgumentNullException.ThrowIfNull(transformStack);
+		transformStack.MultiplyCurrent(GlobalInverseViewMatrix);
+	}
+
+	/// <summary>
+	/// Pushes a copy on <paramref name="transformStack"/>, applies <see cref="GlobalInverseViewMatrix"/>, transforms <paramref name="point"/>, and pops the copy.
+	/// </summary>
+	/// <param name="transformStack">The transformation stack to use.</param>
+	/// <param name="point">The point to transform through the inverse view matrix.</param>
+	/// <returns>The transformed point.</returns>
+	[Original(0x004D4574)]
+	public static Vector3 TransformPointThroughInverseView(TransformationStack transformStack, Vector3 point)
+	{
+		ArgumentNullException.ThrowIfNull(transformStack);
+		transformStack.PushCopy();
+		transformStack.MultiplyCurrent(GlobalInverseViewMatrix);
+		Vector3 transformed = transformStack.Current.TransformPosition(point);
+		transformStack.Pop();
+		return transformed;
+	}
+
+	/// <summary>
 	/// Sets the global camera up axis used when refreshing or offsetting the look-at transform.
 	/// </summary>
 	/// <param name="upAxis">The replacement up-axis vector.</param>
