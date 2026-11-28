@@ -60,6 +60,16 @@ public class TransformationStackGoldenTests
 			vector.GetProperty("yawAngle").GetInt32(),
 		});
 
+	public static IEnumerable<object[]> RotateAxisVectors() => GoldenVectors.Load("0083CDB0.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("useStack").GetBoolean(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			GoldenVectors.ReadVector(vector.GetProperty("axis")),
+			vector.GetProperty("angle").GetInt32(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
 	[Theory]
 	[MemberData(nameof(TransformPositionVectors))]
 	public void TransformPositionMatchesTheMachineCode(Matrix4x4 matrix, Vector3 point, Vector3 expected)
@@ -169,6 +179,25 @@ public class TransformationStackGoldenTests
 		finally
 		{
 			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(RotateAxisVectors))]
+	public void RotateAxisMatchesTheMachineCode(bool useStack, Matrix4x4 initial, Vector3 axis, int angle, Matrix4x4 expected)
+	{
+		if (useStack)
+		{
+			TransformationStack stack = new();
+			stack.ReplaceCurrent(initial);
+			stack.RotateAxis(axis, angle);
+			GoldenVectors.AssertMatrix(expected, stack.Current);
+		}
+		else
+		{
+			Matrix4x4 target = initial;
+			TransformationStack.RotateAxis(ref target, axis, angle);
+			GoldenVectors.AssertMatrix(expected, target);
 		}
 	}
 }

@@ -1573,6 +1573,11 @@ def main():
     camera_inverse_view_transform_point_vectors(read)
     transform_matrix_point_vectors(read)
     camera_orbit_align_vectors(read)
+    hexahedron_bounds_vectors(read)
+    sphere_bounds_vectors(read)
+    bounds_intersect_vectors(read)
+    hexahedron_intersects_sphere_vectors(read)
+    rotate_axis_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -4168,6 +4173,236 @@ def transform_multiply_matrix_vectors(read):
             "result": [float_bits(v) for v in out],
         })
     write("0083A668.json", vectors)
+
+
+def hexahedron_bounds_vectors(read):
+    """0x0084A90C: computes minimum and maximum bounds across eight corner points."""
+    CORNERS = 0x50002000
+    MIN_OUT = 0x50002100
+    MAX_OUT = 0x50002120
+    cases = [
+        [
+            (0.0, 0.0, 0.0), (10.0, 0.0, 0.0), (10.0, 4.0, 0.0), (0.0, 4.0, 0.0),
+            (0.0, 0.0, 15.0), (10.0, 0.0, 15.0), (10.0, 4.0, 15.0), (0.0, 4.0, 15.0),
+        ],
+        [
+            (-5.5, 2.25, -8.0), (12.0, -3.5, 1.0), (7.25, 9.75, 4.5), (-11.5, 6.0, 3.25),
+            (-2.0, -7.5, 14.0), (15.5, 0.5, 19.25), (3.75, 11.25, 22.0), (-9.0, 1.0, 16.5),
+        ],
+        [
+            (-50.0, -20.0, -100.0), (-10.0, -20.0, -100.0), (-10.0, -5.0, -100.0), (-50.0, -5.0, -100.0),
+            (-50.0, -20.0, -30.0), (-10.0, -20.0, -30.0), (-10.0, -5.0, -30.0), (-50.0, -5.0, -30.0),
+        ],
+        [
+            (4.0, -2.0, 7.5), (4.0, -2.0, 7.5), (4.0, -2.0, 7.5), (4.0, -2.0, 7.5),
+            (4.0, -2.0, 7.5), (4.0, -2.0, 7.5), (4.0, -2.0, 7.5), (4.0, -2.0, 7.5),
+        ],
+    ]
+    vectors = []
+    for corners in cases:
+        flat = [c for pt in corners for c in pt]
+        _, _, captured = run(
+            read,
+            0x0084A90C,
+            0,
+            [MAX_OUT],
+            registers={"ecx": CORNERS, "edx": MIN_OUT, "fpcw": 0x027F},
+            memory=[
+                (CORNERS, struct.pack("<24f", *flat)),
+                (MIN_OUT, b"\x00" * 12),
+                (MAX_OUT, b"\x00" * 12),
+            ],
+            capture=[(MIN_OUT, 12), (MAX_OUT, 12)],
+        )
+        min_out = struct.unpack("<3f", captured[MIN_OUT])
+        max_out = struct.unpack("<3f", captured[MAX_OUT])
+        vectors.append({
+            "corners": [[float_bits(c) for c in pt] for pt in corners],
+            "min": [float_bits(v) for v in min_out],
+            "max": [float_bits(v) for v in max_out],
+        })
+    write("0084A90C.json", vectors)
+
+
+def sphere_bounds_vectors(read):
+    """0x0084A9DC: computes axis-aligned minimum and maximum bounds for a bounding sphere."""
+    SPHERE = 0x50002000
+    MIN_OUT = 0x50002100
+    MAX_OUT = 0x50002120
+    cases = [
+        (0.0, 0.0, 0.0, 5.5),
+        (-12.25, 34.5, -7.75, 18.125),
+        (3.0, -4.0, 5.0, 0.0),
+        (1.0, 2.0, 3.0, -2.5),
+    ]
+    vectors = []
+    for sphere in cases:
+        _, _, captured = run(
+            read,
+            0x0084A9DC,
+            0,
+            [MAX_OUT],
+            registers={"ecx": SPHERE, "edx": MIN_OUT, "fpcw": 0x027F},
+            memory=[
+                (SPHERE, struct.pack("<4f", *sphere)),
+                (MIN_OUT, b"\x00" * 12),
+                (MAX_OUT, b"\x00" * 12),
+            ],
+            capture=[(MIN_OUT, 12), (MAX_OUT, 12)],
+        )
+        min_out = struct.unpack("<3f", captured[MIN_OUT])
+        max_out = struct.unpack("<3f", captured[MAX_OUT])
+        vectors.append({
+            "center": [float_bits(v) for v in sphere[:3]],
+            "radius": float_bits(sphere[3]),
+            "min": [float_bits(v) for v in min_out],
+            "max": [float_bits(v) for v in max_out],
+        })
+    write("0084A9DC.json", vectors)
+
+
+def bounds_intersect_vectors(read):
+    """0x0084AA18: tests whether two axis-aligned bounding boxes overlap."""
+    MIN_A = 0x50002000
+    MIN_B = 0x50002020
+    MAX_A = 0x50002040
+    MAX_B = 0x50002060
+    cases = [
+        ((0.0, 0.0, 0.0), (10.0, 10.0, 10.0), (5.0, 5.0, 5.0), (15.0, 15.0, 15.0)),
+        ((0.0, 0.0, 0.0), (10.0, 10.0, 10.0), (10.5, 2.0, 2.0), (20.0, 8.0, 8.0)),
+        ((10.5, 2.0, 2.0), (20.0, 8.0, 8.0), (0.0, 0.0, 0.0), (10.0, 10.0, 10.0)),
+        ((0.0, 0.0, 0.0), (10.0, 10.0, 10.0), (2.0, 11.0, 2.0), (8.0, 20.0, 8.0)),
+        ((2.0, 11.0, 2.0), (8.0, 20.0, 8.0), (0.0, 0.0, 0.0), (10.0, 10.0, 10.0)),
+        ((0.0, 0.0, 0.0), (10.0, 10.0, 10.0), (2.0, 2.0, 11.0), (8.0, 8.0, 20.0)),
+        ((2.0, 2.0, 11.0), (8.0, 8.0, 20.0), (0.0, 0.0, 0.0), (10.0, 10.0, 10.0)),
+        ((0.0, 0.0, 0.0), (10.0, 10.0, 10.0), (10.0, 0.0, 0.0), (20.0, 10.0, 10.0)),
+        ((-5.0, -5.0, -5.0), (5.0, 5.0, 5.0), (-2.0, -2.0, -2.0), (2.0, 2.0, 2.0)),
+    ]
+    vectors = []
+    for min_a, max_a, min_b, max_b in cases:
+        result, _, _ = run(
+            read,
+            0x0084AA18,
+            0,
+            [MIN_B, MAX_B],
+            registers={"ecx": MIN_A, "edx": MAX_A, "fpcw": 0x027F},
+            memory=[
+                (MIN_A, struct.pack("<3f", *min_a)),
+                (MAX_A, struct.pack("<3f", *max_a)),
+                (MIN_B, struct.pack("<3f", *min_b)),
+                (MAX_B, struct.pack("<3f", *max_b)),
+            ],
+        )
+        vectors.append({
+            "minA": [float_bits(v) for v in min_a],
+            "maxA": [float_bits(v) for v in max_a],
+            "minB": [float_bits(v) for v in min_b],
+            "maxB": [float_bits(v) for v in max_b],
+            "intersects": result != 0,
+        })
+    write("0084AA18.json", vectors)
+
+
+def hexahedron_intersects_sphere_vectors(read):
+    """0x0083D2FC: tests whether an eight-corner hexahedron intersects a bounding sphere."""
+    CORNERS = 0x50002000
+    SPHERE = 0x50002100
+
+    def make_box(x0, x1, y0, y1, z0, z1):
+        return [
+            (x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+            (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1),
+        ]
+
+    box = make_box(-10.0, 10.0, -5.0, 5.0, 0.0, 20.0)
+    skewed = [
+        (-8.0, -4.0, 0.0), (10.0, -2.0, 2.0), (12.0, 8.0, 3.0), (-6.0, 6.0, -1.0),
+        (-6.0, -3.0, 18.0), (12.0, -1.0, 21.0), (14.0, 9.0, 22.0), (-4.0, 7.0, 17.0),
+    ]
+    cases = [
+        (box, (50.0, 0.0, 10.0, 5.0)),
+        (box, (0.0, 0.0, 10.0, 1.0)),
+        (box, (12.0, 0.0, 10.0, 3.0)),
+        (box, (15.0, 0.0, 10.0, 4.0)),
+        (box, (11.5, 6.5, 10.0, 3.0)),
+        (box, (12.5, 7.5, 10.0, 2.5)),
+        (box, (10.0, 5.0, 20.0, 0.5)),
+        (box, (12.0, 7.0, 22.0, 1.0)),
+        (skewed, (2.0, 1.0, 10.0, 0.5)),
+        (skewed, (13.0, 3.0, 11.0, 2.5)),
+        (skewed, (16.0, 3.0, 11.0, 1.0)),
+        (skewed, (12.5, 9.5, 12.0, 2.5)),
+    ]
+    vectors = []
+    for corners, sphere in cases:
+        flat = [c for pt in corners for c in pt]
+        result, _, _ = run(
+            read,
+            0x0083D2FC,
+            0,
+            [CORNERS, SPHERE],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (CORNERS, struct.pack("<24f", *flat)),
+                (SPHERE, struct.pack("<4f", *sphere)),
+            ],
+        )
+        vectors.append({
+            "corners": [[float_bits(c) for c in pt] for pt in corners],
+            "center": [float_bits(v) for v in sphere[:3]],
+            "radius": float_bits(sphere[3]),
+            "intersects": result != 0,
+        })
+    write("0083D2FC.json", vectors)
+
+
+def rotate_axis_vectors(read):
+    """0x0083CDB0: rotates a target matrix or transformation stack top around an arbitrary axis."""
+    STACK = 0x50004400
+    DST = 0x50002000
+    AXIS = 0x50002100
+    ident = (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    base = (0.8, 0.2, -0.3, 0.0, -0.1, 1.1, 0.4, 0.0, 0.3, -0.4, 0.9, 0.0, 12.0, -5.0, 7.5, 1.0)
+    cases = [
+        (True, base, (1.0, 0.0, 0.0), 0x1234),
+        (False, ident, (-1.0, 0.0, 0.0), 0x2000),
+        (True, base, (0.0, 1.0, 0.0), -0x2345),
+        (False, base, (0.0, -1.0, 0.0), 0x4000),
+        (True, ident, (0.0, 0.0, 1.0), 0x1555),
+        (False, base, (0.0, 0.0, -1.0), 0x2AAA),
+        (False, base, (0.0, 3.0, 4.0), 0x1800),
+        (True, base, (1.5, -2.25, 3.75), 0x3333),
+        (False, ident, (0.26726124, 0.5345225, -0.8017837), -0x1C71),
+        (True, base, (0.0, 0.0, 0.0), 0x1000),
+        (False, base, (1.0, 2.0, 3.0), 0),
+    ]
+    vectors = []
+    for use_stack, mat, axis, angle in cases:
+        mem = [
+            (STACK, struct.pack("<16f", *mat) + b"\x00" * 192),
+            (DST, struct.pack("<16f", *mat)),
+            (AXIS, struct.pack("<3f", *axis)),
+            (0x00AF0328, struct.pack("<I", STACK)),
+        ]
+        target = STACK if use_stack else DST
+        _, _, captured = run(
+            read,
+            0x0083CDB0,
+            0,
+            [angle & 0xFFFFFFFF],
+            registers={"ecx": 0 if use_stack else DST, "edx": AXIS, "fpcw": 0x027F},
+            memory=mem,
+            capture=[(target, 64)],
+        )
+        out = struct.unpack("<16f", captured[target])
+        vectors.append({
+            "useStack": use_stack,
+            "matrix": [float_bits(v) for v in mat],
+            "axis": [float_bits(v) for v in axis],
+            "angle": angle,
+            "result": [float_bits(v) for v in out],
+        })
+    write("0083CDB0.json", vectors)
 
 
 def camera_apply_inverse_view_vectors(read):

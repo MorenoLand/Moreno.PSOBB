@@ -74,6 +74,137 @@ public sealed class TransformationStack
 		destination = Matrix4x4.Multiply(destination, transform);
 
 	/// <summary>
+	/// Rotates the matrix at the current stack depth in place around an arbitrary 3D axis.
+	/// </summary>
+	/// <param name="axis">The rotation axis vector.</param>
+	/// <param name="angle">The rotation angle in 16-bit turn units.</param>
+	[Original(0x0083CDB0)]
+	public void RotateAxis(Vector3 axis, int angle) => RotateAxis(ref _matrices[_depth], axis, angle);
+
+	/// <summary>
+	/// Rotates <paramref name="matrix"/> in place around <paramref name="axis"/> matching the
+	/// client's decomposed basis transformation order.
+	/// </summary>
+	/// <param name="matrix">The matrix updated in place.</param>
+	/// <param name="axis">The rotation axis vector.</param>
+	/// <param name="angle">The rotation angle in 16-bit turn units.</param>
+	public static void RotateAxis(ref Matrix4x4 matrix, Vector3 axis, int angle)
+	{
+		float sx = axis.X;
+		float sy = axis.Y;
+		float cz = axis.Z;
+		float yzLengthSquared = (float)((double)sy * sy + (double)cz * cz);
+		double yzLength = yzLengthSquared >= 0.0f
+			? Math.Sqrt(yzLengthSquared)
+			: -Math.Sqrt(-yzLengthSquared);
+		float cy = 0.0f;
+
+		if (cz == 0.0f && sy != 0.0f)
+		{
+			sy = sy <= 0.0f ? -1.0f : 1.0f;
+			cz = 0.0f;
+		}
+		else if (sy == 0.0f)
+		{
+			sy = 0.0f;
+			cz = cz <= 0.0f ? -1.0f : 1.0f;
+		}
+		else
+		{
+			double invYz = 1.0f / yzLength;
+			sy = (float)(sy * invYz);
+			cz = (float)(invYz * cz);
+		}
+
+		if (cy == yzLength && sx != cy)
+		{
+			sx = sx <= cy ? -1.0f : 1.0f;
+		}
+		else if (sx == cy)
+		{
+			sx = 0.0f;
+			cy = yzLength <= cy ? -1.0f : 1.0f;
+		}
+		else
+		{
+			cy = (float)yzLength;
+		}
+
+		float negSy = -sy;
+		float m10F = (float)((double)matrix.M21 * sy + (double)matrix.M31 * cz);
+		double m10 = (double)matrix.M21 * sy + (double)matrix.M31 * cz;
+		double m11 = (double)matrix.M32 * cz + (double)sy * matrix.M22;
+		float m11F = (float)m11;
+		double m12 = (double)matrix.M33 * cz + (double)matrix.M23 * sy;
+		float m12F = (float)m12;
+		double m13 = (double)cz * matrix.M34 + (double)matrix.M24 * sy;
+
+		float r10 = (float)((double)matrix.M31 * negSy + (double)cz * matrix.M21);
+		float r11 = (float)((double)matrix.M32 * negSy + (double)matrix.M22 * cz);
+		float r12 = (float)((double)matrix.M33 * negSy + (double)cz * matrix.M23);
+		float r13 = (float)((double)negSy * matrix.M34 + (double)cz * matrix.M24);
+
+		float r00In = matrix.M11;
+		float r01In = matrix.M12;
+		float r02In = matrix.M13;
+		float r03In = matrix.M14;
+		float negSx = -sx;
+		double cyD = cy;
+
+		float r00 = (float)(m10 * negSx + cyD * r00In);
+		float r01 = (float)(m11 * negSx + cyD * r01In);
+		float r02 = (float)(m12 * negSx + cyD * r02In);
+		float r03 = (float)(negSx * m13 + cyD * r03In);
+		float r20 = (float)((double)m10F * cyD + (double)r00In * sx);
+		float r21 = (float)((double)m11F * cyD + (double)r01In * sx);
+		float r22 = (float)((double)r02In * sx + cyD * m12F);
+		float r23 = (float)(m13 * cyD + (double)r03In * sx);
+
+		(float sinAngle, float cosAngle) = FixedPointTrigonometry.SineCosine(angle);
+
+		double c00 = (double)sinAngle * r10 + (double)cosAngle * r00;
+		double c01 = (double)sinAngle * r11 + (double)cosAngle * r01;
+		float c01F = (float)c01;
+		double c02 = (double)sinAngle * r12 + (double)cosAngle * r02;
+		float c02F = (float)c02;
+		double c03 = (double)sinAngle * r13 + (double)cosAngle * r03;
+		float c03F = (float)c03;
+
+		float b10 = (float)((double)r00 * -sinAngle + (double)r10 * cosAngle);
+		float b11 = (float)((double)r11 * cosAngle + (double)r01 * -sinAngle);
+		float b12 = (float)((double)r12 * cosAngle + (double)r02 * -sinAngle);
+		float b13 = (float)((double)r13 * cosAngle + (double)r03 * -sinAngle);
+
+		float out00 = (float)((double)sx * r20 + (double)cy * c00);
+		float out01 = (float)((double)sx * r21 + c01 * cy);
+		float out02 = (float)((double)sx * r22 + (double)cy * c02F);
+		float out03 = (float)((double)sx * r23 + (double)cy * c03F);
+
+		double t10 = (double)r20 * cy + c00 * negSx;
+		float t10F = (float)t10;
+		double t11 = (double)r21 * cy + (double)c01F * negSx;
+		float t11F = (float)t11;
+		double t12 = (double)r22 * cy + (double)c02F * negSx;
+		float t12F = (float)t12;
+		double t13 = (double)r23 * cy + (double)c03F * negSx;
+
+		matrix = new Matrix4x4(
+			out00, out01, out02, out03,
+			(float)(t10 * sy + (double)cz * b10),
+			(float)(t11 * sy + (double)cz * b11),
+			(float)((double)sy * t12 + (double)cz * b12),
+			(float)((double)sy * t13 + (double)cz * b13),
+			(float)((double)t10F * cz + (double)b10 * negSy),
+			(float)((double)t11F * cz + (double)b11 * negSy),
+			(float)((double)b12 * negSy + (double)cz * t12F),
+			(float)(t13 * cz + (double)b13 * negSy),
+			matrix.M41,
+			matrix.M42,
+			matrix.M43,
+			matrix.M44);
+	}
+
+	/// <summary>
 	/// Transforms <paramref name="point"/> by the matrix at the top of this stack.
 	/// </summary>
 	/// <param name="point">The 3D point to transform.</param>
