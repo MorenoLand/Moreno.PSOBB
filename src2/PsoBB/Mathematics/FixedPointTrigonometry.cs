@@ -25,6 +25,15 @@ public static class FixedPointTrigonometry
 	public static double Cosine(int angle) => Evaluate(angle, true);
 
 	/// <summary>
+	/// Returns both the sine and cosine of a turn angle rounded to single precision.
+	/// </summary>
+	/// <param name="angle">The angle in 16-bit turn units.</param>
+	/// <returns>The single-precision sine and cosine.</returns>
+	[Original(0x008451F8)]
+	public static (float Sine, float Cosine) SineCosine(int angle) =>
+		((float)Evaluate(angle, false), (float)Evaluate(angle, true));
+
+	/// <summary>
 	/// Returns the point at a radius and turn angle around the vertical axis, offset from a center.
 	/// </summary>
 	/// <param name="angle">The angle in 16-bit turn units.</param>

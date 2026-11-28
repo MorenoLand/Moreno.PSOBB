@@ -110,4 +110,59 @@ public readonly record struct Matrix4x4(
 		M21 = (float)((double)M21 * second), M22 = (float)((double)M22 * second), M23 = (float)((double)M23 * second), M24 = (float)((double)M24 * second),
 		M31 = (float)((double)M31 * third), M32 = (float)((double)M32 * third), M33 = (float)((double)M33 * third), M34 = (float)((double)M34 * third),
 	};
+
+	/// <summary>
+	/// Transforms a direction vector by the upper three basis rows, ignoring translation.
+	/// </summary>
+	/// <param name="direction">The direction vector to transform.</param>
+	/// <returns>The transformed direction vector.</returns>
+	[Original(0x0083A610)]
+	public Vector3 TransformDirection(Vector3 direction) => new(
+		(float)((double)M11 * direction.X + (double)M21 * direction.Y + (double)M31 * direction.Z),
+		(float)((double)M12 * direction.X + (double)M22 * direction.Y + (double)M32 * direction.Z),
+		(float)(((double)M13 * direction.X + (double)M23 * direction.Y) + (double)M33 * direction.Z));
+
+	/// <summary>
+	/// Applies a rotation around the vertical axis before the current matrix.
+	/// </summary>
+	/// <param name="angle">The rotation in 16-bit turn units.</param>
+	/// <returns>The rotated matrix.</returns>
+	[Original(0x0082D8BC)]
+	public Matrix4x4 RotateY(int angle)
+	{
+		(float sine, float cosine) = FixedPointTrigonometry.SineCosine(angle);
+		return this with
+		{
+			M11 = (float)((double)cosine * M11 + -(double)sine * M31),
+			M12 = (float)((double)cosine * M12 + -(double)sine * M32),
+			M13 = (float)((double)cosine * M13 + -(double)sine * M33),
+			M14 = (float)((double)cosine * M14 + -(double)sine * M34),
+			M31 = (float)((double)M11 * sine + (double)M31 * cosine),
+			M32 = (float)((double)M12 * sine + (double)M32 * cosine),
+			M33 = (float)((double)M33 * cosine + (double)M13 * sine),
+			M34 = (float)((double)M14 * sine + (double)M34 * cosine),
+		};
+	}
+
+	/// <summary>
+	/// Applies a rotation around the horizontal axis before the current matrix.
+	/// </summary>
+	/// <param name="angle">The rotation in 16-bit turn units.</param>
+	/// <returns>The rotated matrix.</returns>
+	[Original(0x0082E9E4)]
+	public Matrix4x4 RotateX(int angle)
+	{
+		(float sine, float cosine) = FixedPointTrigonometry.SineCosine(angle);
+		return this with
+		{
+			M21 = (float)((double)cosine * M21 + (double)sine * M31),
+			M22 = (float)((double)cosine * M22 + (double)sine * M32),
+			M23 = (float)((double)cosine * M23 + (double)sine * M33),
+			M24 = (float)((double)cosine * M24 + (double)sine * M34),
+			M31 = (float)((double)M31 * cosine + -(double)sine * M21),
+			M32 = (float)((double)M32 * cosine + -(double)sine * M22),
+			M33 = (float)((double)M33 * cosine + -(double)sine * M23),
+			M34 = (float)((double)M34 * cosine + -(double)sine * M24),
+		};
+	}
 }

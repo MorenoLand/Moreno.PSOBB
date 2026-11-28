@@ -40,6 +40,30 @@ public sealed class Matrix4x4GoldenTests
 			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
 		});
 
+	public static IEnumerable<object[]> RotateYVectors() => GoldenVectors.Load("0082D8BC.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			unchecked((int)vector.GetProperty("angle").GetUInt32()),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> RotateXVectors() => GoldenVectors.Load("0082E9E4.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			unchecked((int)vector.GetProperty("angle").GetUInt32()),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> TransformDirectionVectors() => GoldenVectors.Load("0083A610.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			GoldenVectors.ReadVector(vector.GetProperty("direction")),
+			GoldenVectors.ReadVector(vector.GetProperty("result")),
+		});
+
 	[Theory]
 	[MemberData(nameof(MultiplyVectors))]
 	public void MultiplyMatchesTheMachineCode(Matrix4x4 left, Matrix4x4 right, Matrix4x4 expected) =>
@@ -65,4 +89,19 @@ public sealed class Matrix4x4GoldenTests
 	[MemberData(nameof(ScaleRowsVectors))]
 	public void ScaleRowsMatchesTheMachineCode(Matrix4x4 matrix, Vector3 factors, Matrix4x4 expected) =>
 		GoldenVectors.AssertMatrix(expected, matrix.ScaleRows(factors.X, factors.Y, factors.Z));
+
+	[Theory]
+	[MemberData(nameof(RotateYVectors))]
+	public void RotateYMatchesTheMachineCode(Matrix4x4 matrix, int angle, Matrix4x4 expected) =>
+		GoldenVectors.AssertMatrix(expected, matrix.RotateY(angle));
+
+	[Theory]
+	[MemberData(nameof(RotateXVectors))]
+	public void RotateXMatchesTheMachineCode(Matrix4x4 matrix, int angle, Matrix4x4 expected) =>
+		GoldenVectors.AssertMatrix(expected, matrix.RotateX(angle));
+
+	[Theory]
+	[MemberData(nameof(TransformDirectionVectors))]
+	public void TransformDirectionMatchesTheMachineCode(Matrix4x4 matrix, Vector3 direction, Vector3 expected) =>
+		GoldenVectors.AssertVector(expected, matrix.TransformDirection(direction));
 }

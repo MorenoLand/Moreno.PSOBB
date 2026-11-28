@@ -64,6 +64,7 @@ public sealed class FixedPointTrigonometryTests
 		{
 			["Sine"] = 0x0082DCBC,
 			["Cosine"] = 0x0082DDD8,
+			["SineCosine"] = 0x008451F8,
 			["OffsetAroundY"] = 0x007A90F0,
 			["CirclePoint"] = 0x007A9128,
 		};

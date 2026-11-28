@@ -1153,6 +1153,296 @@ def camera_offset_vectors(read):
     write("004D3DF4.json", vectors)
 
 
+def trigonometry_sincos_vectors(read):
+    """0x008451F8: single-precision sine and cosine pair."""
+    generator = random.Random(0x8451F8)
+    angles = [0, 1, 2, 0xF, 0x10, 0x3FF, 0x400, 0x7FF, 0x800, 0xBFF, 0xC00, 0xFFF,
+              0x1000, 0x1234, 0x4000, 0x7FFF, 0x8000, 0xC000, 0xFFFF, -1, -0x10, 0x10000, 0x12345678]
+    angles += [generator.randrange(0x10000) for _ in range(48)]
+    vectors = []
+    for angle in angles:
+        memory = [(0x50000000, b"\xcc" * 4), (0x50000004, b"\xcc" * 4)]
+        _, _, captured = run(
+            read,
+            0x008451F8,
+            514,
+            stack=[0x50000004],
+            registers={"ecx": angle, "edx": 0x50000000},
+            memory=memory,
+            capture=[(0x50000000, 8)],
+        )
+        sin_bits, cos_bits = struct.unpack("<II", captured[0x50000000])
+        vectors.append({"angle": angle & 0xFFFFFFFF, "sine": sin_bits, "cosine": cos_bits})
+    write("008451F8.json", vectors)
+
+
+def matrix_rotate_y_vectors(read):
+    """0x0082D8BC: rotates a matrix around Y using single-precision sine and cosine."""
+    generator = random.Random(0x82D8BC)
+    angles = [0, 0x4000, 0x8000, 0xC000, 0x1234, -0x1234] + [generator.randrange(0x10000) for _ in range(10)]
+    vectors = []
+    for matrix, angle in zip(matrix_cases(generator), angles):
+        memory = [(0x50000000, struct.pack("<16f", *matrix))]
+        _, _, captured = run(
+            read,
+            0x0082D8BC,
+            209,
+            registers={"ecx": 0x50000000, "edx": angle & 0xFFFFFFFF},
+            memory=memory,
+            capture=[(0x50000000, 64)],
+        )
+        vectors.append({
+            "matrix": [float_bits(value) for value in matrix],
+            "angle": angle & 0xFFFFFFFF,
+            "result": matrix_bits(captured[0x50000000]),
+        })
+    write("0082D8BC.json", vectors)
+
+
+def matrix_rotate_x_vectors(read):
+    """0x0082E9E4: rotates a matrix around X using single-precision sine and cosine."""
+    generator = random.Random(0x82E9E4)
+    angles = [0, 0x4000, 0x8000, 0xC000, 0x1234, -0x1234] + [generator.randrange(0x10000) for _ in range(10)]
+    vectors = []
+    for matrix, angle in zip(matrix_cases(generator), angles):
+        memory = [(0x50000000, struct.pack("<16f", *matrix))]
+        _, _, captured = run(
+            read,
+            0x0082E9E4,
+            212,
+            registers={"ecx": 0x50000000, "edx": angle & 0xFFFFFFFF},
+            memory=memory,
+            capture=[(0x50000000, 64)],
+        )
+        vectors.append({
+            "matrix": [float_bits(value) for value in matrix],
+            "angle": angle & 0xFFFFFFFF,
+            "result": matrix_bits(captured[0x50000000]),
+        })
+    write("0082E9E4.json", vectors)
+
+
+def matrix_transform_direction_vectors(read):
+    """0x0083A610: transforms a 3D direction vector by the stack top's upper 3x3 basis."""
+    generator = random.Random(0x83A610)
+    vectors = []
+    for matrix, direction in zip(matrix_cases(generator), vector_cases(generator)):
+        memory = [
+            (0x00AF0328, struct.pack("<I", 0x50000000)),
+            (0x50000000, struct.pack("<16f", *matrix)),
+            (0x50001000, struct.pack("<3f", *direction)),
+            (0x50002000, b"\xcc" * 12),
+        ]
+        _, _, captured = run(
+            read,
+            0x0083A610,
+            88,
+            stack=[0x50001000, 0x50002000],
+            memory=memory,
+            capture=[(0x50002000, 12)],
+        )
+        vectors.append({
+            "matrix": [float_bits(value) for value in matrix],
+            "direction": [float_bits(c) for c in direction],
+            "result": vector3_bits(captured[0x50002000]),
+        })
+    write("0083A610.json", vectors)
+
+
+def camera_step_towards_vectors(read):
+    """0x004D63B0: steps a vector toward a desired position using 0.16 * distance * speed clamped at 12 when >= 5."""
+    generator = random.Random(0x4D63B0)
+    cases = [
+        ((0, 0, 0), (0, 0, 0), 1.0),
+        ((0, 0, 0), (1, 0, 0), 1.0),
+        ((0, 0, 0), (1, 0, 0), 10.0),
+        ((0, 0, 0), (100, 0, 0), 0.5),
+        ((0, 0, 0), (31.25, 0, 0), 1.0),
+        ((10, -20, 30), (10, -20, 30), 2.0),
+    ]
+    cases += [
+        (
+            (generator.uniform(-200, 200), generator.uniform(-200, 200), generator.uniform(-200, 200)),
+            (generator.uniform(-200, 200), generator.uniform(-200, 200), generator.uniform(-200, 200)),
+            generator.uniform(0.0, 4.0),
+        )
+        for _ in range(18)
+    ]
+    vectors = []
+    for current, desired, speed in cases:
+        memory = [
+            (0x50000000, struct.pack("<3f", *current)),
+            (0x50001000, struct.pack("<3f", *desired)),
+        ]
+        eax, _, captured = run(
+            read,
+            0x004D63B0,
+            149,
+            stack=[0x50000000, 0x50001000, float_bits(speed)],
+            registers={"fpcw": 0x027F},
+            memory=memory,
+            capture=[(0x50000000, 12), (0x50001000, 12)],
+        )
+        vectors.append({
+            "current": [float_bits(c) for c in current],
+            "desired": [float_bits(c) for c in desired],
+            "speed": float_bits(speed),
+            "reached": eax & 1,
+            "resultCurrent": vector3_bits(captured[0x50000000]),
+            "resultDesired": vector3_bits(captured[0x50001000]),
+        })
+    write("004D63B0.json", vectors)
+
+
+def camera_smooth_follow_vectors(read):
+    """0x004D3D14: snaps to desired when global flag bit 0 is set, or smooth-follows eye and target."""
+    generator = random.Random(0x4D3D14)
+    snap_cases = [0, 1, 2, 3] + [generator.choice([0, 0, 0, 1]) for _ in range(16)]
+    vectors = []
+    for snap, block in zip(snap_cases, camera_blocks(len(snap_cases), 0x4D3D14)):
+        patched = bytearray(block)
+        struct.pack_into("<ff", patched, 0x1B8, abs(generator.uniform(0.1, 3.0)), abs(generator.uniform(0.1, 3.0)))
+        memory = [(0x00A48A44, struct.pack("<I", snap)), (CAMERA, bytes(patched))]
+        _, _, captured = run(
+            read,
+            0x004D3D14,
+            86,
+            registers={"ecx": CAMERA, "fpcw": 0x027F},
+            memory=memory,
+            capture=[(0x00A48A44, 4), (CAMERA, CAMERA_SIZE)],
+        )
+        vectors.append({
+            "snapBefore": snap,
+            "snapAfter": struct.unpack("<I", captured[0x00A48A44])[0],
+            "input": bytes(patched).hex(),
+            "output": bytes(captured[CAMERA]).hex(),
+        })
+    write("004D3D14.json", vectors)
+
+
+def camera_snap_eye_smooth_target_vectors(read):
+    """0x004D3C98: snaps eye, optionally copies desired target Y when mode flag 0x10 is clear, and smooths target."""
+    generator = random.Random(0x4D3C98)
+    MODE_ADDR = 0x20007000
+    cases = [
+        (0, False, 0),
+        (0, True, 0),
+        (1, True, 0x10),
+        (2, True, 0x1F),
+    ] + [(generator.randrange(13), True, generator.choice([0, 0x10, 0x8, 0x18])) for _ in range(16)]
+    vectors = []
+    for (mode_index, has_mode, mode_flags), block in zip(cases, camera_blocks(len(cases), 0x4D3C98)):
+        patched = bytearray(block)
+        struct.pack_into("<f", patched, 0x1BC, abs(generator.uniform(0.1, 3.0)))
+        table = bytearray(13 * 4)
+        mode_bytes = bytearray(0x74)
+        if has_mode:
+            struct.pack_into("<I", table, mode_index * 4, MODE_ADDR)
+            struct.pack_into("<I", mode_bytes, 0x38, mode_flags)
+        memory = [
+            (0x00A489F4, bytes([mode_index])),
+            (0x00A48A00, bytes(table)),
+            (MODE_ADDR, bytes(mode_bytes)),
+            (CAMERA, bytes(patched)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D3C98,
+            122,
+            registers={"ecx": CAMERA, "fpcw": 0x027F},
+            memory=memory,
+            capture=[(CAMERA, CAMERA_SIZE)],
+        )
+        vectors.append({
+            "modeIndex": mode_index,
+            "hasMode": has_mode,
+            "modeFlags": mode_flags,
+            "input": bytes(patched).hex(),
+            "output": bytes(captured[CAMERA]).hex(),
+        })
+    write("004D3C98.json", vectors)
+
+
+def camera_advance_flags_vectors(read):
+    """0x004D3EF4: transitions override flags and clears the override request when inactive."""
+    flag_cases = [
+        (0x000, True),
+        (0x002, True),
+        (0x100, True),
+        (0x080, True),
+        (0x040, True),
+        (0x8A2, True),
+        (0x942, True),
+        (0x1C0, True),
+        (0x8FF, True),
+        (0x000, False),
+        (0x002, False),
+        (0xFFF, True),
+    ]
+    vectors = []
+    for (flags, has_camera), block in zip(flag_cases, camera_blocks(len(flag_cases), 0x4D3EF4)):
+        cam_ptr = CAMERA if has_camera else 0
+        memory = [
+            (0x00A489FC, struct.pack("<I", flags)),
+            (0x00A48A54, struct.pack("<I", cam_ptr)),
+            (CAMERA, block),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D3EF4,
+            187,
+            memory=memory,
+            capture=[(0x00A489FC, 4), (CAMERA, CAMERA_SIZE)],
+        )
+        vectors.append({
+            "flagsBefore": flags,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "hasCamera": has_camera,
+            "input": block.hex(),
+            "output": bytes(captured[CAMERA]).hex(),
+        })
+    write("004D3EF4.json", vectors)
+
+
+def camera_orientation_axes_vectors(read):
+    """0x004D3FB0: computes horizontal right and vertical up basis vectors from yaw and pitch angles."""
+    generator = random.Random(0x4D3FB0)
+    STACK_BUF = 0x20008000
+    angle_pairs = [
+        (0, 0),
+        (0x4000, 0),
+        (0, 0x4000),
+        (0x8000, 0xC000),
+        (0x1234, 0x5678),
+    ] + [(generator.randrange(-0x10000, 0x10000), generator.randrange(-0x10000, 0x10000)) for _ in range(15)]
+    vectors = []
+    for (yaw, pitch), block in zip(angle_pairs, camera_blocks(len(angle_pairs), 0x4D3FB0)):
+        patched = bytearray(block)
+        struct.pack_into("<ii", patched, 0x190, pitch, yaw)
+        memory = [
+            (0x00AF0328, struct.pack("<I", STACK_BUF)),
+            (0x00AF0380, struct.pack("<II", 128, 0)),
+            (STACK_BUF, bytes(256)),
+            (0x00A489DC, bytes(24)),
+            (CAMERA, bytes(patched)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D3FB0,
+            149,
+            registers={"ecx": CAMERA},
+            memory=memory,
+            capture=[(0x00A489DC, 12), (0x00A489E8, 12)],
+        )
+        vectors.append({
+            "yaw": yaw,
+            "pitch": pitch,
+            "right": vector3_bits(captured[0x00A489E8]),
+            "up": vector3_bits(captured[0x00A489DC]),
+        })
+    write("004D3FB0.json", vectors)
+
+
 def camera_snap_vectors(read):
     """0x004D3E90: the camera's current eye and target are set from the desired pair, and the eye is stored again."""
     vectors = []
@@ -1194,17 +1484,26 @@ def main():
     angle_heading_vectors(read)
     trigonometry_sine_vectors(read)
     trigonometry_cosine_vectors(read)
+    trigonometry_sincos_vectors(read)
     trigonometry_offset_vectors(read)
     trigonometry_circle_vectors(read)
     matrix_multiply_vectors(read)
     matrix_translate_vectors(read)
     matrix_transform_positions_vectors(read)
     matrix_scale_rows_vectors(read)
+    matrix_rotate_y_vectors(read)
+    matrix_rotate_x_vectors(read)
+    matrix_transform_direction_vectors(read)
     rand_vectors(read)
     atol_vectors(read)
     atoi64_vectors(read)
     shortsort_vectors(read)
     qsort_vectors(read)
+    camera_step_towards_vectors(read)
+    camera_smooth_follow_vectors(read)
+    camera_snap_eye_smooth_target_vectors(read)
+    camera_advance_flags_vectors(read)
+    camera_orientation_axes_vectors(read)
     camera_offset_vectors(read)
     camera_snap_vectors(read)
     ftol_vectors(read)

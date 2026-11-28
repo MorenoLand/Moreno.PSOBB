@@ -46,8 +46,17 @@ has been read for.
 
 ## Ported members
 
-`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`) names the proven fields: the shake offset at `+0x68..+0x70`,
-the eye at `+0x178`, the target at `+0x184` (the update subtracts the eye from the target to get the viewing direction),
-the eye and target the active mode asks for at `+0x1A0` and `+0x1AC`, the offset countdown at `+0x1C0`, the offset
-amplitude at `+0x1C4`, and the eye recorded at `+0x1C8`. `StepOffsetCountdown` is `0x004D3DF4` and `SnapToDesired` is
-`0x004D3E90`.
+`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`), `FieldCameraMode` (`src2/PsoBB/Rendering/FieldCameraMode.cs`)
+and `FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`) name the proven fields and globals:
+- Globals: `0x00A48A54` (`Current`), `0x00A489FC` (`Flags`), `0x00A48A44` (`SnapRequested`), `0x00A489E8` (`RightAxis`),
+  `0x00A489DC` (`UpAxis`), `0x00A489F4` (`ActiveModeIndex`), `0x00A489F5` (`PreviousModeIndex`), `0x00A48A00` (`Modes`).
+- Controller fields: the override request at `+0x20..+0x64` (`Smoothing` at `+0x30`, `FieldOfViewDegrees` at `+0x34`, `Eye` at `+0x3C`,
+  `Target` at `+0x48`), the shake offset at `+0x68..+0x70`, the eye at `+0x178`, the target at `+0x184` (the update subtracts the eye
+  from the target to get the viewing direction), `PitchAngle` at `+0x190`, `YawAngle` at `+0x194`, the eye and target the active mode
+  asks for at `+0x1A0` and `+0x1AC`, `EyeSmoothing` at `+0x1B8`, `TargetSmoothing` at `+0x1BC`, the offset countdown at `+0x1C0`, the
+  offset amplitude at `+0x1C4`, and the eye recorded at `+0x1C8`.
+- Ported helpers: `StepTowards` (`0x004D63B0`), `SmoothFollowDesired` (`0x004D3D14`), `SnapEyeAndSmoothTarget` (`0x004D3C98`),
+  `StepOffsetCountdown` (`0x004D3DF4`), `SnapToDesired` (`0x004D3E90`), `AdvanceFlagsAndClearOverride` (`0x004D3EF4`), and
+  `UpdateOrientationAxes` (`0x004D3FB0`).
+- Mode base (`FieldCameraMode`, ctor `0x004D1F68`, vtable `0x00AFC4E8`): `Flags` at `+0x38`, `Eye` at `+0x3C`, `Target` at `+0x48`,
+  `FieldOfView` at `+0x54`, `EyeSmoothing` at `+0x58`, `TargetSmoothing` at `+0x5C`.
