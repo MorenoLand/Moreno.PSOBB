@@ -1,0 +1,26 @@
+[
+	{
+		"nearClip": 3212836864,
+		"farClip": 3347054336,
+		"expectedNear": 1065353216,
+		"expectedFar": 1199570688
+	},
+	{
+		"nearClip": 1056964608,
+		"farClip": 3351465984,
+		"expectedNear": 1065353216,
+		"expectedFar": 1199570688
+	},
+	{
+		"nearClip": 3347625984,
+		"farClip": 1084227584,
+		"expectedNear": 1199570688,
+		"expectedFar": 1065353216
+	},
+	{
+		"nearClip": 3242721280,
+		"farClip": 3313107968,
+		"expectedNear": 1095237632,
+		"expectedFar": 1165624320
+	}
+]

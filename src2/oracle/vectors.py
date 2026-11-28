@@ -1589,6 +1589,12 @@ def main():
     quads_overlap_mask_3d_vectors(read)
     quads_intersect_3d_vectors(read)
     hexahedra_intersect_vectors(read)
+    bezier_distance_sample_vectors(read)
+    depth_clip_range_vectors(read)
+    device_viewport_vectors(read)
+    clip_window_vectors(read)
+    viewport_save_restore_vectors(read)
+    camera_keyframe_recorder_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -4897,6 +4903,416 @@ def hexahedra_intersect_vectors(read):
             "intersects": result != 0,
         })
     write("00844540.json", vectors)
+
+
+def bezier_distance_sample_vectors(read):
+    """0x007BE8EC: samples a Bezier curve using normalized parameter (frame * speed) / totalLength."""
+    PTS = 0x50001000
+    OUT = 0x50002000
+    pts4 = [
+        (0.0, 0.0, 0.0, 10.0),
+        (10.0, 20.0, 5.0, 20.0),
+        (30.0, 15.0, -5.0, 30.0),
+        (40.0, 0.0, 10.0, 40.0),
+    ]
+    pts2 = [(0.0, 0.0, 0.0, 10.0), (10.0, 0.0, 0.0, 10.0)]
+    pts0 = [(0.0, 0.0, 0.0, 0.0), (10.0, 0.0, 0.0, 0.0), (20.0, 0.0, 0.0, 0.0)]
+    vectors = []
+    cases = [
+        (pts2, 1.0, 5, False),
+        (pts2, 1.0, 10, False),
+        (pts0, 1.0, 5, False),
+        (pts4, 1.5, 0, False),
+        (pts4, 1.5, 10, False),
+        (pts4, 2.0, 20, False),
+        (pts4, 2.0, 30, False),
+        (pts4, 2.5, 10, True),
+        (pts4, 2.5, 40, True),
+    ]
+    for pts, speed, frame, closed in cases:
+        buf = bytearray(len(pts) * 16)
+        for i, p in enumerate(pts):
+            struct.pack_into("<4f", buf, i * 16, *p)
+        eax, _, captured = run(
+            read,
+            0x007BE8EC,
+            0,
+            [PTS, len(pts), float_bits(speed), frame, 1 if closed else 0, OUT],
+            registers={"fpcw": 0x027F},
+            memory=[(PTS, bytes(buf)), (OUT, b"\x00" * 12), (0x00AE7F00, struct.pack("<I", 0x200))],
+            capture=[(OUT, 12)],
+        )
+        out_vec = struct.unpack("<3f", captured[OUT])
+        vectors.append({
+            "controlPoints": [[float_bits(v) for v in p] for p in pts],
+            "speed": float_bits(speed),
+            "frame": frame,
+            "closed": closed,
+            "result": eax,
+            "position": [float_bits(v) for v in out_vec],
+        })
+    write("007BE8EC.json", vectors)
+
+
+def depth_clip_range_vectors(read):
+    """0x0083AC80: clamps and negates near/far clip bounds into Ninja Z-clip globals."""
+    vectors = []
+    for near_clip, far_clip in [
+        (-1.0, -65535.0),
+        (0.5, -100000.0),
+        (-70000.0, 5.0),
+        (-12.5, -4000.25),
+    ]:
+        _, _, captured = run(
+            read,
+            0x0083AC80,
+            0,
+            [float_bits(near_clip), float_bits(far_clip)],
+            registers={"fpcw": 0x027F},
+            memory=[],
+            capture=[(0x00AF0300, 8)],
+        )
+        far_out, near_out = struct.unpack("<2I", captured[0x00AF0300])
+        vectors.append({
+            "nearClip": float_bits(near_clip),
+            "farClip": float_bits(far_clip),
+            "expectedNear": near_out,
+            "expectedFar": far_out,
+        })
+    write("0083AC80.json", vectors)
+
+
+def _d3d_viewport_stub_memory():
+    DEV = 0x50005000
+    VT = 0x50005100
+    STUB = 0x50006000
+    vt_bytes = bytearray(0xA8)
+    struct.pack_into("<I", vt_bytes, 0xA0, STUB)
+    return [
+        (0x00ACD528, struct.pack("<I", DEV)),
+        (DEV, struct.pack("<I", VT)),
+        (VT, bytes(vt_bytes)),
+        (STUB, b"\x33\xC0\xC2\x08\x00"),
+    ]
+
+
+def device_viewport_vectors(read):
+    """0x0082F2E4 and 0x0082F308: updates render rectangle and computes clamped D3D device viewport."""
+    RECT_PTR = 0x50002000
+    VP_ARGS = 0x50002100
+    rect_vectors = []
+    vp_vectors = []
+    for x, y, w, h in [(0.0, 0.0, 640.0, 480.0), (16.5, 24.25, 800.0, 600.0)]:
+        _, _, captured = run(
+            read,
+            0x0082F2E4,
+            0,
+            [],
+            registers={"ecx": RECT_PTR, "fpcw": 0x027F},
+            memory=[(RECT_PTR, struct.pack("<4f", x, y, w, h))],
+            capture=[(0x00ACC0C0, 16)],
+        )
+        rect_vectors.append({
+            "rect": [float_bits(v) for v in (x, y, w, h)],
+            "result": list(struct.unpack("<4I", captured[0x00ACC0C0])),
+        })
+    write("0082F2E4.json", rect_vectors)
+
+    for crop_x, crop_y, width, height, off_x, off_y, rx, ry, rw, rh in [
+        (0, 0, 640, 480, 0, 0, 0.0, 0.0, 640.0, 480.0),
+        (16, 20, 640, 480, 32, 40, 0.0, 0.0, 640.0, 480.0),
+        (100, 80, 1280, 720, 20, 10, 50.0, 40.0, 1000.0, 600.0),
+    ]:
+        _, _, captured = run(
+            read,
+            0x0082F308,
+            0,
+            [],
+            registers={"ecx": VP_ARGS, "fpcw": 0x027F},
+            memory=_d3d_viewport_stub_memory() + [
+                (VP_ARGS, struct.pack("<6i", crop_x, crop_y, width, height, off_x, off_y)),
+                (0x00ACC0C0, struct.pack("<4f", rx, ry, rw, rh)),
+            ],
+            capture=[(0x00ACC0A0, 24), (0x00ACC0E8, 16)],
+        )
+        a0, a4, a8, ac, b0, b4 = struct.unpack("<6I", captured[0x00ACC0A0])
+        e8, ec, f0, f4 = struct.unpack("<4I", captured[0x00ACC0E8])
+        vp_vectors.append({
+            "cropX": crop_x,
+            "cropY": crop_y,
+            "width": width,
+            "height": height,
+            "offsetX": off_x,
+            "offsetY": off_y,
+            "renderRect": [float_bits(v) for v in (rx, ry, rw, rh)],
+            "deviceX": a8,
+            "deviceY": ac,
+            "deviceWidth": b0,
+            "deviceHeight": b4,
+            "scaleXBits": a0,
+            "scaleYBits": a4,
+            "aspectScaleXBits": e8,
+            "aspectScaleYBits": ec,
+            "renderOffsetXBits": f0,
+            "renderOffsetYBits": f4,
+        })
+    write("0082F308.json", vp_vectors)
+
+
+def clip_window_vectors(read):
+    """0x0082AD14 and 0x004D285C: configures and resets the Ninja 2D clip window bounds."""
+    RECT = 0x50002000
+    vectors_ad14 = []
+    for mode, sw, sh, rect in [
+        (0, 640.0, 480.0, (0.0, 0.0, 20.0, 15.0)),
+        (2, 640.0, 480.0, (1.0, 2.0, 10.0, 8.0)),
+        (2, 640.0, 480.0, (-3.0, -2.0, 30.0, 25.0)),
+    ]:
+        _, _, captured = run(
+            read,
+            0x0082AD14,
+            0,
+            [mode, RECT],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (RECT, struct.pack("<4f", *rect)),
+                (0x00AF02E8, struct.pack("<2f", sw, sh)),
+            ],
+            capture=[(0x00AF0330, 16)],
+        )
+        vectors_ad14.append({
+            "mode": mode,
+            "screenWidth": float_bits(sw),
+            "screenHeight": float_bits(sh),
+            "rect": [float_bits(v) for v in rect],
+            "clip": list(struct.unpack("<4I", captured[0x00AF0330])),
+        })
+    write("0082AD14.json", vectors_ad14)
+
+    _, _, c2 = run(
+        read,
+        0x004D285C,
+        0,
+        [],
+        registers={"fpcw": 0x027F},
+        memory=[
+            (0x00A489FC, struct.pack("<I", 0x00000205)),
+            (0x00AF02E8, struct.pack("<2f", 800.0, 600.0)),
+        ],
+        capture=[(0x00A489FC, 4), (0x00AF0330, 16)],
+    )
+    write("004D285C.json", [{
+        "flagsBefore": 0x00000205,
+        "screenWidth": float_bits(800.0),
+        "screenHeight": float_bits(600.0),
+        "flagsAfter": struct.unpack("<I", c2[0x00A489FC])[0],
+        "clip": list(struct.unpack("<4I", c2[0x00AF0330])),
+    }])
+
+
+def viewport_save_restore_vectors(read):
+    """0x004D26C4, 0x004D28A4, 0x004D2968, 0x004D2AF0: saves, resets, and restores camera viewport state."""
+    base_mem = _d3d_viewport_stub_memory() + [
+        (0x00AF0350, struct.pack("<2i", 800, 600)),
+        (0x00A48A54, struct.pack("<I", 0)),
+    ]
+    _, _, c_rect = run(
+        read,
+        0x004D26C4,
+        0,
+        [],
+        registers={"fpcw": 0x027F},
+        memory=base_mem,
+        capture=[(0x009ACB68, 8), (0x00ACC0A0, 24), (0x00ACC0C0, 16), (0x00ACC0E8, 16)],
+    )
+    sw = struct.unpack("<h", c_rect[0x009ACB68][:2])[0]
+    sh = struct.unpack("<h", c_rect[0x009ACB68][4:6])[0]
+    write("004D26C4.json", [{
+        "displayWidth": 800,
+        "displayHeight": 600,
+        "screenWidth": sw,
+        "screenHeight": sh,
+        "renderRect": list(struct.unpack("<4I", c_rect[0x00ACC0C0])),
+        "deviceViewport": list(struct.unpack("<6I", c_rect[0x00ACC0A0]))[2:],
+        "scaleXBits": struct.unpack("<I", c_rect[0x00ACC0A0][:4])[0],
+        "scaleYBits": struct.unpack("<I", c_rect[0x00ACC0A0][4:8])[0],
+        "aspectScaleXBits": struct.unpack("<I", c_rect[0x00ACC0E8][:4])[0],
+        "aspectScaleYBits": struct.unpack("<I", c_rect[0x00ACC0E8][4:8])[0],
+    }])
+
+    active_vp = [
+        1.0, -1.0, 410.0, 300.0, 0.0, 0.0, 1.0, 1.0,
+        1.0, 1.0, 800.0, 600.0, 0.0, 0.0, 20.0, 15.0, 1.0, 0.85,
+    ]
+    raw_vp = bytearray(72)
+    struct.pack_into("<12f2i4f", raw_vp, 0,
+        active_vp[0], active_vp[1], active_vp[2], active_vp[3], active_vp[4], active_vp[5],
+        active_vp[6], active_vp[7], active_vp[8], active_vp[9], active_vp[10], active_vp[11],
+        10, 12, active_vp[14], active_vp[15], active_vp[16], active_vp[17])
+    _, _, c_save = run(
+        read,
+        0x004D28A4,
+        0,
+        [],
+        registers={"fpcw": 0x027F},
+        memory=base_mem + [
+            (0x00A48820, bytes(raw_vp)),
+            (0x00ACC0C0, struct.pack("<4f", 0.0, 0.0, 800.0, 600.0)),
+            (0x00A48A34, struct.pack("<H", 1)),
+        ],
+        capture=[(0x00A487C0, 72), (0x00A48A34, 2), (0x00ACC0A8, 16)],
+    )
+    write("004D28A4.json", [{
+        "displayWidth": 800,
+        "displayHeight": 600,
+        "activeViewport": list(struct.unpack("<18I", bytes(raw_vp))),
+        "savedViewport": list(struct.unpack("<18I", c_save[0x00A487C0])),
+        "viewportOffsetActive": struct.unpack("<H", c_save[0x00A48A34])[0],
+        "deviceViewport": list(struct.unpack("<4I", c_save[0x00ACC0A8])),
+    }])
+
+    rest_vectors = []
+    for half_w, half_h in [(400.0, 300.0), (415.0, 300.0)]:
+        saved_vp = bytearray(72)
+        struct.pack_into("<12f2i4f", saved_vp, 0,
+            1.0, -1.0, half_w, half_h, 0.0, 0.0, 1.0, 1.0,
+            1.0, 1.0, 800.0, 600.0, 0, 0, 20.0, 15.0, 1.0, 0.85)
+        _, _, c_rest = run(
+            read,
+            0x004D2968,
+            0,
+            [],
+            registers={"fpcw": 0x027F},
+            memory=base_mem + [
+                (0x00A487C0, bytes(saved_vp)),
+                (0x009ACB68, struct.pack("<2I", 800, 600)),
+                (0x00ACC0C0, struct.pack("<4f", 0.0, 0.0, 800.0, 600.0)),
+            ],
+            capture=[(0x00A48820, 72), (0x00A48A34, 2), (0x00ACC0A8, 16)],
+        )
+        rest_vectors.append({
+            "displayWidth": 800,
+            "displayHeight": 600,
+            "savedHalfWidth": float_bits(half_w),
+            "savedHalfHeight": float_bits(half_h),
+            "savedViewport": list(struct.unpack("<18I", bytes(saved_vp))),
+            "activeViewport": list(struct.unpack("<18I", c_rest[0x00A48820])),
+            "viewportOffsetActive": struct.unpack("<H", c_rest[0x00A48A34])[0],
+            "deviceViewport": list(struct.unpack("<4I", c_rest[0x00ACC0A8])),
+        })
+    write("004D2968.json", rest_vectors)
+
+    _, _, c_rst = run(
+        read,
+        0x004D2AF0,
+        0,
+        [],
+        registers={"fpcw": 0x027F},
+        memory=[
+            (0x00A48A34, struct.pack("<H", 1)),
+            (0x00A489F4, struct.pack("<I", 0x12345678)),
+            (0x00A489F8, struct.pack("<I", 99)),
+            (0x00A489FC, struct.pack("<I", 0xFFFFFFFF)),
+        ],
+        capture=[(0x00A489F4, 12), (0x00A48A34, 2)],
+    )
+    write("004D2AF0.json", [{
+        "viewportOffsetActive": struct.unpack("<H", c_rst[0x00A48A34])[0],
+        "activeMode": c_rst[0x00A489F4][0],
+        "previousMode": c_rst[0x00A489F4][1],
+        "flags": struct.unpack("<I", c_rst[0x00A489F4][8:12])[0],
+    }])
+
+
+def camera_keyframe_recorder_vectors(read):
+    """0x004D5248 and 0x004D5150: records current camera eye/target and aligns orbit mode to a recorded keyframe."""
+    REC = 0x50001000
+    BUF = 0x50002000
+    CTRL = 0x50003000
+    ORBIT = 0x50003400
+
+    rec_vectors = []
+    for cursor, eye, target in [
+        (0, (10.0, 20.0, -30.0), (0.0, 5.0, 0.0)),
+        (5, (-45.5, 12.25, 80.75), (-40.0, 10.0, 60.0)),
+        (128, (1.0, 2.0, 3.0), (4.0, 5.0, 6.0)),
+    ]:
+        rec = bytearray(80)
+        struct.pack_into("<i", rec, 0x44, cursor)
+        ctrl = bytearray(CAMERA_SIZE)
+        struct.pack_into("<3f", ctrl, 376, *eye)
+        struct.pack_into("<3f", ctrl, 388, *target)
+        buf = bytearray(128 * 28)
+        _, _, cap = run(
+            read,
+            0x004D5248,
+            0,
+            [],
+            registers={"ecx": REC, "fpcw": 0x027F},
+            memory=[
+                (REC, bytes(rec)),
+                (CTRL, bytes(ctrl)),
+                (BUF, bytes(buf)),
+                (0x00A48A54, struct.pack("<I", CTRL)),
+                (0x00A48A74, struct.pack("<I", BUF)),
+            ],
+            capture=[(BUF, 128 * 28)],
+        )
+        slot_off = min(cursor, 127) * 28
+        occ, ex, ey, ez, tx, ty, tz = struct.unpack_from("<i6f", cap[BUF], slot_off)
+        rec_vectors.append({
+            "cursor": cursor,
+            "eye": [float_bits(v) for v in eye],
+            "target": [float_bits(v) for v in target],
+            "occupied": occ != 0,
+            "storedEye": [float_bits(ex), float_bits(ey), float_bits(ez)],
+            "storedTarget": [float_bits(tx), float_bits(ty), float_bits(tz)],
+        })
+    write("004D5248.json", rec_vectors)
+
+    preview_vectors = []
+    for cursor, count, eye, target in [
+        (0, 3, (0.0, 10.0, 40.0), (0.0, 0.0, 0.0)),
+        (2, 5, (30.0, 20.0, -10.0), (-5.0, 2.0, 15.0)),
+        (5, 3, (10.0, 10.0, 10.0), (0.0, 0.0, 0.0)),
+        (-1, 3, (10.0, 10.0, 10.0), (0.0, 0.0, 0.0)),
+    ]:
+        rec = bytearray(80)
+        struct.pack_into("<2i", rec, 0x44, cursor, count)
+        buf = bytearray(128 * 28)
+        if 0 <= cursor < 128:
+            struct.pack_into("<i6f", buf, cursor * 28, 1, *eye, *target)
+        orbit = bytearray(128)
+        _, _, cap = run(
+            read,
+            0x004D5150,
+            0,
+            [],
+            registers={"ecx": REC, "fpcw": 0x027F},
+            memory=[
+                (REC, bytes(rec)),
+                (BUF, bytes(buf)),
+                (ORBIT, bytes(orbit)),
+                (0x00A48A74, struct.pack("<I", BUF)),
+                (0x00A48A18, struct.pack("<I", ORBIT)),
+                (0x00AE7F00, struct.pack("<I", 0x200)),
+            ],
+            capture=[(ORBIT, 128), (REC, 80)],
+        )
+        pitch = struct.unpack_from("<i", cap[ORBIT], 0x2C)[0]
+        yaw = struct.unpack_from("<i", cap[ORBIT], 0x30)[0]
+        dist = struct.unpack_from("<I", cap[ORBIT], 0x6C)[0]
+        preview_vectors.append({
+            "cursor": cursor,
+            "count": count,
+            "eye": [float_bits(v) for v in eye],
+            "target": [float_bits(v) for v in target],
+            "expectedApplied": 0 <= cursor < count,
+            "pitchAngle": pitch,
+            "yawAngle": yaw,
+            "distance": dist,
+        })
+    write("004D5150.json", preview_vectors)
 
 
 def camera_apply_inverse_view_vectors(read):

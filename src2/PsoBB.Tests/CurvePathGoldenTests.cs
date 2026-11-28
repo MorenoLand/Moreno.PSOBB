@@ -34,6 +34,17 @@ public class CurvePathGoldenTests
 			GoldenVectors.ReadVector(vector.GetProperty("position")),
 		});
 
+	public static IEnumerable<object[]> BezierDistanceVectors() => GoldenVectors.Load("007BE8EC.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("controlPoints").EnumerateArray().Select(ReadNode).ToArray(),
+			GoldenVectors.ReadFloat(vector.GetProperty("speed")),
+			vector.GetProperty("frame").GetInt32(),
+			vector.GetProperty("closed").GetBoolean(),
+			vector.GetProperty("result").GetInt32() != 0,
+			GoldenVectors.ReadVector(vector.GetProperty("position")),
+		});
+
 	[Theory]
 	[MemberData(nameof(PolylineVectors))]
 	public void SamplePolylineMatchesTheMachineCode(
@@ -64,6 +75,21 @@ public class CurvePathGoldenTests
 		Vector3 expectedPosition)
 	{
 		bool actual = CurvePath.EvaluateBezier(controlPoints, t, closed, out Vector3 position);
+		Assert.Equal(expectedResult, actual);
+		GoldenVectors.AssertVector(expectedPosition, position);
+	}
+
+	[Theory]
+	[MemberData(nameof(BezierDistanceVectors))]
+	public void SampleBezierByDistanceMatchesTheMachineCode(
+		PathNode[] controlPoints,
+		float speed,
+		int frame,
+		bool closed,
+		bool expectedResult,
+		Vector3 expectedPosition)
+	{
+		bool actual = CurvePath.SampleBezierByDistance(controlPoints, speed, frame, closed, out Vector3 position);
 		Assert.Equal(expectedResult, actual);
 		GoldenVectors.AssertVector(expectedPosition, position);
 	}

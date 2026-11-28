@@ -1,0 +1,74 @@
+[
+	{
+		"cursor": 0,
+		"count": 3,
+		"eye": [
+			0,
+			1092616192,
+			1109393408
+		],
+		"target": [
+			0,
+			0,
+			0
+		],
+		"expectedApplied": true,
+		"pitchAngle": -2555,
+		"yawAngle": 0,
+		"distance": 1109716122
+	},
+	{
+		"cursor": 2,
+		"count": 5,
+		"eye": [
+			1106247680,
+			1101004800,
+			3240099840
+		],
+		"target": [
+			3231711232,
+			1073741824,
+			1097859072
+		],
+		"expectedApplied": true,
+		"pitchAngle": -4134,
+		"yawAngle": 22853,
+		"distance": 1111130419
+	},
+	{
+		"cursor": 5,
+		"count": 3,
+		"eye": [
+			1092616192,
+			1092616192,
+			1092616192
+		],
+		"target": [
+			0,
+			0,
+			0
+		],
+		"expectedApplied": false,
+		"pitchAngle": 0,
+		"yawAngle": 0,
+		"distance": 0
+	},
+	{
+		"cursor": -1,
+		"count": 3,
+		"eye": [
+			1092616192,
+			1092616192,
+			1092616192
+		],
+		"target": [
+			0,
+			0,
+			0
+		],
+		"expectedApplied": false,
+		"pitchAngle": 0,
+		"yawAngle": 0,
+		"distance": 0
+	}
+]

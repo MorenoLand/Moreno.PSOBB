@@ -125,6 +125,78 @@ public static class CurvePath
 			return false;
 
 		float oneMinusT = (float)(1.0f - (double)t);
+		EvaluateBezierCore(controlPoints, t, oneMinusT, closed, out position);
+		return 1.0f == (double)t;
+	}
+
+	/// <summary>
+	/// Evaluates a Bezier curve parameterized by cumulative segment length at normalized distance (<paramref name="frame"/> * <paramref name="speed"/>) / totalLength.
+	/// </summary>
+	/// <param name="controlPoints">Control points along the curve carrying cumulative segment lengths.</param>
+	/// <param name="speed">Distance traveled per frame.</param>
+	/// <param name="frame">Frame index along the path.</param>
+	/// <param name="closed">Whether the curve wraps back to the initial control point.</param>
+	/// <param name="position">Receives the evaluated position along the curve when not yet completed.</param>
+	/// <returns><see langword="true"/> when normalized parameter <c>t >= 1.0f</c>; otherwise <see langword="false"/>.</returns>
+	[Original(0x007BE8EC)]
+	public static bool SampleBezierByDistance(
+		ReadOnlySpan<PathNode> controlPoints,
+		float speed,
+		int frame,
+		bool closed,
+		out Vector3 position)
+	{
+		position = default;
+		int count = controlPoints.Length;
+		if (count <= 1)
+			return false;
+
+		double totalLength = 0.0;
+		int index = 0;
+		if (count >= 6)
+		{
+			while (index <= count - 6)
+			{
+				totalLength = totalLength
+					+ controlPoints[index].SegmentLength
+					+ controlPoints[index + 1].SegmentLength
+					+ controlPoints[index + 2].SegmentLength
+					+ controlPoints[index + 3].SegmentLength
+					+ controlPoints[index + 4].SegmentLength;
+				index += 5;
+			}
+		}
+
+		while (index < count)
+		{
+			totalLength += controlPoints[index].SegmentLength;
+			index++;
+		}
+
+		if (totalLength == 0.0)
+			return false;
+
+		double effectiveLength = closed ? totalLength : totalLength - controlPoints[count - 1].SegmentLength;
+		double t = (double)frame * speed / effectiveLength;
+		if (1.0f <= t)
+			return true;
+
+		if (count <= 2)
+			return false;
+
+		double oneMinusT = 1.0f - t;
+		EvaluateBezierCore(controlPoints, (float)t, (float)oneMinusT, closed, out position);
+		return 1.0f == (double)(float)t;
+	}
+
+	private static void EvaluateBezierCore(
+		ReadOnlySpan<PathNode> controlPoints,
+		float t,
+		float oneMinusT,
+		bool closed,
+		out Vector3 position)
+	{
+		position = default;
 		int degree = controlPoints.Length - 1;
 		if (closed)
 		{
@@ -156,7 +228,5 @@ public static class CurvePath
 					(float)(point.Z * weight + position.Z));
 			}
 		}
-
-		return 1.0f == (double)t;
 	}
 }

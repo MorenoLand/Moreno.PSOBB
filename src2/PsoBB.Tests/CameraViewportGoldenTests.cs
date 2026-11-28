@@ -110,6 +110,90 @@ public class CameraViewportGoldenTests
 			vector.GetProperty("visible").GetBoolean(),
 		});
 
+	public static IEnumerable<object[]> DepthClipVectors() => GoldenVectors.Load("0083AC80.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadFloat(vector.GetProperty("nearClip")),
+			GoldenVectors.ReadFloat(vector.GetProperty("farClip")),
+			vector.GetProperty("expectedNear").GetUInt32(),
+			vector.GetProperty("expectedFar").GetUInt32(),
+		});
+
+	public static IEnumerable<object[]> RenderRectVectors() => GoldenVectors.Load("0082F2E4.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("rect").EnumerateArray().Select(GoldenVectors.ReadFloat).ToArray(),
+			vector.GetProperty("result").EnumerateArray().Select(item => item.GetUInt32()).ToArray(),
+		});
+
+	public static IEnumerable<object[]> DeviceViewportVectors() => GoldenVectors.Load("0082F308.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("cropX").GetInt32(),
+			vector.GetProperty("cropY").GetInt32(),
+			vector.GetProperty("width").GetInt32(),
+			vector.GetProperty("height").GetInt32(),
+			vector.GetProperty("offsetX").GetInt32(),
+			vector.GetProperty("offsetY").GetInt32(),
+			vector.GetProperty("renderRect").EnumerateArray().Select(GoldenVectors.ReadFloat).ToArray(),
+			vector.GetProperty("deviceX").GetInt32(),
+			vector.GetProperty("deviceY").GetInt32(),
+			vector.GetProperty("deviceWidth").GetInt32(),
+			vector.GetProperty("deviceHeight").GetInt32(),
+			vector.GetProperty("scaleXBits").GetUInt32(),
+			vector.GetProperty("scaleYBits").GetUInt32(),
+			vector.GetProperty("aspectScaleXBits").GetUInt32(),
+			vector.GetProperty("aspectScaleYBits").GetUInt32(),
+			vector.GetProperty("renderOffsetXBits").GetUInt32(),
+			vector.GetProperty("renderOffsetYBits").GetUInt32(),
+		});
+
+	public static IEnumerable<object[]> ClipWindowVectors() => GoldenVectors.Load("0082AD14.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("mode").GetInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("screenWidth")),
+			GoldenVectors.ReadFloat(vector.GetProperty("screenHeight")),
+			vector.GetProperty("rect").EnumerateArray().Select(GoldenVectors.ReadFloat).ToArray(),
+			vector.GetProperty("clip").EnumerateArray().Select(item => item.GetUInt32()).ToArray(),
+		});
+
+	public static IEnumerable<object[]> RestoreViewportVectors() => GoldenVectors.Load("004D2968.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("displayWidth").GetInt32(),
+			vector.GetProperty("displayHeight").GetInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("savedHalfWidth")),
+			GoldenVectors.ReadFloat(vector.GetProperty("savedHalfHeight")),
+			vector.GetProperty("activeViewport").EnumerateArray().Select(item => item.GetUInt32()).ToArray(),
+			vector.GetProperty("viewportOffsetActive").GetUInt16(),
+			vector.GetProperty("deviceViewport").EnumerateArray().Select(item => item.GetInt32()).ToArray(),
+		});
+
+	public static IEnumerable<object[]> RecordKeyframeVectors() => GoldenVectors.Load("004D5248.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("cursor").GetInt32(),
+			GoldenVectors.ReadVector(vector.GetProperty("eye")),
+			GoldenVectors.ReadVector(vector.GetProperty("target")),
+			vector.GetProperty("occupied").GetBoolean(),
+			GoldenVectors.ReadVector(vector.GetProperty("storedEye")),
+			GoldenVectors.ReadVector(vector.GetProperty("storedTarget")),
+		});
+
+	public static IEnumerable<object[]> PreviewKeyframeVectors() => GoldenVectors.Load("004D5150.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("cursor").GetInt32(),
+			vector.GetProperty("count").GetInt32(),
+			GoldenVectors.ReadVector(vector.GetProperty("eye")),
+			GoldenVectors.ReadVector(vector.GetProperty("target")),
+			vector.GetProperty("expectedApplied").GetBoolean(),
+			vector.GetProperty("pitchAngle").GetInt32(),
+			vector.GetProperty("yawAngle").GetInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("distance")),
+		});
+
 	[Theory]
 	[MemberData(nameof(ScaleVectors))]
 	public void ApplyProjectionClipAndScaleMatchesTheMachineCode(
@@ -376,6 +460,350 @@ public class CameraViewportGoldenTests
 		}
 		finally
 		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(DepthClipVectors))]
+	public void SetDepthClipRangeMatchesTheMachineCode(float nearClip, float farClip, uint expectedNearBits, uint expectedFarBits)
+	{
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			CameraViewportState.SetDepthClipRange(nearClip, farClip);
+			Assert.Equal(expectedNearBits, BitConverter.SingleToUInt32Bits(CameraViewportState.NearClip));
+			Assert.Equal(expectedFarBits, BitConverter.SingleToUInt32Bits(CameraViewportState.FarClip));
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(RenderRectVectors))]
+	public void SetRenderRectMatchesTheMachineCode(float[] rect, uint[] expectedBits)
+	{
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			CameraViewportState.SetRenderRect(rect[0], rect[1], rect[2], rect[3]);
+			Assert.Equal(expectedBits[0], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectX));
+			Assert.Equal(expectedBits[1], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectY));
+			Assert.Equal(expectedBits[2], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectWidth));
+			Assert.Equal(expectedBits[3], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectHeight));
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(DeviceViewportVectors))]
+	public void ApplyDeviceViewportMatchesTheMachineCode(
+		int cropX,
+		int cropY,
+		int width,
+		int height,
+		int offsetX,
+		int offsetY,
+		float[] renderRect,
+		int expectedDeviceX,
+		int expectedDeviceY,
+		int expectedDeviceWidth,
+		int expectedDeviceHeight,
+		uint expectedScaleXBits,
+		uint expectedScaleYBits,
+		uint expectedAspectXBits,
+		uint expectedAspectYBits,
+		uint expectedRenderOffXBits,
+		uint expectedRenderOffYBits)
+	{
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			CameraViewportState.SetRenderRect(renderRect[0], renderRect[1], renderRect[2], renderRect[3]);
+			CameraViewportState.ApplyDeviceViewport(cropX, cropY, width, height, offsetX, offsetY);
+
+			Assert.Equal(expectedDeviceX, CameraViewportState.DeviceViewportX);
+			Assert.Equal(expectedDeviceY, CameraViewportState.DeviceViewportY);
+			Assert.Equal(expectedDeviceWidth, CameraViewportState.DeviceViewportWidth);
+			Assert.Equal(expectedDeviceHeight, CameraViewportState.DeviceViewportHeight);
+			Assert.Equal(expectedScaleXBits, BitConverter.SingleToUInt32Bits(CameraViewportState.DeviceScaleX));
+			Assert.Equal(expectedScaleYBits, BitConverter.SingleToUInt32Bits(CameraViewportState.DeviceScaleY));
+			Assert.Equal(expectedAspectXBits, BitConverter.SingleToUInt32Bits(CameraViewportState.AspectScaleX));
+			Assert.Equal(expectedAspectYBits, BitConverter.SingleToUInt32Bits(CameraViewportState.AspectScaleY));
+			Assert.Equal(expectedRenderOffXBits, BitConverter.SingleToUInt32Bits(CameraViewportState.RenderOffsetX));
+			Assert.Equal(expectedRenderOffYBits, BitConverter.SingleToUInt32Bits(CameraViewportState.RenderOffsetY));
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ClipWindowVectors))]
+	public void SetClipWindowMatchesTheMachineCode(int mode, float screenWidth, float screenHeight, float[] rect, uint[] expectedClip)
+	{
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			CameraViewportState.ScreenWidthFloat = screenWidth;
+			CameraViewportState.ScreenHeightFloat = screenHeight;
+			CameraViewportState.SetClipWindow(mode, rect[0], rect[1], rect[2], rect[3]);
+
+			Assert.Equal(expectedClip[0], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipLeft));
+			Assert.Equal(expectedClip[1], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipTop));
+			Assert.Equal(expectedClip[2], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipRight));
+			Assert.Equal(expectedClip[3], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipBottom));
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+		}
+	}
+
+	[Fact]
+	public void ResetClipWindowMatchesTheMachineCode()
+	{
+		var vector = GoldenVectors.Load("004D285C.json")[0];
+		FieldCameraController.ResetGlobals();
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			FieldCameraController.Flags = vector.GetProperty("flagsBefore").GetUInt32();
+			CameraViewportState.ScreenWidthFloat = GoldenVectors.ReadFloat(vector.GetProperty("screenWidth"));
+			CameraViewportState.ScreenHeightFloat = GoldenVectors.ReadFloat(vector.GetProperty("screenHeight"));
+			CameraViewportState.ResetClipWindow();
+
+			Assert.Equal(vector.GetProperty("flagsAfter").GetUInt32(), FieldCameraController.Flags);
+			uint[] clip = vector.GetProperty("clip").EnumerateArray().Select(item => item.GetUInt32()).ToArray();
+			Assert.Equal(clip[0], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipLeft));
+			Assert.Equal(clip[1], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipTop));
+			Assert.Equal(clip[2], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipRight));
+			Assert.Equal(clip[3], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipBottom));
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Fact]
+	public void ResetFullScreenRenderRectMatchesTheMachineCode()
+	{
+		var vector = GoldenVectors.Load("004D26C4.json")[0];
+		FieldCameraController.ResetGlobals();
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			CameraViewportState.ResetFullScreenRenderRect(
+				vector.GetProperty("displayWidth").GetInt32(),
+				vector.GetProperty("displayHeight").GetInt32());
+
+			Assert.Equal(vector.GetProperty("screenWidth").GetInt16(), FieldCameraController.ScreenWidth);
+			Assert.Equal(vector.GetProperty("screenHeight").GetInt16(), FieldCameraController.ScreenHeight);
+			int[] devVp = vector.GetProperty("deviceViewport").EnumerateArray().Select(item => item.GetInt32()).ToArray();
+			Assert.Equal(devVp[0], CameraViewportState.DeviceViewportX);
+			Assert.Equal(devVp[1], CameraViewportState.DeviceViewportY);
+			Assert.Equal(devVp[2], CameraViewportState.DeviceViewportWidth);
+			Assert.Equal(devVp[3], CameraViewportState.DeviceViewportHeight);
+			Assert.Equal(vector.GetProperty("scaleXBits").GetUInt32(), BitConverter.SingleToUInt32Bits(CameraViewportState.DeviceScaleX));
+			Assert.Equal(vector.GetProperty("scaleYBits").GetUInt32(), BitConverter.SingleToUInt32Bits(CameraViewportState.DeviceScaleY));
+			Assert.Equal(vector.GetProperty("aspectScaleXBits").GetUInt32(), BitConverter.SingleToUInt32Bits(CameraViewportState.AspectScaleX));
+			Assert.Equal(vector.GetProperty("aspectScaleYBits").GetUInt32(), BitConverter.SingleToUInt32Bits(CameraViewportState.AspectScaleY));
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Fact]
+	public void SaveAndResetViewportMatchesTheMachineCode()
+	{
+		var vector = GoldenVectors.Load("004D28A4.json")[0];
+		FieldCameraController.ResetGlobals();
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			int width = vector.GetProperty("displayWidth").GetInt32();
+			int height = vector.GetProperty("displayHeight").GetInt32();
+			uint[] active = vector.GetProperty("activeViewport").EnumerateArray().Select(item => item.GetUInt32()).ToArray();
+			CameraViewportState.ApplyViewport(new CameraViewportSettings(
+				BitConverter.UInt32BitsToSingle(active[2]),
+				BitConverter.UInt32BitsToSingle(active[3]),
+				BitConverter.UInt32BitsToSingle(active[7]),
+				BitConverter.UInt32BitsToSingle(active[6]),
+				0.0f,
+				BitConverter.UInt32BitsToSingle(active[10]),
+				BitConverter.UInt32BitsToSingle(active[11]),
+				unchecked((int)active[12]),
+				unchecked((int)active[13]),
+				BitConverter.UInt32BitsToSingle(active[14]),
+				BitConverter.UInt32BitsToSingle(active[15]),
+				BitConverter.UInt32BitsToSingle(active[16]),
+				BitConverter.UInt32BitsToSingle(active[17])));
+			CameraViewportState.SetRenderRect(0.0f, 0.0f, width, height);
+			CameraViewportState.ViewportOffsetActive = 1;
+
+			CameraViewportState.SaveAndResetViewport(width, height);
+
+			Assert.Equal(vector.GetProperty("viewportOffsetActive").GetUInt16(), CameraViewportState.ViewportOffsetActive);
+			Assert.NotNull(CameraViewportState.SavedViewport);
+			int[] devVp = vector.GetProperty("deviceViewport").EnumerateArray().Select(item => item.GetInt32()).ToArray();
+			Assert.Equal(devVp[0], CameraViewportState.DeviceViewportX);
+			Assert.Equal(devVp[1], CameraViewportState.DeviceViewportY);
+			Assert.Equal(devVp[2], CameraViewportState.DeviceViewportWidth);
+			Assert.Equal(devVp[3], CameraViewportState.DeviceViewportHeight);
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(RestoreViewportVectors))]
+	public void RestoreSavedViewportMatchesTheMachineCode(
+		int displayWidth,
+		int displayHeight,
+		float savedHalfWidth,
+		float savedHalfHeight,
+		uint[] expectedActiveViewport,
+		ushort expectedViewportOffsetActive,
+		int[] expectedDeviceViewport)
+	{
+		FieldCameraController.ResetGlobals();
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			FieldCameraController.ScreenWidth = unchecked((short)displayWidth);
+			FieldCameraController.ScreenHeight = unchecked((short)displayHeight);
+			CameraViewportState.SetRenderRect(0.0f, 0.0f, displayWidth, displayHeight);
+			CameraViewportState.ApplyViewport(new CameraViewportSettings(
+				savedHalfWidth, savedHalfHeight, 1.0f, 1.0f, 0.0f, displayWidth, displayHeight, 0, 0, 20.0f, 15.0f, 1.0f, 0.85f));
+			CameraViewportState.SaveAndResetViewport(displayWidth, displayHeight);
+
+			CameraViewportState.RestoreSavedViewport(displayWidth, displayHeight);
+
+			AssertViewportWords(expectedActiveViewport);
+			Assert.Equal(expectedViewportOffsetActive, CameraViewportState.ViewportOffsetActive);
+			Assert.Equal(expectedDeviceViewport[0], CameraViewportState.DeviceViewportX);
+			Assert.Equal(expectedDeviceViewport[1], CameraViewportState.DeviceViewportY);
+			Assert.Equal(expectedDeviceViewport[2], CameraViewportState.DeviceViewportWidth);
+			Assert.Equal(expectedDeviceViewport[3], CameraViewportState.DeviceViewportHeight);
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Fact]
+	public void ResetModeAndOffsetStateMatchesTheMachineCode()
+	{
+		var vector = GoldenVectors.Load("004D2AF0.json")[0];
+		FieldCameraController.ResetGlobals();
+		CameraViewportState.ResetGlobals();
+		try
+		{
+			byte initialPreviousMode = vector.GetProperty("previousMode").GetByte();
+			CameraViewportState.ViewportOffsetActive = 1;
+			FieldCameraController.ActiveModeIndex = 5;
+			FieldCameraController.PreviousModeIndex = initialPreviousMode;
+			FieldCameraController.Flags = 0xFFFFFFFFu;
+			CameraViewportState.ResetModeAndOffsetState();
+
+			Assert.Equal(vector.GetProperty("viewportOffsetActive").GetUInt16(), CameraViewportState.ViewportOffsetActive);
+			Assert.Equal(vector.GetProperty("activeMode").GetByte(), FieldCameraController.ActiveModeIndex);
+			Assert.Equal(initialPreviousMode, FieldCameraController.PreviousModeIndex);
+			Assert.Equal(vector.GetProperty("flags").GetUInt32(), FieldCameraController.Flags);
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(RecordKeyframeVectors))]
+	public void RecordKeyframeMatchesTheMachineCode(
+		int cursor,
+		Vector3 eye,
+		Vector3 target,
+		bool expectedOccupied,
+		Vector3 expectedEye,
+		Vector3 expectedTarget)
+	{
+		FieldCameraController.ResetGlobals();
+		FieldCameraPathRecorder.ResetGlobals();
+		try
+		{
+			FieldCameraController.Current = new FieldCameraController { Eye = eye, Target = target };
+			FieldCameraPathRecorder recorder = new() { Cursor = cursor };
+			recorder.RecordKeyframe();
+
+			int index = Math.Min(cursor, FieldCameraPathRecorder.MaxWaypoints - 1);
+			FieldCameraWaypoint slot = FieldCameraPathRecorder.Waypoints[index];
+			Assert.Equal(expectedOccupied, slot.IsOccupied);
+			GoldenVectors.AssertVector(expectedEye, slot.Eye);
+			GoldenVectors.AssertVector(expectedTarget, slot.Target);
+		}
+		finally
+		{
+			FieldCameraPathRecorder.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(PreviewKeyframeVectors))]
+	public void PreviewRecordedKeyframeMatchesTheMachineCode(
+		int cursor,
+		int count,
+		Vector3 eye,
+		Vector3 target,
+		bool expectedApplied,
+		int expectedPitch,
+		int expectedYaw,
+		float expectedDistance)
+	{
+		FieldCameraController.ResetGlobals();
+		FieldCameraPathRecorder.ResetGlobals();
+		try
+		{
+			FieldCameraOrbitMode orbit = new();
+			FieldCameraController.Modes[6] = orbit;
+			if ((uint)cursor < FieldCameraPathRecorder.MaxWaypoints)
+				FieldCameraPathRecorder.Waypoints[cursor] = new FieldCameraWaypoint(true, eye, target);
+
+			FieldCameraPathRecorder recorder = new() { Cursor = cursor, Count = count };
+			recorder.PreviewRecordedKeyframe();
+
+			if (expectedApplied)
+			{
+				GoldenVectors.AssertFloat(expectedDistance, orbit.Distance);
+				Assert.Equal(expectedPitch, orbit.PitchAngle);
+				Assert.Equal(expectedYaw, orbit.YawAngle);
+			}
+			else
+			{
+				Assert.Equal(0, orbit.PitchAngle);
+				Assert.Equal(0, orbit.YawAngle);
+			}
+		}
+		finally
+		{
+			FieldCameraPathRecorder.ResetGlobals();
 			FieldCameraController.ResetGlobals();
 		}
 	}

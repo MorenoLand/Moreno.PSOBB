@@ -143,6 +143,103 @@ public static class CameraViewportState
 	[OriginalGlobal(0x00A48A48)]
 	public static ushort CropOffsetY { get; set; }
 
+	/// <summary>Gets or sets the active Ninja far Z clip value at <c>0x00AF0300</c>.</summary>
+	[OriginalGlobal(0x00AF0300)]
+	public static float FarClip { get; set; }
+
+	/// <summary>Gets or sets the active Ninja near Z clip value at <c>0x00AF0304</c>.</summary>
+	[OriginalGlobal(0x00AF0304)]
+	public static float NearClip { get; set; }
+
+	/// <summary>Gets or sets the floating-point Ninja screen width global at <c>0x00AF02E8</c>.</summary>
+	[OriginalGlobal(0x00AF02E8)]
+	public static float ScreenWidthFloat { get; set; }
+
+	/// <summary>Gets or sets the floating-point Ninja screen height global at <c>0x00AF02EC</c>.</summary>
+	[OriginalGlobal(0x00AF02EC)]
+	public static float ScreenHeightFloat { get; set; }
+
+	/// <summary>Gets or sets the clip window left coordinate at <c>0x00AF0330</c>.</summary>
+	[OriginalGlobal(0x00AF0330)]
+	public static float ClipLeft { get; set; }
+
+	/// <summary>Gets or sets the clip window top coordinate at <c>0x00AF0334</c>.</summary>
+	[OriginalGlobal(0x00AF0334)]
+	public static float ClipTop { get; set; }
+
+	/// <summary>Gets or sets the clip window right coordinate at <c>0x00AF0338</c>.</summary>
+	[OriginalGlobal(0x00AF0338)]
+	public static float ClipRight { get; set; }
+
+	/// <summary>Gets or sets the clip window bottom coordinate at <c>0x00AF033C</c>.</summary>
+	[OriginalGlobal(0x00AF033C)]
+	public static float ClipBottom { get; set; }
+
+	/// <summary>Gets or sets the horizontal device scale factor at <c>0x00ACC0A0</c>.</summary>
+	[OriginalGlobal(0x00ACC0A0)]
+	public static float DeviceScaleX { get; set; }
+
+	/// <summary>Gets or sets the vertical device scale factor at <c>0x00ACC0A4</c>.</summary>
+	[OriginalGlobal(0x00ACC0A4)]
+	public static float DeviceScaleY { get; set; }
+
+	/// <summary>Gets or sets the device viewport X origin at <c>0x00ACC0A8</c>.</summary>
+	[OriginalGlobal(0x00ACC0A8)]
+	public static int DeviceViewportX { get; set; }
+
+	/// <summary>Gets or sets the device viewport Y origin at <c>0x00ACC0AC</c>.</summary>
+	[OriginalGlobal(0x00ACC0AC)]
+	public static int DeviceViewportY { get; set; }
+
+	/// <summary>Gets or sets the device viewport width at <c>0x00ACC0B0</c>.</summary>
+	[OriginalGlobal(0x00ACC0B0)]
+	public static int DeviceViewportWidth { get; set; }
+
+	/// <summary>Gets or sets the device viewport height at <c>0x00ACC0B4</c>.</summary>
+	[OriginalGlobal(0x00ACC0B4)]
+	public static int DeviceViewportHeight { get; set; }
+
+	/// <summary>Gets or sets the render rectangle X origin at <c>0x00ACC0C0</c>.</summary>
+	[OriginalGlobal(0x00ACC0C0)]
+	public static float RenderRectX { get; set; }
+
+	/// <summary>Gets or sets the render rectangle Y origin at <c>0x00ACC0C4</c>.</summary>
+	[OriginalGlobal(0x00ACC0C4)]
+	public static float RenderRectY { get; set; }
+
+	/// <summary>Gets or sets the render rectangle width at <c>0x00ACC0C8</c>.</summary>
+	[OriginalGlobal(0x00ACC0C8)]
+	public static float RenderRectWidth { get; set; }
+
+	/// <summary>Gets or sets the render rectangle height at <c>0x00ACC0CC</c>.</summary>
+	[OriginalGlobal(0x00ACC0CC)]
+	public static float RenderRectHeight { get; set; }
+
+	/// <summary>Gets or sets the normalized horizontal aspect ratio against 640px at <c>0x00ACC0E8</c>.</summary>
+	[OriginalGlobal(0x00ACC0E8)]
+	public static float AspectScaleX { get; set; }
+
+	/// <summary>Gets or sets the normalized vertical aspect ratio against 480px at <c>0x00ACC0EC</c>.</summary>
+	[OriginalGlobal(0x00ACC0EC)]
+	public static float AspectScaleY { get; set; }
+
+	/// <summary>Gets or sets the horizontal render offset at <c>0x00ACC0F0</c>.</summary>
+	[OriginalGlobal(0x00ACC0F0)]
+	public static float RenderOffsetX { get; set; }
+
+	/// <summary>Gets or sets the vertical render offset at <c>0x00ACC0F4</c>.</summary>
+	[OriginalGlobal(0x00ACC0F4)]
+	public static float RenderOffsetY { get; set; }
+
+	/// <summary>Gets or sets the 18-word saved viewport snapshot stored at <c>0x00A487C0</c>.</summary>
+	[OriginalGlobal(0x00A487C0)]
+	public static CameraViewportSettings? SavedViewport { get; set; }
+
+	private static float _savedScaledAspectX;
+	private static float _savedScaledAspectY;
+	private static float _savedUnitScale;
+	private static float _savedInverseScreenScaleX;
+
 	/// <summary>
 	/// Restores every viewport and projection global to its clean initial test state.
 	/// </summary>
@@ -178,6 +275,33 @@ public static class CameraViewportState
 		CropOffsetState = 0;
 		CropOffsetX = 0;
 		CropOffsetY = 0;
+		FarClip = 0.0f;
+		NearClip = 0.0f;
+		ScreenWidthFloat = 0.0f;
+		ScreenHeightFloat = 0.0f;
+		ClipLeft = 0.0f;
+		ClipTop = 0.0f;
+		ClipRight = 0.0f;
+		ClipBottom = 0.0f;
+		DeviceScaleX = 0.0f;
+		DeviceScaleY = 0.0f;
+		DeviceViewportX = 0;
+		DeviceViewportY = 0;
+		DeviceViewportWidth = 0;
+		DeviceViewportHeight = 0;
+		RenderRectX = 0.0f;
+		RenderRectY = 0.0f;
+		RenderRectWidth = 0.0f;
+		RenderRectHeight = 0.0f;
+		AspectScaleX = 0.0f;
+		AspectScaleY = 0.0f;
+		RenderOffsetX = 0.0f;
+		RenderOffsetY = 0.0f;
+		SavedViewport = null;
+		_savedScaledAspectX = 0.0f;
+		_savedScaledAspectY = 0.0f;
+		_savedUnitScale = 0.0f;
+		_savedInverseScreenScaleX = 0.0f;
 	}
 
 	/// <summary>
@@ -340,5 +464,256 @@ public static class CameraViewportState
 			FarScale));
 		DepthBiasMax = 1.0f;
 		DepthBiasMin = 0.85f;
+	}
+
+	/// <summary>
+	/// Clamps and negates the Ninja near/far depth clip bounds into [-65535, -1].
+	/// </summary>
+	/// <param name="nearClip">Negative near clip distance.</param>
+	/// <param name="farClip">Negative far clip distance.</param>
+	[Original(0x0083AC80)]
+	public static void SetDepthClipRange(float nearClip, float farClip)
+	{
+		const float MinClip = -65535.0f;
+		const float MaxClip = -1.0f;
+
+		double clampedNear = nearClip;
+		if (MaxClip < (double)nearClip)
+			clampedNear = MaxClip;
+		if (MinClip > clampedNear)
+			clampedNear = MinClip;
+		NearClip = (float)-clampedNear;
+
+		double clampedFar = MaxClip >= (double)farClip ? farClip : MaxClip;
+		if (clampedFar < MinClip)
+			clampedFar = MinClip;
+		FarClip = (float)-clampedFar;
+	}
+
+	/// <summary>
+	/// Stores the active 2D render rectangle origin and extents globals.
+	/// </summary>
+	/// <param name="x">Left coordinate in pixels.</param>
+	/// <param name="y">Top coordinate in pixels.</param>
+	/// <param name="width">Width in pixels.</param>
+	/// <param name="height">Height in pixels.</param>
+	[Original(0x0082F2E4)]
+	public static void SetRenderRect(float x, float y, float width, float height)
+	{
+		RenderRectX = x;
+		RenderRectY = y;
+		RenderRectWidth = width;
+		RenderRectHeight = height;
+	}
+
+	/// <summary>
+	/// Clamps crop and offset parameters against the active render rectangle and computes the D3D device viewport metrics.
+	/// </summary>
+	/// <param name="cropX">Horizontal crop origin.</param>
+	/// <param name="cropY">Vertical crop origin.</param>
+	/// <param name="width">Requested viewport width in pixels.</param>
+	/// <param name="height">Requested viewport height in pixels.</param>
+	/// <param name="offsetX">Horizontal viewport offset.</param>
+	/// <param name="offsetY">Vertical viewport offset.</param>
+	[Original(0x0082F308)]
+	public static void ApplyDeviceViewport(int cropX, int cropY, int width, int height, int offsetX, int offsetY)
+	{
+		int leftExcess;
+		if (offsetX > cropX)
+		{
+			DeviceViewportX = 0;
+			leftExcess = -(cropX - offsetX);
+		}
+		else
+		{
+			DeviceViewportX = cropX - offsetX;
+			leftExcess = 0;
+		}
+
+		int topExcess;
+		int effectiveOffsetY;
+		if (offsetY > cropY)
+		{
+			DeviceViewportY = 0;
+			effectiveOffsetY = offsetY;
+			topExcess = -(cropY - offsetY);
+		}
+		else
+		{
+			DeviceViewportY = cropY - offsetY;
+			effectiveOffsetY = offsetY;
+			topExcess = 0;
+		}
+
+		RenderOffsetX = (float)(-offsetX + (double)RenderRectX);
+		RenderOffsetY = (float)(-effectiveOffsetY + (double)RenderRectY);
+
+		int rightCrop = width + cropX - offsetX - (int)((double)RenderRectX + RenderRectWidth);
+		int bottomCrop = height + cropY - effectiveOffsetY - (int)((double)RenderRectY + RenderRectHeight);
+		if (rightCrop < 0)
+			rightCrop = 0;
+		if (bottomCrop < 0)
+			bottomCrop = 0;
+
+		int devWidth = width - (rightCrop + leftExcess);
+		int devHeight = height - (bottomCrop + topExcess);
+		DeviceViewportWidth = devWidth;
+		DeviceViewportHeight = devHeight;
+		DeviceScaleX = (float)(RenderRectWidth / (double)unchecked((uint)devWidth));
+		DeviceScaleY = (float)(RenderRectHeight / (double)unchecked((uint)devHeight));
+		AspectScaleX = (float)((double)unchecked((uint)width) / 640.0f);
+		AspectScaleY = (float)((double)unchecked((uint)height) / 480.0f);
+	}
+
+	/// <summary>
+	/// Updates the Ninja 2D clip window bounds either by scaling a 32x32 tile rectangle (<paramref name="mode"/> == 2) or using full screen extents.
+	/// </summary>
+	/// <param name="mode">Clip mode (<c>2</c> scales <paramref name="left"/>..<paramref name="bottom"/>; any other value uses full screen bounds).</param>
+	/// <param name="left">Tile-space left bound when <paramref name="mode"/> equals two.</param>
+	/// <param name="top">Tile-space top bound when <paramref name="mode"/> equals two.</param>
+	/// <param name="right">Tile-space right bound when <paramref name="mode"/> equals two.</param>
+	/// <param name="bottom">Tile-space bottom bound when <paramref name="mode"/> equals two.</param>
+	[Original(0x0082AD14)]
+	public static void SetClipWindow(int mode, float left, float top, float right, float bottom)
+	{
+		if (mode == 2)
+		{
+			ClipLeft = (float)((double)left * 32.0f);
+			ClipTop = (float)((double)top * 32.0f);
+			ClipRight = (float)((double)right * 32.0f + 31.0f);
+			ClipBottom = (float)(32.0f * (double)bottom + 31.0f);
+		}
+		else
+		{
+			ClipLeft = 0.0f;
+			ClipTop = 0.0f;
+			ClipRight = (float)(-1.0f + (double)ScreenWidthFloat);
+			ClipBottom = (float)(-1.0f + (double)ScreenHeightFloat);
+		}
+
+		if (ClipLeft <= 0.0f)
+			ClipLeft = 0.0f;
+		if (ClipTop <= 0.0f)
+			ClipTop = 0.0f;
+		if (ScreenWidthFloat <= ClipRight)
+			ClipRight = (float)(ScreenWidthFloat + -1.0f);
+		if (ScreenHeightFloat <= ClipBottom)
+			ClipBottom = (float)(ScreenHeightFloat + -1.0f);
+	}
+
+	/// <summary>
+	/// Clears the custom viewport apply flag (<c>0x200</c>) and resets the clip window to full-screen defaults.
+	/// </summary>
+	[Original(0x004D285C)]
+	public static void ResetClipWindow()
+	{
+		FieldCameraController.Flags &= ~0x200u;
+		SetClipWindow(0, 0.0f, 0.0f, 20.0f, 15.0f);
+	}
+
+	/// <summary>
+	/// Resets cached display dimensions, zero crop offsets, render rectangle, and full-screen device viewport.
+	/// </summary>
+	/// <param name="displayWidth">The render surface width in pixels.</param>
+	/// <param name="displayHeight">The render surface height in pixels.</param>
+	[Original(0x004D26C4)]
+	public static void ResetFullScreenRenderRect(int displayWidth, int displayHeight)
+	{
+		FieldCameraController.ScreenWidth = unchecked((short)displayWidth);
+		FieldCameraController.ScreenHeight = unchecked((short)displayHeight);
+		CropOffsetX = 0;
+		CropOffsetY = 0;
+		SetRenderRect(0.0f, 0.0f, (short)displayWidth, (short)displayHeight);
+		ApplyDeviceViewport(0, 0, FieldCameraController.ScreenWidth, FieldCameraController.ScreenHeight, 0, 0);
+	}
+
+	/// <summary>
+	/// Snapshots the active viewport parameters and resets the device viewport to full screen without center offset.
+	/// </summary>
+	/// <param name="displayWidth">The render surface width in pixels.</param>
+	/// <param name="displayHeight">The render surface height in pixels.</param>
+	[Original(0x004D28A4)]
+	public static void SaveAndResetViewport(int displayWidth, int displayHeight)
+	{
+		SavedViewport = new CameraViewportSettings(
+			HalfWidth,
+			HalfHeight,
+			ScaleX,
+			ScaleY,
+			0.0f,
+			Width,
+			Height,
+			OriginX,
+			OriginY,
+			OffsetX,
+			OffsetY,
+			NearScale,
+			FarScale);
+		_savedScaledAspectX = ScaledAspectX;
+		_savedScaledAspectY = ScaledAspectY;
+		_savedUnitScale = UnitScale;
+		_savedInverseScreenScaleX = InverseScreenScaleX;
+
+		ApplyDeviceViewport(0, 0, displayWidth, displayHeight, 0, 0);
+		ViewportOffsetActive = 0;
+	}
+
+	/// <summary>
+	/// Restores the saved viewport snapshot, updates the center-offset flag, re-applies the device viewport, and refreshes field projection when active.
+	/// </summary>
+	/// <param name="displayWidth">The render surface width in pixels.</param>
+	/// <param name="displayHeight">The render surface height in pixels.</param>
+	/// <param name="updateProjection">Optional projection callback replacing <see cref="CameraProjection.CreateFieldProjection"/>.</param>
+	[Original(0x004D2968)]
+	public static void RestoreSavedViewport(
+		int displayWidth,
+		int displayHeight,
+		Func<int, float, float, float, float>? updateProjection = null)
+	{
+		if (SavedViewport is { } saved)
+		{
+			ScaledAspectX = _savedScaledAspectX;
+			ScaledAspectY = _savedScaledAspectY;
+			HalfWidth = saved.HalfWidth;
+			HalfHeight = saved.HalfHeight;
+			ScaleY = saved.ScaleY;
+			ScaleX = saved.ScaleX;
+			UnitScale = _savedUnitScale;
+			InverseScreenScaleX = _savedInverseScreenScaleX;
+			Width = saved.Width;
+			Height = saved.Height;
+			OriginX = saved.X;
+			OriginY = saved.Y;
+			OffsetX = saved.OffsetX;
+			OffsetY = saved.OffsetY;
+			NearScale = saved.NearScale;
+			FarScale = saved.FarScale;
+		}
+
+		int centerX = FieldCameraController.ScreenWidth >> 1;
+		int centerY = FieldCameraController.ScreenHeight >> 1;
+		double deltaX = -((double)HalfWidth - centerX);
+		double deltaY = -((double)HalfHeight - centerY);
+		ViewportOffsetActive = deltaX == 0.0 && deltaY == 0.0 ? (ushort)0 : (ushort)1;
+
+		ApplyDeviceViewport(0, 0, displayWidth, displayHeight, (int)deltaX, (int)deltaY);
+		if (FieldCameraController.Current is FieldCameraController controller)
+		{
+			if (updateProjection is not null)
+				updateProjection(controller.FieldOfView, 1.1333334f, 1.0f, 21000.0f);
+			else
+				CameraProjection.CreateFieldProjection(controller.FieldOfView, 1.1333334f, 1.0f, 21000.0f, 480, out _, out _);
+		}
+	}
+
+	/// <summary>
+	/// Clears viewport offset state along with the active mode index and controller flags while leaving <see cref="FieldCameraController.PreviousModeIndex"/> intact.
+	/// </summary>
+	[Original(0x004D2AF0)]
+	public static void ResetModeAndOffsetState()
+	{
+		ViewportOffsetActive = 0;
+		FieldCameraController.ActiveModeIndex = 0;
+		FieldCameraController.Flags = 0;
 	}
 }
