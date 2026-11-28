@@ -28,4 +28,25 @@ public sealed class FloatingPointConversionGoldenTests
 	[MemberData(nameof(TruncateToInt64Vectors))]
 	public void TruncateToInt64MatchesTheMachineCode(double value, long expected) =>
 		Assert.Equal(expected, FloatingPointMath.TruncateToInt64(value));
+
+	/// <summary>
+	/// Loads the vectors for single-precision truncation toward zero.
+	/// </summary>
+	/// <returns>Input and expected double-bit tuples.</returns>
+	public static IEnumerable<object[]> TruncateTowardsZeroVectors() => GoldenVectors.Load("0083C230.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadFloat(vector.GetProperty("value")),
+			vector.GetProperty("expectedDoubleBits").GetUInt64(),
+		});
+
+	/// <summary>
+	/// The ported truncation helper matches the x87 machine code across positive, negative, and zero inputs.
+	/// </summary>
+	/// <param name="value">The input float.</param>
+	/// <param name="expectedDoubleBits">The expected IEEE 754 double bit pattern.</param>
+	[Theory]
+	[MemberData(nameof(TruncateTowardsZeroVectors))]
+	public void TruncateTowardsZeroMatchesTheMachineCode(float value, ulong expectedDoubleBits) =>
+		Assert.Equal(expectedDoubleBits, unchecked((ulong)BitConverter.DoubleToInt64Bits(FloatingPointMath.TruncateTowardsZero(value))));
 }

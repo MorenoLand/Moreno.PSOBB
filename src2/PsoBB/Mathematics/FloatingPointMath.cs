@@ -59,4 +59,19 @@ public static class FloatingPointMath
 			return long.MinValue;
 		return (long)value;
 	}
+
+	/// <summary>
+	/// Truncates a single-precision value toward zero in double precision, matching the x87 round-to-nearest-even adjustment used by the Ninja renderer.
+	/// </summary>
+	/// <param name="value">The value to truncate.</param>
+	/// <returns>The integral value truncated toward zero.</returns>
+	[Original(0x0083C230)]
+	public static double TruncateTowardsZero(float value)
+	{
+		double abs = Absolute(value);
+		double rounded = Math.Round(abs, MidpointRounding.ToEven);
+		double adjusted = abs <= rounded && abs != rounded ? rounded + -1.0f : rounded;
+		double result = abs != rounded ? adjusted : rounded;
+		return value >= 0.0 ? result : -result;
+	}
 }

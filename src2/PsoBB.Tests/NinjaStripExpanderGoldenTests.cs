@@ -117,4 +117,150 @@ public class NinjaStripExpanderGoldenTests
 			NinjaStripExpander.ResetGlobals();
 		}
 	}
+
+	public static IEnumerable<object[]> TranslucentAlphaScanVectors()
+	{
+		(string Fixture, Func<uint[], int, bool> Invoke)[] specs =
+		[
+			("008359D8.json", (words, cnt) => NinjaColorState.HasTranslucentAlphaStride16(words, cnt)),
+			("00835A70.json", (words, cnt) => NinjaColorState.HasTranslucentAlphaStride24(words, cnt)),
+			("00835B08.json", (words, cnt) => NinjaColorState.HasTranslucentAlphaStride28(words, cnt)),
+			("00835BA0.json", (words, cnt) => NinjaColorState.HasTranslucentAlphaStride36(words, cnt)),
+		];
+
+		foreach ((string fixture, Func<uint[], int, bool> invoke) in specs)
+		{
+			foreach (var vector in GoldenVectors.Load(fixture))
+			{
+				yield return
+				[
+					fixture,
+					invoke,
+					vector.GetProperty("count").GetInt32(),
+					vector.GetProperty("words").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+					vector.GetProperty("expected").GetBoolean(),
+				];
+			}
+		}
+	}
+
+	public static IEnumerable<object[]> StreamResetVectors() => GoldenVectors.Load("00839A28.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("slot").GetInt32(),
+			vector.GetProperty("initialBinding").GetInt32(),
+			vector.GetProperty("initialStride").GetInt32(),
+			vector.GetProperty("expectedBinding").GetInt32(),
+			vector.GetProperty("expectedStride").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> IndexedLitStripVectors()
+	{
+		(string Fixture, Action<ushort[], uint[], Action<int, int, int>> Invoke)[] specs =
+		[
+			("008341A8.json", (idx, src, cb) => NinjaStripExpander.ExpandIndexedLitPosColor(idx, src, cb)),
+			("0083441C.json", (idx, src, cb) => NinjaStripExpander.ExpandIndexedLitPosColorUv(idx, src, cb)),
+			("0083469C.json", (idx, src, cb) => NinjaStripExpander.ExpandIndexedLitPosNormColor(idx, src, cb)),
+			("0083493C.json", (idx, src, cb) => NinjaStripExpander.ExpandIndexedLitPosNormColorUv(idx, src, cb)),
+		];
+
+		foreach ((string fixture, Action<ushort[], uint[], Action<int, int, int>> invoke) in specs)
+		{
+			foreach (var vector in GoldenVectors.Load(fixture))
+			{
+				yield return
+				[
+					fixture,
+					invoke,
+					vector.GetProperty("stride").GetInt32(),
+					vector.GetProperty("indices").EnumerateArray().Select(static e => e.GetUInt16()).ToArray(),
+					vector.GetProperty("ambient").EnumerateArray().Select(GoldenVectors.ReadFloat).ToArray(),
+					vector.GetProperty("sourceWords").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+					vector.GetProperty("expectedWords").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+				];
+			}
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(TranslucentAlphaScanVectors))]
+	public void TranslucentAlphaScanMatchesTheMachineCode(
+		string fixture,
+		Func<uint[], int, bool> invoke,
+		int count,
+		uint[] words,
+		bool expected)
+	{
+		_ = fixture;
+		Assert.Equal(expected, invoke(words, count));
+	}
+
+	[Theory]
+	[MemberData(nameof(StreamResetVectors))]
+	public void ClearStreamBindingMatchesTheMachineCode(
+		int slot,
+		int initialBinding,
+		int initialStride,
+		int expectedBinding,
+		int expectedStride)
+	{
+		NinjaColorState.ResetGlobals();
+		try
+		{
+			NinjaColorState.CachedStreamBindings[slot] = initialBinding;
+			NinjaColorState.CachedStreamStrides[slot] = initialStride;
+			NinjaColorState.ClearStreamBinding(slot);
+			Assert.Equal(expectedBinding, NinjaColorState.CachedStreamBindings[slot]);
+			Assert.Equal(expectedStride, NinjaColorState.CachedStreamStrides[slot]);
+		}
+		finally
+		{
+			NinjaColorState.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(IndexedLitStripVectors))]
+	public void IndexedLitStripMatchesTheMachineCode(
+		string fixture,
+		Action<ushort[], uint[], Action<int, int, int>> invoke,
+		int expectedStride,
+		ushort[] indices,
+		float[] ambient,
+		uint[] sourceWords,
+		uint[] expectedWords)
+	{
+		_ = fixture;
+		NinjaColorState.ResetGlobals();
+		NinjaStripExpander.ResetGlobals();
+		try
+		{
+			NinjaColorState.StreamStateFlags = 2;
+			NinjaColorState.AmbientAlpha = ambient[0];
+			NinjaColorState.AmbientRed = ambient[1];
+			NinjaColorState.AmbientGreen = ambient[2];
+			NinjaColorState.AmbientBlue = ambient[3];
+
+			int primType = 0;
+			int triCount = 0;
+			int stride = 0;
+			invoke(indices, sourceWords, (pt, tc, st) =>
+			{
+				primType = pt;
+				triCount = tc;
+				stride = st;
+			});
+
+			Assert.Equal(5, primType);
+			Assert.Equal(indices.Length - 2, triCount);
+			Assert.Equal(expectedStride, stride);
+			for (int i = 0; i < expectedWords.Length; i++)
+				Assert.Equal(expectedWords[i], NinjaStripExpander.DrawBuffer[i]);
+		}
+		finally
+		{
+			NinjaColorState.ResetGlobals();
+			NinjaStripExpander.ResetGlobals();
+		}
+	}
 }

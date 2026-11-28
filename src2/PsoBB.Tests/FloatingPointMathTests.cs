@@ -86,7 +86,8 @@ public sealed class FloatingPointMathTests
 		{
 			["Absolute"] = 0x0082E900,
 			["SquareRoot"] = 0x0082DC9C,
-				["TruncateToInt64"] = 0x008CB1E8,
+			["TruncateTowardsZero"] = 0x0083C230,
+			["TruncateToInt64"] = 0x008CB1E8,
 		};
 		MethodInfo[] methods = typeof(FloatingPointMath)
 			.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)

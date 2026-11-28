@@ -140,6 +140,130 @@ public static class NinjaStripExpander
 	public static void ExpandPosUv10(ReadOnlySpan<short> chunkShorts, Action<int, int, int>? submitStrip = null) =>
 		ExpandStrips(chunkShorts, includeNormals: false, StripColorSource.None, UvScale10, submitStrip);
 
+	/// <summary>
+	/// Expands indexed 16-byte (<c>Pos3 + Color</c>) NJM vertices into <see cref="DrawBuffer"/> with clamped ambient color modulation.
+	/// </summary>
+	/// <param name="indices">Indexed strip vertex indices.</param>
+	/// <param name="sourceWords">Flat array of 4-dword source vertices.</param>
+	/// <param name="submitStrip">Optional draw callback receiving <c>(D3DPT_TRIANGLESTRIP, primCount, stride)</c>.</param>
+	[Original(0x008341A8)]
+	public static void ExpandIndexedLitPosColor(
+		ReadOnlySpan<ushort> indices,
+		ReadOnlySpan<uint> sourceWords,
+		Action<int, int, int>? submitStrip = null) =>
+		ExpandIndexedLit(indices, sourceWords, hasNormals: false, hasUv: false, checkStreamCache: true, submitStrip);
+
+	/// <summary>
+	/// Expands indexed 24-byte (<c>Pos3 + Color + UV</c>) NJM vertices into <see cref="DrawBuffer"/> with clamped ambient color modulation.
+	/// </summary>
+	/// <param name="indices">Indexed strip vertex indices.</param>
+	/// <param name="sourceWords">Flat array of 6-dword source vertices.</param>
+	/// <param name="submitStrip">Optional draw callback receiving <c>(D3DPT_TRIANGLESTRIP, primCount, stride)</c>.</param>
+	[Original(0x0083441C)]
+	public static void ExpandIndexedLitPosColorUv(
+		ReadOnlySpan<ushort> indices,
+		ReadOnlySpan<uint> sourceWords,
+		Action<int, int, int>? submitStrip = null) =>
+		ExpandIndexedLit(indices, sourceWords, hasNormals: false, hasUv: true, checkStreamCache: false, submitStrip);
+
+	/// <summary>
+	/// Expands indexed 28-byte (<c>Pos3 + Norm3 + Color</c>) NJM vertices into <see cref="DrawBuffer"/> with clamped ambient color modulation.
+	/// </summary>
+	/// <param name="indices">Indexed strip vertex indices.</param>
+	/// <param name="sourceWords">Flat array of 7-dword source vertices.</param>
+	/// <param name="submitStrip">Optional draw callback receiving <c>(D3DPT_TRIANGLESTRIP, primCount, stride)</c>.</param>
+	[Original(0x0083469C)]
+	public static void ExpandIndexedLitPosNormColor(
+		ReadOnlySpan<ushort> indices,
+		ReadOnlySpan<uint> sourceWords,
+		Action<int, int, int>? submitStrip = null) =>
+		ExpandIndexedLit(indices, sourceWords, hasNormals: true, hasUv: false, checkStreamCache: true, submitStrip);
+
+	/// <summary>
+	/// Expands indexed 36-byte (<c>Pos3 + Norm3 + Color + UV</c>) NJM vertices into <see cref="DrawBuffer"/> with clamped ambient color modulation.
+	/// </summary>
+	/// <param name="indices">Indexed strip vertex indices.</param>
+	/// <param name="sourceWords">Flat array of 9-dword source vertices.</param>
+	/// <param name="submitStrip">Optional draw callback receiving <c>(D3DPT_TRIANGLESTRIP, primCount, stride)</c>.</param>
+	[Original(0x0083493C)]
+	public static void ExpandIndexedLitPosNormColorUv(
+		ReadOnlySpan<ushort> indices,
+		ReadOnlySpan<uint> sourceWords,
+		Action<int, int, int>? submitStrip = null) =>
+		ExpandIndexedLit(indices, sourceWords, hasNormals: true, hasUv: true, checkStreamCache: false, submitStrip);
+
+	private static void ExpandIndexedLit(
+		ReadOnlySpan<ushort> indices,
+		ReadOnlySpan<uint> sourceWords,
+		bool hasNormals,
+		bool hasUv,
+		bool checkStreamCache,
+		Action<int, int, int>? submitStrip)
+	{
+		if (checkStreamCache && (NinjaColorState.StreamStateFlags & 2u) == 0)
+			NinjaColorState.ClearStreamBinding(0);
+
+		int strideDwords = 4 + (hasNormals ? 3 : 0) + (hasUv ? 2 : 0);
+		int colorOffset = hasNormals ? 6 : 3;
+		const float Scale = 255.0f;
+
+		float aa = NinjaColorState.AmbientAlpha;
+		float ar = NinjaColorState.AmbientRed;
+		float ag = NinjaColorState.AmbientGreen;
+		float ab = NinjaColorState.AmbientBlue;
+
+		int dst = 0;
+		for (int i = 0; i < indices.Length; i++)
+		{
+			int src = indices[i] * strideDwords;
+			DrawBuffer[dst] = sourceWords[src];
+			DrawBuffer[dst + 1] = sourceWords[src + 1];
+			DrawBuffer[dst + 2] = sourceWords[src + 2];
+
+			if (hasNormals)
+			{
+				DrawBuffer[dst + 3] = sourceWords[src + 3];
+				DrawBuffer[dst + 4] = sourceWords[src + 4];
+				DrawBuffer[dst + 5] = sourceWords[src + 5];
+			}
+
+			uint c = sourceWords[src + colorOffset];
+			double r = ((double)(byte)(c >> 16) + 0.0) / Scale + ar;
+			r = ClampChannel01(r);
+			double g = ((double)(byte)(c >> 8) + 0.0) / Scale + ag;
+			g = ClampChannel01(g);
+			double b = ((double)(byte)c + 0.0) / Scale + ab;
+			// Match original machine code: blue is only clamped >= 0.0 because its upper check tests already-clamped red.
+			if (b < 0.0f)
+				b = 0.0;
+			double a = ((double)(byte)(c >> 24) + 0.0) / Scale + aa;
+			a = ClampChannel01(a);
+
+			uint litColor = unchecked((uint)(byte)(long)(b * Scale))
+				| (unchecked((uint)(byte)(long)(g * Scale)) << 8)
+				| (unchecked((uint)(byte)(long)(r * Scale)) << 16)
+				| (unchecked((uint)(long)(a * Scale)) << 24);
+			DrawBuffer[dst + colorOffset] = litColor;
+
+			if (hasUv)
+			{
+				DrawBuffer[dst + colorOffset + 1] = sourceWords[src + colorOffset + 1];
+				DrawBuffer[dst + colorOffset + 2] = sourceWords[src + colorOffset + 2];
+			}
+
+			dst += strideDwords;
+		}
+
+		submitStrip?.Invoke(5, indices.Length - 2, strideDwords * 4);
+	}
+
+	private static double ClampChannel01(double value)
+	{
+		if (value < 0.0f)
+			return 0.0f;
+		return value > 1.0f ? 1.0f : value;
+	}
+
 	private static void ExpandStrips(
 		ReadOnlySpan<short> chunkShorts,
 		bool includeNormals,

@@ -1,0 +1,23 @@
+[
+	{
+		"slot": 0,
+		"initialBinding": 4,
+		"initialStride": 24,
+		"expectedBinding": -1,
+		"expectedStride": 0
+	},
+	{
+		"slot": 2,
+		"initialBinding": -1,
+		"initialStride": 16,
+		"expectedBinding": -1,
+		"expectedStride": 16
+	},
+	{
+		"slot": 1,
+		"initialBinding": 0,
+		"initialStride": 32,
+		"expectedBinding": -1,
+		"expectedStride": 0
+	}
+]

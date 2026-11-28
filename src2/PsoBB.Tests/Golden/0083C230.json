@@ -1,0 +1,50 @@
+[
+	{
+		"value": 0,
+		"expectedDoubleBits": 0
+	},
+	{
+		"value": 2147483648,
+		"expectedDoubleBits": 9223372036854775808
+	},
+	{
+		"value": 1048576000,
+		"expectedDoubleBits": 0
+	},
+	{
+		"value": 3196059648,
+		"expectedDoubleBits": 9223372036854775808
+	},
+	{
+		"value": 1065336439,
+		"expectedDoubleBits": 0
+	},
+	{
+		"value": 3212820087,
+		"expectedDoubleBits": 9223372036854775808
+	},
+	{
+		"value": 1065353216,
+		"expectedDoubleBits": 4607182418800017408
+	},
+	{
+		"value": 3212836864,
+		"expectedDoubleBits": 13830554455654793216
+	},
+	{
+		"value": 1081081856,
+		"expectedDoubleBits": 4613937818241073152
+	},
+	{
+		"value": 3228565504,
+		"expectedDoubleBits": 13837309855095848960
+	},
+	{
+		"value": 1110048768,
+		"expectedDoubleBits": 4631107791820423168
+	},
+	{
+		"value": 3271016448,
+		"expectedDoubleBits": 13861727809325498368
+	}
+]

@@ -1607,6 +1607,10 @@ def main():
     ninja_quaternion_euler_vectors(read)
     ninja_vertex_transform_vectors(read)
     ninja_strip_expander_vectors(read)
+    float_truncate_towards_zero_vectors(read)
+    ninja_translucent_alpha_scan_vectors(read)
+    ninja_stream_reset_vectors(read)
+    ninja_indexed_lit_strip_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -6088,6 +6092,190 @@ def ninja_strip_expander_vectors(read):
                 "diffuseColor": diffuse_color,
                 "scratchWords": scratch_words,
                 "chunkShorts": list(struct.unpack(f"<{len(chunk_bytes) // 2}h", chunk_bytes)),
+                "expectedWords": list(struct.unpack(f"<{out_bytes // 4}I", captured[DRAWBUF])),
+            })
+        write(f"{ea:08X}.json", vectors)
+
+
+def float_truncate_towards_zero_vectors(read):
+    """0x0083C230: truncates a single-precision value towards zero matching x87 round-down/sign handling."""
+    vectors = []
+    for val in [0.0, -0.0, 0.25, -0.25, 0.999, -0.999, 1.0, -1.0, 3.75, -3.75, 42.5, -123.875]:
+        x87_val, _, _, _ = run_extended(
+            read,
+            0x0083C230,
+            4,
+            [float_bits(val)],
+            registers={"fpcw": 0x027F},
+            memory=[],
+            capture=[],
+        )
+        vectors.append({
+            "value": float_bits(val),
+            "expectedDoubleBits": struct.unpack("<Q", struct.pack("<d", x87_val))[0],
+        })
+    write("0083C230.json", vectors)
+
+
+def ninja_translucent_alpha_scan_vectors(read):
+    """0x008359D8..0x00835BA0: scans Ninja vertex arrays (strides 16/24/28/36) for non-opaque alpha."""
+    BUF = 0x50002000
+    specs = [
+        (0x008359D8, 4, 3),
+        (0x00835A70, 6, 3),
+        (0x00835B08, 7, 6),
+        (0x00835BA0, 9, 6),
+    ]
+    for ea, stride_words, color_off in specs:
+        vectors = []
+        for count, non_opaque_idx in [
+            (0, -1),
+            (1, -1),
+            (1, 0),
+            (5, -1),
+            (5, 4),
+            (6, -1),
+            (6, 5),
+            (12, -1),
+            (12, 11),
+        ]:
+            words = [0x3F800000] * max(1, count * stride_words)
+            for idx in range(count):
+                words[idx * stride_words + color_off] = 0x80ABCDEF if idx == non_opaque_idx else 0xFF112233
+            raw = struct.pack(f"<{len(words)}I", *words)
+            eax, _, _ = run(
+                read,
+                ea,
+                0,
+                [BUF, count],
+                registers={"fpcw": 0x027F},
+                memory=[(BUF, raw)],
+                capture=[],
+            )
+            vectors.append({
+                "count": count,
+                "words": words if count > 0 else [],
+                "expected": eax != 0,
+            })
+        write(f"{ea:08X}.json", vectors)
+
+
+def ninja_stream_reset_vectors(read):
+    """0x00839A28: clears cached Direct3D stream binding state when non-minus-one."""
+    DEV = 0x50000100
+    VTBL = 0x50000200
+    STUB = 0x50000400
+    vtbl_bytes = bytearray(0x130)
+    struct.pack_into("<I", vtbl_bytes, 0xF4, STUB)
+    vectors = []
+    for slot, cached_id, cached_stride in [(0, 4, 24), (2, -1, 16), (1, 0, 32)]:
+        _, _, captured = run(
+            read,
+            0x00839A28,
+            0,
+            [],
+            registers={"ecx": slot, "fpcw": 0x027F},
+            memory=[
+                (DEV, struct.pack("<I", VTBL)),
+                (VTBL, bytes(vtbl_bytes)),
+                (STUB, b"\xC2\x0C\x00"),
+                (0x00ACD528, struct.pack("<I", DEV)),
+                (0x00ACD540 + slot * 4, struct.pack("<i", cached_id)),
+                (0x00ACD550 + slot * 4, struct.pack("<i", cached_stride)),
+            ],
+            capture=[(0x00ACD540 + slot * 4, 4), (0x00ACD550 + slot * 4, 4)],
+        )
+        vectors.append({
+            "slot": slot,
+            "initialBinding": cached_id,
+            "initialStride": cached_stride,
+            "expectedBinding": struct.unpack("<i", captured[0x00ACD540 + slot * 4])[0],
+            "expectedStride": struct.unpack("<i", captured[0x00ACD550 + slot * 4])[0],
+        })
+    write("00839A28.json", vectors)
+
+
+def ninja_indexed_lit_strip_vectors(read):
+    """0x008341A8, 0x0083441C, 0x0083469C, 0x0083493C: expands indexed Ninja vertices with ambient color modulation."""
+    DEV = 0x50000100
+    VTBL = 0x50000200
+    STUB_STREAM = 0x50000400
+    STUB_DRAW = 0x50000410
+    IDXBUF = 0x50001000
+    SRCBUF = 0x50002000
+    DRAWBUF = 0x50003000
+
+    vtbl_bytes = bytearray(0x130)
+    struct.pack_into("<I", vtbl_bytes, 0xF4, STUB_STREAM)
+    struct.pack_into("<I", vtbl_bytes, 0x120, STUB_DRAW)
+    d3d_mem = [
+        (DEV, struct.pack("<I", VTBL)),
+        (VTBL, bytes(vtbl_bytes)),
+        (STUB_STREAM, b"\xC2\x0C\x00"),
+        (STUB_DRAW, b"\xC2\x14\x00"),
+        (0x00ACD528, struct.pack("<I", DEV)),
+        (0x00ACD52C, struct.pack("<I", DRAWBUF)),
+    ]
+
+    indices = [2, 0, 1, 3]
+    idx_bytes = struct.pack("<4H", *indices)
+    src_16 = (
+        struct.pack("<3fI", 1.0, 2.0, 3.0, 0x80204060)
+        + struct.pack("<3fI", -2.5, 4.0, -1.5, 0xFFA0B0C0)
+        + struct.pack("<3fI", 5.0, -3.25, 2.5, 0x40E010FF)
+        + struct.pack("<3fI", 0.25, 1.5, -6.0, 0x000080FF)
+    )
+    src_24 = (
+        struct.pack("<3fI2f", 1.0, 2.0, 3.0, 0x80204060, 0.125, 0.875)
+        + struct.pack("<3fI2f", -2.5, 4.0, -1.5, 0xFFA0B0C0, 0.5, 0.25)
+        + struct.pack("<3fI2f", 5.0, -3.25, 2.5, 0x40E010FF, 1.0, 0.0)
+        + struct.pack("<3fI2f", 0.25, 1.5, -6.0, 0x000080FF, 0.75, -0.5)
+    )
+    src_28 = (
+        struct.pack("<6fI", 1.0, 2.0, 3.0, 0.0, 1.0, 0.0, 0x80204060)
+        + struct.pack("<6fI", -2.5, 4.0, -1.5, 0.5, 0.5, -0.70710677, 0xFFA0B0C0)
+        + struct.pack("<6fI", 5.0, -3.25, 2.5, -0.5, 0.25, 0.8291562, 0x40E010FF)
+        + struct.pack("<6fI", 0.25, 1.5, -6.0, 0.0, 0.0, 1.0, 0x000080FF)
+    )
+    src_36 = (
+        struct.pack("<6fI2f", 1.0, 2.0, 3.0, 0.0, 1.0, 0.0, 0x80204060, 0.125, 0.875)
+        + struct.pack("<6fI2f", -2.5, 4.0, -1.5, 0.5, 0.5, -0.70710677, 0xFFA0B0C0, 0.5, 0.25)
+        + struct.pack("<6fI2f", 5.0, -3.25, 2.5, -0.5, 0.25, 0.8291562, 0x40E010FF, 1.0, 0.0)
+        + struct.pack("<6fI2f", 0.25, 1.5, -6.0, 0.0, 0.0, 1.0, 0x000080FF, 0.75, -0.5)
+    )
+
+    specs = [
+        (0x008341A8, 16, src_16),
+        (0x0083441C, 24, src_24),
+        (0x0083469C, 28, src_28),
+        (0x0083493C, 36, src_36),
+    ]
+    for ea, stride, src_bytes in specs:
+        src_words = list(struct.unpack(f"<{len(src_bytes) // 4}I", src_bytes))
+        vectors = []
+        for ambient in [(0.25, -0.2, 0.35, 0.5), (-0.5, 0.5, -1.0, 1.0)]:
+            out_bytes = len(indices) * stride
+            _, _, captured = run(
+                read,
+                ea,
+                0,
+                [IDXBUF, len(indices), SRCBUF],
+                registers={"fpcw": 0x027F},
+                memory=d3d_mem + [
+                    (IDXBUF, idx_bytes),
+                    (SRCBUF, src_bytes),
+                    (DRAWBUF, b"\x00" * 256),
+                    (0x00AF0370, struct.pack("<4f", *ambient)),
+                    (0x00ACC18C, struct.pack("<I", 2)),
+                    (0x00ACD540, struct.pack("<I", 0xFFFFFFFF)),
+                ],
+                capture=[(DRAWBUF, out_bytes)],
+            )
+            vectors.append({
+                "stride": stride,
+                "indices": indices,
+                "ambient": [float_bits(v) for v in ambient],
+                "sourceWords": src_words,
                 "expectedWords": list(struct.unpack(f"<{out_bytes // 4}I", captured[DRAWBUF])),
             })
         write(f"{ea:08X}.json", vectors)
