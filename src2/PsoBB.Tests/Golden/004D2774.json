@@ -1,0 +1,182 @@
+[
+	{
+		"displayWidth": 640,
+		"displayHeight": 480,
+		"screenWidth": 640,
+		"screenHeight": 480,
+		"cropState": 0,
+		"cropY": 0,
+		"cropX": 0,
+		"globalEyeBits": [
+			0,
+			0,
+			0
+		],
+		"globalForwardBits": [
+			0,
+			0,
+			3212836864
+		],
+		"renderRect": [
+			0,
+			0,
+			1142947840,
+			1139802112
+		],
+		"clip": [
+			0,
+			0,
+			3212836864,
+			3212836864
+		],
+		"screenFloatBits": [
+			0,
+			0
+		],
+		"projectionHalfBits": [
+			1134559232,
+			1131413504
+		],
+		"projectionNearBits": 1132068864,
+		"depthBiasMinBits": 1062836634,
+		"depthBiasMaxBits": 1065353216,
+		"stackMatrix": [
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216
+		]
+	},
+	{
+		"displayWidth": 800,
+		"displayHeight": 600,
+		"screenWidth": 800,
+		"screenHeight": 600,
+		"cropState": 0,
+		"cropY": 0,
+		"cropX": 0,
+		"globalEyeBits": [
+			0,
+			0,
+			0
+		],
+		"globalForwardBits": [
+			0,
+			0,
+			3212836864
+		],
+		"renderRect": [
+			0,
+			0,
+			1145569280,
+			1142292480
+		],
+		"clip": [
+			0,
+			0,
+			3212836864,
+			3212836864
+		],
+		"screenFloatBits": [
+			0,
+			0
+		],
+		"projectionHalfBits": [
+			1137180672,
+			1133903872
+		],
+		"projectionNearBits": 1132068864,
+		"depthBiasMinBits": 1062836634,
+		"depthBiasMaxBits": 1065353216,
+		"stackMatrix": [
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216
+		]
+	},
+	{
+		"displayWidth": 1280,
+		"displayHeight": 720,
+		"screenWidth": 1280,
+		"screenHeight": 720,
+		"cropState": 0,
+		"cropY": 0,
+		"cropX": 0,
+		"globalEyeBits": [
+			0,
+			0,
+			0
+		],
+		"globalForwardBits": [
+			0,
+			0,
+			3212836864
+		],
+		"renderRect": [
+			0,
+			0,
+			1151336448,
+			1144258560
+		],
+		"clip": [
+			0,
+			0,
+			3212836864,
+			3212836864
+		],
+		"screenFloatBits": [
+			0,
+			0
+		],
+		"projectionHalfBits": [
+			1142947840,
+			1135869952
+		],
+		"projectionNearBits": 1132068864,
+		"depthBiasMinBits": 1062836634,
+		"depthBiasMaxBits": 1065353216,
+		"stackMatrix": [
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216
+		]
+	}
+]

@@ -255,4 +255,123 @@ public class TransformationStackGoldenTests
 			GoldenVectors.AssertMatrix(expected, target);
 		}
 	}
+
+	public static IEnumerable<object[]> RotateEulerVectors() => GoldenVectors.Load("0082DF5C.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("useStack").GetBoolean(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("initial")),
+			vector.GetProperty("xAngle").GetInt32(),
+			vector.GetProperty("yAngle").GetInt32(),
+			vector.GetProperty("zAngle").GetInt32(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("expected")),
+		});
+
+	public static IEnumerable<object[]> PreMultiplyCurrentVectors() => GoldenVectors.Load("0083BA24.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("current")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("left")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("expected")),
+		});
+
+	public static IEnumerable<object[]> MirrorPlaneVectors() => GoldenVectors.Load("0083B47C.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("useStack").GetBoolean(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("initial")),
+			GoldenVectors.ReadVector(vector.GetProperty("point")),
+			GoldenVectors.ReadVector(vector.GetProperty("normal")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("expected")),
+		});
+
+	public static IEnumerable<object[]> ResetMirroredBasisVectors() => GoldenVectors.Load("0084AF0C.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("capacity").GetInt32(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			vector.GetProperty("depth").GetInt32(),
+			vector.GetProperty("initialized").GetUInt32(),
+			vector.GetProperty("capacityOut").GetInt32(),
+			vector.GetProperty("sameBaseAndCurrent").GetBoolean(),
+		});
+
+	[Theory]
+	[MemberData(nameof(RotateEulerVectors))]
+	public void RotateEulerMatchesTheMachineCode(
+		bool useStack,
+		Matrix4x4 initial,
+		int xAngle,
+		int yAngle,
+		int zAngle,
+		Matrix4x4 expected)
+	{
+		if (useStack)
+		{
+			TransformationStack stack = new();
+			stack.ReplaceCurrent(initial);
+			stack.RotateEuler(xAngle, yAngle, zAngle);
+			GoldenVectors.AssertMatrix(expected, stack.Current);
+		}
+		else
+		{
+			Matrix4x4 target = initial;
+			TransformationStack.RotateEuler(ref target, xAngle, yAngle, zAngle);
+			GoldenVectors.AssertMatrix(expected, target);
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(PreMultiplyCurrentVectors))]
+	public void PreMultiplyCurrentMatchesTheMachineCode(Matrix4x4 current, Matrix4x4 left, Matrix4x4 expected)
+	{
+		TransformationStack stack = new();
+		stack.ReplaceCurrent(current);
+		stack.PreMultiplyCurrent(left);
+		GoldenVectors.AssertMatrix(expected, stack.Current);
+	}
+
+	[Theory]
+	[MemberData(nameof(MirrorPlaneVectors))]
+	public void MirrorAcrossPlaneMatchesTheMachineCode(
+		bool useStack,
+		Matrix4x4 initial,
+		Vector3 point,
+		Vector3 normal,
+		Matrix4x4 expected)
+	{
+		if (useStack)
+		{
+			TransformationStack stack = new();
+			stack.ReplaceCurrent(initial);
+			stack.MirrorAcrossPlane(point, normal);
+			GoldenVectors.AssertMatrix(expected, stack.Current);
+		}
+		else
+		{
+			Matrix4x4 target = initial;
+			TransformationStack.MirrorAcrossPlane(ref target, point, normal);
+			GoldenVectors.AssertMatrix(expected, target);
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ResetMirroredBasisVectors))]
+	public void ResetMirroredBasisMatchesTheMachineCode(
+		int capacity,
+		Matrix4x4 expectedMatrix,
+		int expectedDepth,
+		uint expectedInitialized,
+		int expectedCapacity,
+		bool sameBaseAndCurrent)
+	{
+		Assert.True(sameBaseAndCurrent);
+		TransformationStack stack = new();
+		stack.PushCopy();
+		stack.ResetMirroredBasis(capacity);
+		GoldenVectors.AssertMatrix(expectedMatrix, stack.Current);
+		Assert.Equal(expectedDepth, stack.Depth);
+		Assert.Equal(expectedInitialized != 0, stack.IsInitialized);
+		Assert.Equal(expectedCapacity, stack.Capacity);
+	}
 }

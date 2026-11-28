@@ -13,6 +13,7 @@ public sealed class TransformationStack
 
 	private readonly Matrix4x4[] _matrices = new Matrix4x4[MaximumDepth + 1];
 	private int _depth;
+	private int _capacity = MaximumDepth;
 
 	/// <summary>Creates a stack with an identity matrix at depth zero.</summary>
 	public TransformationStack() => _matrices[0] = Matrix4x4.Identity;
@@ -22,6 +23,12 @@ public sealed class TransformationStack
 
 	/// <summary>Gets the current depth, zero at the initial matrix.</summary>
 	public int Depth => _depth;
+
+	/// <summary>Gets the configured stack matrix capacity.</summary>
+	public int Capacity => _capacity;
+
+	/// <summary>Gets whether the stack has been reset through <see cref="ResetMirroredBasis"/>.</summary>
+	public bool IsInitialized { get; private set; }
 
 	/// <summary>
 	/// Copies the matrix at the current stack depth into <paramref name="destination"/>.
@@ -342,6 +349,165 @@ public sealed class TransformationStack
 	/// <param name="scale">The scale factors.</param>
 	[Original(0x00831290, "scale_transform_stack_head")]
 	public void Scale(Vector3 scale) => _matrices[_depth] = _matrices[_depth].ScaleRows(scale.X, scale.Y, scale.Z);
+
+	/// <summary>
+	/// Pre-multiplies the current stack matrix in place by <paramref name="transform"/>.
+	/// </summary>
+	/// <param name="transform">The left-hand transform matrix applied before the current matrix.</param>
+	[Original(0x0083BA24)]
+	public void PreMultiplyCurrent(Matrix4x4 transform) => _matrices[_depth] = Matrix4x4.Multiply(transform, _matrices[_depth]);
+
+	/// <summary>
+	/// Initializes the stack at depth zero to the Ninja mirrored base matrix with negated X and Y basis axes.
+	/// </summary>
+	/// <param name="capacity">The stack capacity recorded for this transform stack.</param>
+	[Original(0x0084AF0C)]
+	public void ResetMirroredBasis(int capacity = MaximumDepth)
+	{
+		_depth = 0;
+		_capacity = capacity;
+		IsInitialized = true;
+		_matrices[0] = new Matrix4x4(
+			-1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, -1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
+	/// <summary>
+	/// Applies Z, then Y, then X 16-bit turn rotations to the current stack matrix using single-precision sine/cosine pairs.
+	/// </summary>
+	/// <param name="xAngle">The rotation around X in 16-bit turn units.</param>
+	/// <param name="yAngle">The rotation around Y in 16-bit turn units.</param>
+	/// <param name="zAngle">The rotation around Z in 16-bit turn units.</param>
+	[Original(0x0082DF5C)]
+	public void RotateEuler(int xAngle, int yAngle, int zAngle) =>
+		RotateEuler(ref _matrices[_depth], xAngle, yAngle, zAngle);
+
+	/// <summary>
+	/// Applies Z, then Y, then X 16-bit turn rotations to <paramref name="matrix"/> using single-precision sine/cosine pairs.
+	/// </summary>
+	/// <param name="matrix">The matrix updated in place.</param>
+	/// <param name="xAngle">The rotation around X in 16-bit turn units.</param>
+	/// <param name="yAngle">The rotation around Y in 16-bit turn units.</param>
+	/// <param name="zAngle">The rotation around Z in 16-bit turn units.</param>
+	public static void RotateEuler(ref Matrix4x4 matrix, int xAngle, int yAngle, int zAngle)
+	{
+		if (zAngle != 0)
+		{
+			(float sinF, float cosF) = FixedPointTrigonometry.SineCosine(zAngle);
+			double sin = sinF;
+			double cos = cosF;
+			double m11 = matrix.M11;
+			double m12 = matrix.M12;
+			double m13 = matrix.M13;
+			double m14 = matrix.M14;
+			double m21 = matrix.M21;
+			double m22 = matrix.M22;
+			matrix = matrix with
+			{
+				M11 = (float)(sin * m21 + cos * m11),
+				M12 = (float)(sin * m22 + cos * m12),
+				M13 = (float)(sin * matrix.M23 + cos * m13),
+				M14 = (float)(sin * matrix.M24 + cos * m14),
+				M21 = (float)(m11 * -sin + m21 * cos),
+				M22 = (float)(m12 * -sin + m22 * cos),
+				M23 = (float)(m13 * -sin + matrix.M23 * cos),
+				M24 = (float)(m14 * -sin + matrix.M24 * cos),
+			};
+		}
+
+		if (yAngle != 0)
+		{
+			(float sinF, float cosF) = FixedPointTrigonometry.SineCosine(yAngle);
+			double sin = sinF;
+			double cos = cosF;
+			double m11 = matrix.M11;
+			double m12 = matrix.M12;
+			double m13 = matrix.M13;
+			double m14 = matrix.M14;
+			double m31 = matrix.M31;
+			double m32 = matrix.M32;
+			matrix = matrix with
+			{
+				M11 = (float)(cos * m11 + -sin * m31),
+				M12 = (float)(-sin * m32 + cos * m12),
+				M13 = (float)(-sin * matrix.M33 + cos * m13),
+				M14 = (float)(-sin * matrix.M34 + cos * m14),
+				M31 = (float)(m31 * cos + m11 * sin),
+				M32 = (float)(m32 * cos + m12 * sin),
+				M33 = (float)(m13 * sin + matrix.M33 * cos),
+				M34 = (float)(matrix.M34 * cos + m14 * sin),
+			};
+		}
+
+		if (xAngle != 0)
+		{
+			(float sinF, float cosF) = FixedPointTrigonometry.SineCosine(xAngle);
+			double sin = sinF;
+			double cos = cosF;
+			double m21 = matrix.M21;
+			double m22 = matrix.M22;
+			double m23 = matrix.M23;
+			double m24 = matrix.M24;
+			double m31 = matrix.M31;
+			double m32 = matrix.M32;
+			matrix = matrix with
+			{
+				M21 = (float)(sin * m31 + cos * m21),
+				M22 = (float)(sin * m32 + cos * m22),
+				M23 = (float)(sin * matrix.M33 + cos * m23),
+				M24 = (float)(sin * matrix.M34 + cos * m24),
+				M31 = (float)(m21 * -sin + m31 * cos),
+				M32 = (float)(m22 * -sin + m32 * cos),
+				M33 = (float)(m23 * -sin + matrix.M33 * cos),
+				M34 = (float)(m24 * -sin + matrix.M34 * cos),
+			};
+		}
+	}
+
+	/// <summary>
+	/// Reflects the current stack matrix across the plane defined by <paramref name="point"/> and <paramref name="normal"/>.
+	/// </summary>
+	/// <param name="point">A point on the reflection plane.</param>
+	/// <param name="normal">The plane normal vector.</param>
+	[Original(0x0083B47C)]
+	public void MirrorAcrossPlane(Vector3 point, Vector3 normal) =>
+		MirrorAcrossPlane(ref _matrices[_depth], point, normal);
+
+	/// <summary>
+	/// Reflects <paramref name="matrix"/> in place across the plane defined by <paramref name="point"/> and <paramref name="normal"/>.
+	/// </summary>
+	/// <param name="matrix">The matrix updated in place.</param>
+	/// <param name="point">A point on the reflection plane.</param>
+	/// <param name="normal">The plane normal vector.</param>
+	public static void MirrorAcrossPlane(ref Matrix4x4 matrix, Vector3 point, Vector3 normal)
+	{
+		const double TwoPi = 6.283184051513672;
+		const double TurnScale = 65536.0;
+		float xzLength = (float)FloatingPointMath.SquareRoot((float)((double)normal.X * normal.X + (double)normal.Z * normal.Z));
+		float length = (float)FloatingPointMath.SquareRoot((float)((double)normal.Y * normal.Y + (double)xzLength * xzLength));
+
+		int xAngle = 0;
+		if (normal.Y >= 0.0f)
+			xAngle = -FloatingPointMath.TruncateToInt32(Math.Acos(xzLength / length) * TurnScale / TwoPi);
+		if (normal.Y < 0.0f)
+			xAngle = FloatingPointMath.TruncateToInt32(Math.Acos(xzLength / length) * TurnScale / TwoPi);
+
+		int yAngle = 0;
+		if (normal.X >= 0.0f)
+			yAngle = FloatingPointMath.TruncateToInt32(Math.Acos(normal.Z / xzLength) * TurnScale / TwoPi);
+		if (normal.X < 0.0f)
+			yAngle = -FloatingPointMath.TruncateToInt32(Math.Acos(normal.Z / xzLength) * TurnScale / TwoPi);
+
+		Translate(ref matrix, point.X, point.Y, point.Z);
+		matrix = matrix.RotateY(yAngle);
+		matrix = matrix.RotateX(xAngle);
+		matrix = matrix.ScaleRows(1.0f, 1.0f, -1.0f);
+		matrix = matrix.RotateX(-xAngle);
+		matrix = matrix.RotateY(-yAngle);
+		Translate(ref matrix, -point.X, -point.Y, -point.Z);
+	}
 
 	private void RotateZ(int angle)
 	{

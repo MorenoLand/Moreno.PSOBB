@@ -1,0 +1,70 @@
+[
+	{
+		"frames": [
+			0,
+			10,
+			25,
+			60
+		],
+		"query": 0,
+		"lowerIndex": 0,
+		"upperIndex": 1,
+		"fractionBits": 0
+	},
+	{
+		"frames": [
+			0,
+			10,
+			25,
+			60
+		],
+		"query": 1099694080,
+		"lowerIndex": 1,
+		"upperIndex": 2,
+		"fractionBits": 1056964608
+	},
+	{
+		"frames": [
+			0,
+			10,
+			25,
+			60
+		],
+		"query": 1114636288,
+		"lowerIndex": 3,
+		"upperIndex": 0,
+		"fractionBits": 0
+	},
+	{
+		"frames": [
+			0,
+			10,
+			25,
+			60
+		],
+		"query": 1117159424,
+		"lowerIndex": 3,
+		"upperIndex": 0,
+		"fractionBits": 1098121216
+	},
+	{
+		"frames": [
+			5
+		],
+		"query": 1092091904,
+		"lowerIndex": 0,
+		"upperIndex": 0,
+		"fractionBits": 1083179008
+	},
+	{
+		"frames": [
+			0,
+			0,
+			10
+		],
+		"query": 1056964608,
+		"lowerIndex": 1,
+		"upperIndex": 2,
+		"fractionBits": 1028443341
+	}
+]

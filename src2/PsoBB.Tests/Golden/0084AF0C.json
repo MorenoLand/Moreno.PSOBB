@@ -1,0 +1,52 @@
+[
+	{
+		"capacity": 16,
+		"matrix": [
+			3212836864,
+			0,
+			0,
+			0,
+			0,
+			3212836864,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216
+		],
+		"depth": 0,
+		"initialized": 1,
+		"capacityOut": 16,
+		"sameBaseAndCurrent": true
+	},
+	{
+		"capacity": 128,
+		"matrix": [
+			3212836864,
+			0,
+			0,
+			0,
+			0,
+			3212836864,
+			0,
+			0,
+			0,
+			0,
+			1065353216,
+			0,
+			0,
+			0,
+			0,
+			1065353216
+		],
+		"depth": 0,
+		"initialized": 1,
+		"capacityOut": 128,
+		"sameBaseAndCurrent": true
+	}
+]

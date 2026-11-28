@@ -716,4 +716,41 @@ public static class CameraViewportState
 		FieldCameraController.ActiveModeIndex = 0;
 		FieldCameraController.Flags = 0;
 	}
+
+	/// <summary>
+	/// Initializes the screen dimensions, clears crop offsets, resets render rect and clip window, initializes the default camera view, resets the transform stack, and configures default depth bias and projection half-sizes.
+	/// </summary>
+	/// <param name="displayWidth">The render surface width in pixels.</param>
+	/// <param name="displayHeight">The render surface height in pixels.</param>
+	/// <param name="stack">Optional transform stack updated to identity after translation.</param>
+	[Original(0x004D2774)]
+	public static void InitializeScreenViewport(int displayWidth, int displayHeight, TransformationStack? stack = null)
+	{
+		FieldCameraController.ScreenWidth = unchecked((short)displayWidth);
+		FieldCameraController.ScreenHeight = unchecked((short)displayHeight);
+		CropOffsetState = 0;
+		CropOffsetX = 0;
+		CropOffsetY = 0;
+		ResetFullScreenRenderRect(displayWidth, displayHeight);
+		ResetClipWindow();
+		CameraView.InitializeGlobalView();
+		stack?.Translate(-0.0f, -0.0f, -0.0f);
+		stack?.LoadIdentity();
+		DepthBiasMax = 1.0f;
+		DepthBiasMin = 0.85f;
+		ApplyProjectionClipAndScale(new CameraViewportSettings(
+			displayWidth >> 1,
+			displayHeight >> 1,
+			0.0f,
+			0.0f,
+			250.0f,
+			displayWidth,
+			displayHeight,
+			0,
+			0,
+			20.0f,
+			15.0f,
+			1.0f,
+			0.85f));
+	}
 }

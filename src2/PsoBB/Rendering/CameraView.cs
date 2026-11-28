@@ -3,10 +3,51 @@ using PsoBB.Mathematics;
 namespace PsoBB.Rendering;
 
 /// <summary>
+/// Snapshot of the 64-byte Ninja camera view descriptor initialized by <see cref="CameraView.CreateDefaultView"/>.
+/// </summary>
+public readonly record struct NinjaCameraViewState(
+	Vector3 Eye,
+	Vector3 Forward,
+	int Roll,
+	int FieldOfView,
+	float NearClip,
+	float FarClip,
+	float NearScale,
+	Vector3 Offset,
+	float FarScale,
+	int Reserved);
+
+/// <summary>
 /// Builds the row-vector camera view transform from an eye point, a look-at target and an up vector.
 /// </summary>
 public static class CameraView
 {
+	/// <summary>
+	/// Initializes a default Ninja camera view descriptor matching the shipped values at <c>0x00A48780</c>.
+	/// </summary>
+	/// <returns>The initialized camera view state.</returns>
+	[Original(0x0083A57C)]
+	public static NinjaCameraViewState CreateDefaultView() => new(
+		default,
+		new Vector3(0.0f, 0.0f, -1.0f),
+		0,
+		0x2AAA,
+		-1.0f,
+		-60000.0f,
+		1.0f,
+		default,
+		1.0f,
+		0);
+
+	/// <summary>
+	/// Resets the shared field camera eye and forward direction globals from <see cref="CreateDefaultView"/>.
+	/// </summary>
+	public static void InitializeGlobalView()
+	{
+		NinjaCameraViewState defaults = CreateDefaultView();
+		FieldCameraController.GlobalEye = defaults.Eye;
+		FieldCameraController.GlobalForward = defaults.Forward;
+	}
 	/// <summary>
 	/// Builds the view transform for a camera at <paramref name="eye"/> looking at
 	/// <paramref name="center"/>, with the original's three basis vectors and negated eye dot products.

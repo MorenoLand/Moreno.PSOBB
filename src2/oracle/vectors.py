@@ -1595,6 +1595,15 @@ def main():
     clip_window_vectors(read)
     viewport_save_restore_vectors(read)
     camera_keyframe_recorder_vectors(read)
+    transform_rotate_euler_vectors(read)
+    transform_pre_multiply_current_vectors(read)
+    transform_mirror_plane_vectors(read)
+    transform_reset_mirrored_basis_vectors(read)
+    camera_view_default_vectors(read)
+    camera_screen_viewport_init_vectors(read)
+    locate_keyframes_16_vectors(read)
+    ninja_color_apply_ambient_vectors(read)
+    ninja_color_resolve_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -5450,6 +5459,363 @@ def camera_orbit_align_vectors(read):
             "yawAngle": struct.unpack_from("<i", out, 0x30)[0],
         })
     write("004D5188.json", vectors)
+
+
+def transform_rotate_euler_vectors(read):
+    """0x0082DF5C: rotates an explicit matrix or the stack top by Z, Y, then X 16-bit turn angles."""
+    STACK = 0x50004800
+    MAT = 0x50001800
+    initial = (
+        0.5, -0.25, 0.75, 0.0,
+        0.125, 1.5, -0.5, 0.0,
+        -0.75, 0.25, 0.875, 0.0,
+        -12.0, 8.5, 4.25, 1.0,
+    )
+    vectors = []
+    for use_stack, ax, ay, az in [
+        (False, 0x1234, 0x2345, 0x3456),
+        (True, -0x0815, 0x4000, -0x1999),
+        (False, 0, 0x2000, 0),
+        (True, 0x1000, 0, 0x2800),
+    ]:
+        target_addr = STACK if use_stack else MAT
+        _, _, captured = run(
+            read,
+            0x0082DF5C,
+            8,
+            [ay & 0xFFFFFFFF, az & 0xFFFFFFFF],
+            registers={
+                "ecx": 0 if use_stack else MAT,
+                "edx": ax & 0xFFFFFFFF,
+                "fpcw": 0x027F,
+            },
+            memory=[
+                (STACK, struct.pack("<16f", *initial)),
+                (MAT, struct.pack("<16f", *initial)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+            ],
+            capture=[(target_addr, 64)],
+        )
+        vectors.append({
+            "useStack": use_stack,
+            "initial": [float_bits(v) for v in initial],
+            "xAngle": ax,
+            "yAngle": ay,
+            "zAngle": az,
+            "expected": [float_bits(v) for v in struct.unpack("<16f", captured[target_addr])],
+        })
+    write("0082DF5C.json", vectors)
+
+
+def transform_pre_multiply_current_vectors(read):
+    """0x0083BA24: pre-multiplies the active matrix stack top by a supplied matrix."""
+    STACK = 0x50004800
+    LEFT = 0x50001800
+    current = (
+        1.0, 0.25, -0.5, 0.0,
+        -0.5, 1.25, 0.125, 0.0,
+        0.75, -0.25, 0.875, 0.0,
+        3.5, -7.25, 11.0, 1.0,
+    )
+    cases = [
+        (
+            0.5, -0.25, 0.75, 0.0,
+            0.125, 1.5, -0.5, 0.0,
+            -0.75, 0.25, 0.875, 0.0,
+            -12.0, 8.5, 4.25, 1.0,
+        ),
+        (
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, -1.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        ),
+    ]
+    vectors = []
+    for left in cases:
+        _, _, captured = run(
+            read,
+            0x0083BA24,
+            0,
+            [LEFT],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (STACK, struct.pack("<16f", *current)),
+                (LEFT, struct.pack("<16f", *left)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+            ],
+            capture=[(STACK, 64)],
+        )
+        vectors.append({
+            "current": [float_bits(v) for v in current],
+            "left": [float_bits(v) for v in left],
+            "expected": [float_bits(v) for v in struct.unpack("<16f", captured[STACK])],
+        })
+    write("0083BA24.json", vectors)
+
+
+def transform_mirror_plane_vectors(read):
+    """0x0083B47C: reflects a matrix across an arbitrary point/normal plane."""
+    STACK = 0x50004800
+    MAT = 0x50001800
+    PLANE = 0x50002000
+    initial = (
+        0.5, -0.25, 0.75, 0.0,
+        0.125, 1.5, -0.5, 0.0,
+        -0.75, 0.25, 0.875, 0.0,
+        -12.0, 8.5, 4.25, 1.0,
+    )
+    vectors = []
+    for use_stack, point, normal in [
+        (False, (10.0, -5.0, 3.0), (0.6, 0.8, 0.0)),
+        (True, (-4.0, 2.5, 8.0), (-0.5, 0.5, 0.70710677)),
+        (False, (0.0, 12.0, -6.0), (0.0, -1.0, 0.1)),
+        (True, (3.0, -1.0, 2.0), (0.0, 0.0, 1.0)),
+    ]:
+        target_addr = STACK if use_stack else MAT
+        _, _, captured = run(
+            read,
+            0x0083B47C,
+            0,
+            [],
+            registers={"ecx": 0 if use_stack else MAT, "edx": PLANE, "fpcw": 0x027F},
+            memory=[
+                (STACK, struct.pack("<16f", *initial)),
+                (MAT, struct.pack("<16f", *initial)),
+                (PLANE, struct.pack("<6f", *point, *normal)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00AE7F00, struct.pack("<I", 0x200)),
+            ],
+            capture=[(target_addr, 64)],
+        )
+        vectors.append({
+            "useStack": use_stack,
+            "initial": [float_bits(v) for v in initial],
+            "point": [float_bits(v) for v in point],
+            "normal": [float_bits(v) for v in normal],
+            "expected": [float_bits(v) for v in struct.unpack("<16f", captured[target_addr])],
+        })
+    write("0083B47C.json", vectors)
+
+
+def transform_reset_mirrored_basis_vectors(read):
+    """0x0084AF0C: initializes the transformation stack base to the X/Y-negated identity matrix."""
+    STACK = 0x50004800
+    vectors = []
+    for capacity in [16, 128]:
+        _, _, captured = run(
+            read,
+            0x0084AF0C,
+            0,
+            [STACK, capacity],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (STACK, b"\x00" * 64),
+                (0x00AEB494, struct.pack("<I", 9)),
+                (0x00AF0384, struct.pack("<I", 0)),
+            ],
+            capture=[
+                (STACK, 64),
+                (0x00AEB494, 4),
+                (0x00AF0328, 4),
+                (0x00AF032C, 4),
+                (0x00AF0380, 4),
+                (0x00AF0384, 4),
+            ],
+        )
+        vectors.append({
+            "capacity": capacity,
+            "matrix": [float_bits(v) for v in struct.unpack("<16f", captured[STACK])],
+            "depth": struct.unpack("<i", captured[0x00AEB494])[0],
+            "initialized": struct.unpack("<I", captured[0x00AF0384])[0],
+            "capacityOut": struct.unpack("<i", captured[0x00AF0380])[0],
+            "sameBaseAndCurrent": captured[0x00AF0328] == captured[0x00AF032C],
+        })
+    write("0084AF0C.json", vectors)
+
+
+def camera_view_default_vectors(read):
+    """0x0083A57C: initializes a 64-byte Ninja camera view block to shipped defaults."""
+    VIEW = 0x50001800
+    _, _, captured = run(
+        read,
+        0x0083A57C,
+        0,
+        [VIEW],
+        registers={"fpcw": 0x027F},
+        memory=[(VIEW, b"\xAA" * 64)],
+        capture=[(VIEW, 64)],
+    )
+    write("0083A57C.json", [{
+        "words": list(struct.unpack("<16I", captured[VIEW])),
+    }])
+
+
+def camera_screen_viewport_init_vectors(read):
+    """0x004D2774: resets screen viewport dimensions, rects, clip bounds, camera view, and stack identity."""
+    STACK = 0x50004800
+    vectors = []
+    for w, h in [(640, 480), (800, 600), (1280, 720)]:
+        _, _, captured = run(
+            read,
+            0x004D2774,
+            0,
+            [],
+            registers={"fpcw": 0x027F},
+            memory=_d3d_viewport_stub_memory() + [
+                (0x00AF0350, struct.pack("<2i", w, h)),
+                (0x00A48A54, struct.pack("<I", 0)),
+                (STACK, struct.pack("<16f", *[float(i + 2) for i in range(16)])),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00A48A38, struct.pack("<H", 7)),
+                (0x00A48A48, struct.pack("<H", 8)),
+                (0x00A48A4C, struct.pack("<H", 9)),
+            ],
+            capture=[
+                (0x009ACB68, 8),
+                (0x00A48780, 64),
+                (0x00ACC0C0, 16),
+                (0x00AF0330, 16),
+                (0x00AF02E8, 8),
+                (0x00AF02C8, 8),
+                (0x00AF02D8, 4),
+                (0x00A48A58, 8),
+                (0x00A48A38, 2),
+                (0x00A48A48, 6),
+                (STACK, 64),
+            ],
+        )
+        sw = struct.unpack("<h", captured[0x009ACB68][:2])[0]
+        sh = struct.unpack("<h", captured[0x009ACB68][4:6])[0]
+        db_min, db_max = struct.unpack("<2I", captured[0x00A48A58])
+        vectors.append({
+            "displayWidth": w,
+            "displayHeight": h,
+            "screenWidth": sw,
+            "screenHeight": sh,
+            "cropState": struct.unpack("<H", captured[0x00A48A38])[0],
+            "cropY": struct.unpack("<H", captured[0x00A48A48][:2])[0],
+            "cropX": struct.unpack("<H", captured[0x00A48A48][4:6])[0],
+            "globalEyeBits": list(struct.unpack("<3I", captured[0x00A48780][:12])),
+            "globalForwardBits": list(struct.unpack("<3I", captured[0x00A48780][12:24])),
+            "renderRect": list(struct.unpack("<4I", captured[0x00ACC0C0])),
+            "clip": list(struct.unpack("<4I", captured[0x00AF0330])),
+            "screenFloatBits": list(struct.unpack("<2I", captured[0x00AF02E8])),
+            "projectionHalfBits": list(struct.unpack("<2I", captured[0x00AF02C8])),
+            "projectionNearBits": struct.unpack("<I", captured[0x00AF02D8])[0],
+            "depthBiasMinBits": db_min,
+            "depthBiasMaxBits": db_max,
+            "stackMatrix": list(struct.unpack("<16I", captured[STACK])),
+        })
+    write("004D2774.json", vectors)
+
+
+def locate_keyframes_16_vectors(read):
+    """0x0084AD80: binary searches an unsigned 16-bit frame keyframe table and returns blend fraction."""
+    ENTRIES = 0x50001800
+    OUT_LOWER = 0x50002000
+    OUT_UPPER = 0x50002004
+    OUT_FRAC = 0x50002008
+    vectors = []
+    for frames, query in [
+        ([0, 10, 25, 60], 0.0),
+        ([0, 10, 25, 60], 17.5),
+        ([0, 10, 25, 60], 60.0),
+        ([0, 10, 25, 60], 75.25),
+        ([5], 9.5),
+        ([0, 0, 10], 0.5),
+    ]:
+        buf = bytearray(len(frames) * 8)
+        for idx, fr in enumerate(frames):
+            struct.pack_into("<H", buf, idx * 8, fr)
+        _, _, captured = run(
+            read,
+            0x0084AD80,
+            16,
+            [float_bits(query), OUT_LOWER, OUT_UPPER, OUT_FRAC],
+            registers={"ecx": ENTRIES, "edx": len(frames), "fpcw": 0x027F},
+            memory=[
+                (ENTRIES, bytes(buf)),
+                (OUT_LOWER, b"\x00" * 4),
+                (OUT_UPPER, b"\x00" * 4),
+                (OUT_FRAC, b"\x00" * 4),
+            ],
+            capture=[(OUT_LOWER, 4), (OUT_UPPER, 4), (OUT_FRAC, 4)],
+        )
+        lo_ptr = struct.unpack("<I", captured[OUT_LOWER])[0]
+        hi_ptr = struct.unpack("<I", captured[OUT_UPPER])[0]
+        vectors.append({
+            "frames": frames,
+            "query": float_bits(query),
+            "lowerIndex": (lo_ptr - ENTRIES) // 8,
+            "upperIndex": (hi_ptr - ENTRIES) // 8,
+            "fractionBits": struct.unpack("<I", captured[OUT_FRAC])[0],
+        })
+    write("0084AD80.json", vectors)
+
+
+def ninja_color_apply_ambient_vectors(read):
+    """0x0084A544: enables ambient material override flag and packs ARGB ambient color."""
+    vectors = []
+    for flags_in, ambient in [
+        (0, (1.0, 0.5, 0.25, 0.0)),
+        (2, (0.75, 1.0, 0.0, 0.125)),
+    ]:
+        _, _, captured = run(
+            read,
+            0x0084A544,
+            0,
+            [],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (0x00AE7784, struct.pack("<I", flags_in)),
+                (0x00AE7788, struct.pack("<I", 0)),
+                (0x00AF0370, struct.pack("<4f", *ambient)),
+            ],
+            capture=[(0x00AE7784, 8)],
+        )
+        flags_out, packed_out = struct.unpack("<2I", captured[0x00AE7784])
+        vectors.append({
+            "flagsIn": flags_in,
+            "ambient": [float_bits(v) for v in ambient],
+            "flagsOut": flags_out,
+            "packedColor": packed_out,
+        })
+    write("0084A544.json", vectors)
+
+
+def ninja_color_resolve_vectors(read):
+    """0x0084A338: applies ambient color modulation and updates render alpha flag."""
+    vectors = []
+    for color_flags, render_flags, ambient, color in [
+        (0, 0x400, (0.0, 0.0, 0.0, 0.0), 0xFF804020),
+        (0, 0, (0.0, 0.0, 0.0, 0.0), 0x80804020),
+        (2, 0x400, (0.25, -0.5, 0.5, 1.0), 0x80C08040),
+        (1, 0, (1.0, 1.0, 1.0, 1.0), 0xFF102030),
+        (3, 0x400, (0.5, 0.5, 0.5, 0.5), 0x7F102030),
+    ]:
+        _, _, captured = run(
+            read,
+            0x0084A338,
+            4,
+            [0],
+            registers={"edx": color, "fpcw": 0x027F},
+            memory=[
+                (0x00AE7784, struct.pack("<2I", color_flags, 0xCAFEBABE)),
+                (0x00ACD538, struct.pack("<I", render_flags)),
+                (0x00AF0370, struct.pack("<4f", *ambient)),
+            ],
+            capture=[(0x00AE7788, 4), (0x00ACD538, 4)],
+        )
+        vectors.append({
+            "colorFlags": color_flags,
+            "renderFlagsIn": render_flags,
+            "ambient": [float_bits(v) for v in ambient],
+            "color": color,
+            "packedColorOut": struct.unpack("<I", captured[0x00AE7788])[0],
+            "renderFlagsOut": struct.unpack("<I", captured[0x00ACD538])[0],
+        })
+    write("0084A338.json", vectors)
 
 
 if __name__ == "__main__":

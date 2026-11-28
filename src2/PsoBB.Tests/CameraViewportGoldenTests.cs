@@ -808,6 +808,118 @@ public class CameraViewportGoldenTests
 		}
 	}
 
+	[Fact]
+	public void CreateDefaultViewMatchesTheMachineCode()
+	{
+		uint[] words = GoldenVectors.Load("0083A57C.json")[0]
+			.GetProperty("words")
+			.EnumerateArray()
+			.Select(static element => element.GetUInt32())
+			.ToArray();
+
+		NinjaCameraViewState view = CameraView.CreateDefaultView();
+		Assert.Equal(words[0], BitConverter.SingleToUInt32Bits(view.Eye.X));
+		Assert.Equal(words[1], BitConverter.SingleToUInt32Bits(view.Eye.Y));
+		Assert.Equal(words[2], BitConverter.SingleToUInt32Bits(view.Eye.Z));
+		Assert.Equal(words[3], BitConverter.SingleToUInt32Bits(view.Forward.X));
+		Assert.Equal(words[4], BitConverter.SingleToUInt32Bits(view.Forward.Y));
+		Assert.Equal(words[5], BitConverter.SingleToUInt32Bits(view.Forward.Z));
+		Assert.Equal(unchecked((int)words[6]), view.Roll);
+		Assert.Equal(unchecked((int)words[7]), view.FieldOfView);
+		Assert.Equal(words[8], BitConverter.SingleToUInt32Bits(view.NearClip));
+		Assert.Equal(words[9], BitConverter.SingleToUInt32Bits(view.FarClip));
+		Assert.Equal(words[10], BitConverter.SingleToUInt32Bits(view.NearScale));
+		Assert.Equal(words[11], BitConverter.SingleToUInt32Bits(view.Offset.X));
+		Assert.Equal(words[12], BitConverter.SingleToUInt32Bits(view.Offset.Y));
+		Assert.Equal(words[13], BitConverter.SingleToUInt32Bits(view.Offset.Z));
+		Assert.Equal(words[14], BitConverter.SingleToUInt32Bits(view.FarScale));
+		Assert.Equal(unchecked((int)words[15]), view.Reserved);
+	}
+
+	public static IEnumerable<object[]> InitializeScreenViewportVectors() => GoldenVectors.Load("004D2774.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("displayWidth").GetInt32(),
+			vector.GetProperty("displayHeight").GetInt32(),
+			vector.GetProperty("screenWidth").GetInt16(),
+			vector.GetProperty("screenHeight").GetInt16(),
+			vector.GetProperty("cropState").GetUInt16(),
+			vector.GetProperty("cropY").GetUInt16(),
+			vector.GetProperty("cropX").GetUInt16(),
+			vector.GetProperty("globalEyeBits").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+			vector.GetProperty("globalForwardBits").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+			vector.GetProperty("renderRect").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+			vector.GetProperty("clip").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+			vector.GetProperty("projectionHalfBits").EnumerateArray().Select(static e => e.GetUInt32()).ToArray(),
+			vector.GetProperty("projectionNearBits").GetUInt32(),
+			vector.GetProperty("depthBiasMinBits").GetUInt32(),
+			vector.GetProperty("depthBiasMaxBits").GetUInt32(),
+		});
+
+	[Theory]
+	[MemberData(nameof(InitializeScreenViewportVectors))]
+	public void InitializeScreenViewportMatchesTheMachineCode(
+		int displayWidth,
+		int displayHeight,
+		short expectedScreenWidth,
+		short expectedScreenHeight,
+		ushort expectedCropState,
+		ushort expectedCropY,
+		ushort expectedCropX,
+		uint[] expectedEyeBits,
+		uint[] expectedForwardBits,
+		uint[] expectedRenderRect,
+		uint[] expectedClip,
+		uint[] expectedProjHalfBits,
+		uint expectedProjNearBits,
+		uint expectedDepthBiasMinBits,
+		uint expectedDepthBiasMaxBits)
+	{
+		CameraViewportState.ResetGlobals();
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			CameraViewportState.CropOffsetState = 7;
+			CameraViewportState.CropOffsetY = 8;
+			CameraViewportState.CropOffsetX = 9;
+			TransformationStack stack = new();
+			stack.ReplaceCurrent(new Matrix4x4(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17));
+
+			CameraViewportState.InitializeScreenViewport(displayWidth, displayHeight, stack);
+
+			Assert.Equal(expectedScreenWidth, FieldCameraController.ScreenWidth);
+			Assert.Equal(expectedScreenHeight, FieldCameraController.ScreenHeight);
+			Assert.Equal(expectedCropState, CameraViewportState.CropOffsetState);
+			Assert.Equal(expectedCropY, CameraViewportState.CropOffsetY);
+			Assert.Equal(expectedCropX, CameraViewportState.CropOffsetX);
+			Assert.Equal(expectedEyeBits[0], BitConverter.SingleToUInt32Bits(FieldCameraController.GlobalEye.X));
+			Assert.Equal(expectedEyeBits[1], BitConverter.SingleToUInt32Bits(FieldCameraController.GlobalEye.Y));
+			Assert.Equal(expectedEyeBits[2], BitConverter.SingleToUInt32Bits(FieldCameraController.GlobalEye.Z));
+			Assert.Equal(expectedForwardBits[0], BitConverter.SingleToUInt32Bits(FieldCameraController.GlobalForward.X));
+			Assert.Equal(expectedForwardBits[1], BitConverter.SingleToUInt32Bits(FieldCameraController.GlobalForward.Y));
+			Assert.Equal(expectedForwardBits[2], BitConverter.SingleToUInt32Bits(FieldCameraController.GlobalForward.Z));
+			Assert.Equal(expectedRenderRect[0], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectX));
+			Assert.Equal(expectedRenderRect[1], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectY));
+			Assert.Equal(expectedRenderRect[2], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectWidth));
+			Assert.Equal(expectedRenderRect[3], BitConverter.SingleToUInt32Bits(CameraViewportState.RenderRectHeight));
+			Assert.Equal(expectedClip[0], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipLeft));
+			Assert.Equal(expectedClip[1], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipTop));
+			Assert.Equal(expectedClip[2], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipRight));
+			Assert.Equal(expectedClip[3], BitConverter.SingleToUInt32Bits(CameraViewportState.ClipBottom));
+			Assert.Equal(expectedProjHalfBits[0], BitConverter.SingleToUInt32Bits(CameraViewportState.ProjectionHalfWidth));
+			Assert.Equal(expectedProjHalfBits[1], BitConverter.SingleToUInt32Bits(CameraViewportState.ProjectionHalfHeight));
+			Assert.Equal(expectedProjNearBits, BitConverter.SingleToUInt32Bits(CameraViewportState.ProjectionNearPlane));
+			Assert.Equal(expectedDepthBiasMinBits, BitConverter.SingleToUInt32Bits(CameraViewportState.DepthBiasMin));
+			Assert.Equal(expectedDepthBiasMaxBits, BitConverter.SingleToUInt32Bits(CameraViewportState.DepthBiasMax));
+			GoldenVectors.AssertMatrix(Matrix4x4.Identity, stack.Current);
+		}
+		finally
+		{
+			CameraViewportState.ResetGlobals();
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
 	private static void AssertViewportWords(uint[] expectedViewport)
 	{
 		Assert.Equal(expectedViewport[0], BitConverter.SingleToUInt32Bits(CameraViewportState.ScaledAspectX));

@@ -132,6 +132,39 @@ internal static class NinjaMotionEvaluator
 	}
 
 	/// <summary>
+	/// Binary-searches an unsigned 16-bit keyframe timeline and returns the bracketing indices and blend fraction.
+	/// </summary>
+	/// <param name="frames">Sorted 16-bit frame timestamps.</param>
+	/// <param name="frame">The sampled frame time.</param>
+	/// <returns>The lower index, upper index, and single-precision blend fraction.</returns>
+	[Original(0x0084AD80)]
+	internal static (int Lower, int Upper, float Fraction) LocateKeyframes16(ReadOnlySpan<ushort> frames, float frame)
+	{
+		int target = unchecked((ushort)FloatingPointMath.TruncateToInt32(frame));
+		int upper = unchecked((ushort)frames.Length);
+		int lower = 0;
+		if (upper > 1)
+		{
+			while (upper - lower > 1)
+			{
+				int middle = unchecked((ushort)((lower + upper) >> 1));
+				if (target < frames[middle])
+					upper = middle;
+				else
+					lower = middle;
+			}
+		}
+
+		int upperIndex = lower < frames.Length - 1 ? lower + 1 : 0;
+		int lowerFrame = frames[lower];
+		int frameDelta = frames[upperIndex] - lowerFrame;
+		double fraction = frameDelta <= 0
+			? (double)frame - lowerFrame
+			: ((double)frame - lowerFrame) / frameDelta;
+		return (lower, upperIndex, (float)fraction);
+	}
+
+	/// <summary>
 	/// Returns the index of the keyframe at or before a frame position.
 	/// </summary>
 	/// <param name="keyframes">The keyframes in frame order.</param>
