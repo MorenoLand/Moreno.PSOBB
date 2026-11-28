@@ -1,0 +1,54 @@
+namespace PsoBB.Platform;
+
+/// <summary>
+/// Keyboard, mouse and gamepad state read once per frame.
+/// </summary>
+/// <remarks>
+/// The host replaces the DirectInput device creation, acquisition and state calls plus <c>GetCursorPos</c>, <c>SetCursorPos</c> and <c>ShowCursor</c>; a single-threaded browser host fills the same state from its event queue.
+/// </remarks>
+public interface IGameInput
+{
+	/// <summary>
+	/// Gets the keyboard state from the last poll.
+	/// </summary>
+	KeyboardState Keyboard { get; }
+
+	/// <summary>
+	/// Gets the mouse state from the last poll.
+	/// </summary>
+	MouseState Mouse { get; }
+
+	/// <summary>
+	/// Gets the gamepad state from the last poll.
+	/// </summary>
+	/// <remarks>
+	/// A host without a gamepad leaves this at <see cref="GamepadState.Empty"/>; a host with one fills the standard layout.
+	/// </remarks>
+	GamepadState Gamepad => GamepadState.Empty;
+
+	/// <summary>
+	/// Gets a value indicating whether the client window owns keyboard and pointer input.
+	/// </summary>
+	/// <remarks>
+	/// Hosts without a focus concept leave this true. The portable layer releases held controls when it turns false and resynchronises them when it returns.
+	/// </remarks>
+	bool IsFocused => true;
+
+	/// <summary>
+	/// Reads the devices and applies input that arrived since the previous poll.
+	/// </summary>
+	void Poll();
+
+	/// <summary>
+	/// Requests a new client-area pointer position.
+	/// </summary>
+	/// <param name="x">The horizontal client-area coordinate.</param>
+	/// <param name="y">The vertical client-area coordinate.</param>
+	void SetCursorPosition(int x, int y);
+
+	/// <summary>
+	/// Requests that the host show or hide the pointer.
+	/// </summary>
+	/// <param name="visible">Whether the pointer should be visible.</param>
+	void SetCursorVisible(bool visible);
+}

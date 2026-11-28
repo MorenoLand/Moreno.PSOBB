@@ -299,7 +299,33 @@ chunk = 120
 max_functions_per_file = 150
 
 [classify]
-ranges = []
+# Library runs proven by references: functions reached by direct calls from one library's string and table anchors (ida/facts.json).
+# A function reached from two libraries is left out, so app code is never inside a run.
+ranges = [
+  [0x8a33e7, 0x8a3610, "lib:jpeg"],
+  [0x8a3e03, 0x8a3e4f, "lib:jpeg"],
+  [0x8a3e4f, 0x8a3ed6, "lib:png"],
+  [0x8a3f23, 0x8a3f6d, "lib:png"],
+  [0x8a4070, 0x8a41e3, "lib:png"],
+  [0x8a4835, 0x8a4906, "lib:png"],
+  [0x8a4a3a, 0x8a4b26, "lib:png"],
+  [0x8a4c50, 0x8a5b09, "lib:png"],
+  [0x8a5f25, 0x8a627d, "lib:png"],
+  [0x8a62bf, 0x8a635a, "lib:png"],
+  [0x8a635f, 0x8a6377, "lib:png"],
+  [0x8a9d3e, 0x8a9d5a, "lib:jpeg"],
+  [0x8aa4e9, 0x8aa818, "lib:zlib"],
+  [0x8aa942, 0x8aaa3f, "lib:png"],
+  [0x8ab235, 0x8aba26, "lib:png"],
+  [0x8b5c08, 0x8b6207, "lib:jpeg"],
+  [0x8b6370, 0x8b63cb, "lib:jpeg"],
+  [0x8b65c8, 0x8b67f1, "lib:jpeg"],
+  [0x8b68d3, 0x8b6c41, "lib:jpeg"],
+  [0x8ba160, 0x8ba8d3, "lib:zlib"],
+  [0x8bc501, 0x8bca71, "lib:zlib"],
+  [0x8bcaaa, 0x8bd0f5, "lib:zlib"],
+  [0x8bed3d, 0x8beff2, "lib:zlib"],
+]
 
 [layout]
 areas = [

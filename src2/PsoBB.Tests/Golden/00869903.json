@@ -1,0 +1,62 @@
+[
+	{
+		"left": "00000000",
+		"right": "00000000",
+		"carry": 0,
+		"sum": "00000000"
+	},
+	{
+		"left": "00000001",
+		"right": "00000001",
+		"carry": 0,
+		"sum": "00000002"
+	},
+	{
+		"left": "ffffffff",
+		"right": "00000001",
+		"carry": 1,
+		"sum": "00000000"
+	},
+	{
+		"left": "ffffffff",
+		"right": "ffffffff",
+		"carry": 1,
+		"sum": "fffffffe"
+	},
+	{
+		"left": "80000000",
+		"right": "80000000",
+		"carry": 1,
+		"sum": "00000000"
+	},
+	{
+		"left": "7fffffff",
+		"right": "00000001",
+		"carry": 0,
+		"sum": "80000000"
+	},
+	{
+		"left": "12345678",
+		"right": "9abcdef0",
+		"carry": 0,
+		"sum": "acf13568"
+	},
+	{
+		"left": "fffffffe",
+		"right": "00000001",
+		"carry": 0,
+		"sum": "ffffffff"
+	},
+	{
+		"left": "00000000",
+		"right": "ffffffff",
+		"carry": 0,
+		"sum": "ffffffff"
+	},
+	{
+		"left": "deadbeef",
+		"right": "01234567",
+		"carry": 0,
+		"sum": "dfd10456"
+	}
+]

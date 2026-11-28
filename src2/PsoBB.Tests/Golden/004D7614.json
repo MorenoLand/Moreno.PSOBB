@@ -1,0 +1,102 @@
+[
+	{
+		"hasPlayer": true,
+		"presetIndex": 0,
+		"playerPosition": [
+			1092616192,
+			1073741824,
+			3231711232
+		],
+		"offset": [
+			0,
+			1092616192,
+			1101004800
+		],
+		"withHit": false,
+		"eye": [
+			1092616192,
+			1107191398,
+			1097859072
+		],
+		"target": [
+			1092616192,
+			1101948518,
+			3231711232
+		]
+	},
+	{
+		"hasPlayer": true,
+		"presetIndex": 1,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"offset": [
+			1084227584,
+			1101004800,
+			1109393408
+		],
+		"withHit": false,
+		"eye": [
+			1084227584,
+			1109340979,
+			1109393408
+		],
+		"target": [
+			0,
+			1100899942,
+			0
+		]
+	},
+	{
+		"hasPlayer": true,
+		"presetIndex": 2,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"offset": [
+			0,
+			0,
+			1109393408
+		],
+		"withHit": true,
+		"eye": [
+			0,
+			1099117363,
+			1097859072
+		],
+		"target": [
+			0,
+			1099117363,
+			0
+		]
+	},
+	{
+		"hasPlayer": false,
+		"presetIndex": 1,
+		"playerPosition": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"offset": [
+			0,
+			1092616192,
+			1101004800
+		],
+		"withHit": false,
+		"eye": [
+			0,
+			0,
+			0
+		],
+		"target": [
+			0,
+			0,
+			0
+		]
+	}
+]

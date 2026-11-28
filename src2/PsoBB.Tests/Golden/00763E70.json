@@ -1,0 +1,290 @@
+[
+	{
+		"name": "single byte 0 bytes",
+		"key": "5a",
+		"length": 0,
+		"input": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "single byte 7 bytes",
+		"key": "5a",
+		"length": 7,
+		"input": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "single byte 8 bytes",
+		"key": "5a",
+		"length": 8,
+		"input": "9fcacb57357b9641cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d34cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "single byte 9 bytes",
+		"key": "5a",
+		"length": 9,
+		"input": "9fcacb57357b96413bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "single byte 16 bytes",
+		"key": "5a",
+		"length": 16,
+		"input": "9fcacb57357b9641997f857a579cc434cccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656ccccccccccccccccccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "single byte 23 bytes",
+		"key": "5a",
+		"length": 23,
+		"input": "9fcacb57357b9641997f857a579cc434737a81888f969dcccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c737a81888f969dcccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "three bytes 0 bytes",
+		"key": "112233",
+		"length": 0,
+		"input": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "three bytes 7 bytes",
+		"key": "112233",
+		"length": 7,
+		"input": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "three bytes 8 bytes",
+		"key": "112233",
+		"length": 8,
+		"input": "5e6ecdfc82cc998dcccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d34cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "three bytes 9 bytes",
+		"key": "112233",
+		"length": 9,
+		"input": "5e6ecdfc82cc998d3bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "three bytes 16 bytes",
+		"key": "112233",
+		"length": 16,
+		"input": "5e6ecdfc82cc998dc3cfd72fabb2a96fcccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656ccccccccccccccccccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "three bytes 23 bytes",
+		"key": "112233",
+		"length": 23,
+		"input": "5e6ecdfc82cc998dc3cfd72fabb2a96f737a81888f969dcccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c737a81888f969dcccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "four bytes 0 bytes",
+		"key": "deadbeef",
+		"length": 0,
+		"input": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "four bytes 7 bytes",
+		"key": "deadbeef",
+		"length": 7,
+		"input": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "four bytes 8 bytes",
+		"key": "deadbeef",
+		"length": 8,
+		"input": "33e267f038405ef0cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d34cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "four bytes 9 bytes",
+		"key": "deadbeef",
+		"length": 9,
+		"input": "33e267f038405ef03bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "four bytes 16 bytes",
+		"key": "deadbeef",
+		"length": 16,
+		"input": "33e267f038405ef082aa6b4d012ee6b5cccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656ccccccccccccccccccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "four bytes 23 bytes",
+		"key": "deadbeef",
+		"length": 23,
+		"input": "33e267f038405ef082aa6b4d012ee6b5737a81888f969dcccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c737a81888f969dcccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "sixteen bytes 0 bytes",
+		"key": "000102030405060708090a0b0c0d0e0f",
+		"length": 0,
+		"input": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "sixteen bytes 7 bytes",
+		"key": "000102030405060708090a0b0c0d0e0f",
+		"length": 7,
+		"input": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "sixteen bytes 8 bytes",
+		"key": "000102030405060708090a0b0c0d0e0f",
+		"length": 8,
+		"input": "d143274e2e91a1cbcccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d34cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "sixteen bytes 9 bytes",
+		"key": "000102030405060708090a0b0c0d0e0f",
+		"length": 9,
+		"input": "d143274e2e91a1cb3bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "sixteen bytes 16 bytes",
+		"key": "000102030405060708090a0b0c0d0e0f",
+		"length": 16,
+		"input": "d143274e2e91a1cbf7471a86ac3bda6bcccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656ccccccccccccccccccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "sixteen bytes 23 bytes",
+		"key": "000102030405060708090a0b0c0d0e0f",
+		"length": 23,
+		"input": "d143274e2e91a1cbf7471a86ac3bda6b737a81888f969dcccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c737a81888f969dcccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "forty-eight bytes 0 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 0,
+		"input": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "forty-eight bytes 1 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 1,
+		"input": "03cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "03cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "forty-eight bytes 7 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 7,
+		"input": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262dcccccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 0
+	},
+	{
+		"name": "forty-eight bytes 8 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 8,
+		"input": "ddd878d4c001ec6acccccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d34cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "forty-eight bytes 9 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 9,
+		"input": "ddd878d4c001ec6a3bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343bcccccccccccccccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "forty-eight bytes 15 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 15,
+		"input": "ddd878d4c001ec6a3b424950575e65cccccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e65cccccccccccccccccccccccccccccccccc",
+		"blocks": 1
+	},
+	{
+		"name": "forty-eight bytes 16 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 16,
+		"input": "ddd878d4c001ec6a84a9ce0c0ca349cdcccccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656ccccccccccccccccccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "forty-eight bytes 17 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 17,
+		"input": "ddd878d4c001ec6a84a9ce0c0ca349cd73cccccccccccccccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c73cccccccccccccccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "forty-eight bytes 23 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 23,
+		"input": "ddd878d4c001ec6a84a9ce0c0ca349cd737a81888f969dcccccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c737a81888f969dcccccccccccccccccc",
+		"blocks": 2
+	},
+	{
+		"name": "forty-eight bytes 24 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 24,
+		"input": "ddd878d4c001ec6a84a9ce0c0ca349cd6d86f91be5867cddcccccccccccccccc",
+		"output": "030a11181f262d343b424950575e656c737a81888f969da4cccccccccccccccc",
+		"blocks": 3
+	},
+	{
+		"name": "forty-eight bytes 32 bytes",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 32,
+		"input": "ddd878d4c001ec6a84a9ce0c0ca349cd6d86f91be5867cdd40f6d9e830496fe6",
+		"output": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dc",
+		"blocks": 4
+	},
+	{
+		"name": "forty-eight bytes arbitrary ciphertext",
+		"key": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+		"length": 32,
+		"input": "05101b26313c47525d68737e89949faab5c0cbd6e1ecf7020d18232e39444f5a65707b86919ca7b2",
+		"output": "d66efd8e59c50c9bd97016fa12755ccd2b9516df5150028d8f3127a9209f05b265707b86919ca7b2",
+		"blocks": 4
+	}
+]

@@ -1,0 +1,338 @@
+[
+	{
+		"total": 1,
+		"divisor": 1,
+		"quotient": 1,
+		"remainder": 0
+	},
+	{
+		"total": 2,
+		"divisor": 2,
+		"quotient": 1,
+		"remainder": 1
+	},
+	{
+		"total": 3,
+		"divisor": 2,
+		"quotient": 2,
+		"remainder": 0
+	},
+	{
+		"total": 4,
+		"divisor": 3,
+		"quotient": 2,
+		"remainder": 0
+	},
+	{
+		"total": -1,
+		"divisor": 2,
+		"quotient": 0,
+		"remainder": 0
+	},
+	{
+		"total": 1,
+		"divisor": -2,
+		"quotient": 1,
+		"remainder": 0
+	},
+	{
+		"total": 2147483647,
+		"divisor": 2,
+		"quotient": 3221225472,
+		"remainder": 0
+	},
+	{
+		"total": -2147483648,
+		"divisor": 3,
+		"quotient": 3579139414,
+		"remainder": 0
+	},
+	{
+		"total": 1987853924,
+		"divisor": 3,
+		"quotient": 662617975,
+		"remainder": 1
+	},
+	{
+		"total": -163673495,
+		"divisor": 3,
+		"quotient": 4240409465,
+		"remainder": 0
+	},
+	{
+		"total": 422335739,
+		"divisor": -1,
+		"quotient": 3872631559,
+		"remainder": 0
+	},
+	{
+		"total": -644638136,
+		"divisor": -1,
+		"quotient": 644638138,
+		"remainder": 0
+	},
+	{
+		"total": -358283892,
+		"divisor": -1,
+		"quotient": 358283894,
+		"remainder": 0
+	},
+	{
+		"total": -279884664,
+		"divisor": 3,
+		"quotient": 4201672409,
+		"remainder": 4294967295
+	},
+	{
+		"total": 799048468,
+		"divisor": 1,
+		"quotient": 799048468,
+		"remainder": 0
+	},
+	{
+		"total": 1999152010,
+		"divisor": 8,
+		"quotient": 249894002,
+		"remainder": 1
+	},
+	{
+		"total": 1985219817,
+		"divisor": 4,
+		"quotient": 496304955,
+		"remainder": 0
+	},
+	{
+		"total": -1661285882,
+		"divisor": 8,
+		"quotient": 4087306562,
+		"remainder": 4294967293
+	},
+	{
+		"total": -1037487722,
+		"divisor": 4,
+		"quotient": 4035595367,
+		"remainder": 4294967293
+	},
+	{
+		"total": -1498923515,
+		"divisor": 1,
+		"quotient": 2796043781,
+		"remainder": 0
+	},
+	{
+		"total": -391516736,
+		"divisor": 2,
+		"quotient": 4099208929,
+		"remainder": 4294967295
+	},
+	{
+		"total": 984323946,
+		"divisor": 8,
+		"quotient": 123040494,
+		"remainder": 1
+	},
+	{
+		"total": 1448876088,
+		"divisor": 16,
+		"quotient": 90554756,
+		"remainder": 7
+	},
+	{
+		"total": -242223698,
+		"divisor": 4,
+		"quotient": 4234411373,
+		"remainder": 4294967293
+	},
+	{
+		"total": 619998397,
+		"divisor": 1,
+		"quotient": 619998397,
+		"remainder": 0
+	},
+	{
+		"total": 7585197,
+		"divisor": 2,
+		"quotient": 3792599,
+		"remainder": 0
+	},
+	{
+		"total": 850020620,
+		"divisor": 4096,
+		"quotient": 207525,
+		"remainder": 2315
+	},
+	{
+		"total": -1238934942,
+		"divisor": 1,
+		"quotient": 3056032354,
+		"remainder": 0
+	},
+	{
+		"total": -1438742425,
+		"divisor": 4,
+		"quotient": 3935281691,
+		"remainder": 4294967294
+	},
+	{
+		"total": 2073712819,
+		"divisor": 3,
+		"quotient": 691237607,
+		"remainder": 0
+	},
+	{
+		"total": -1076643267,
+		"divisor": 8,
+		"quotient": 4160386889,
+		"remainder": 4294967292
+	},
+	{
+		"total": -1796543387,
+		"divisor": 4,
+		"quotient": 3845831450,
+		"remainder": 0
+	},
+	{
+		"total": 1951201081,
+		"divisor": 2,
+		"quotient": 975600541,
+		"remainder": 0
+	},
+	{
+		"total": -2102303547,
+		"divisor": -1,
+		"quotient": 2102303549,
+		"remainder": 0
+	},
+	{
+		"total": 1565034459,
+		"divisor": 4096,
+		"quotient": 382089,
+		"remainder": 2010
+	},
+	{
+		"total": 251643147,
+		"divisor": 2,
+		"quotient": 125821574,
+		"remainder": 0
+	},
+	{
+		"total": -359959863,
+		"divisor": 3,
+		"quotient": 4174980676,
+		"remainder": 4294967295
+	},
+	{
+		"total": -964621386,
+		"divisor": 4096,
+		"quotient": 4294731794,
+		"remainder": 4294966197
+	},
+	{
+		"total": 1003150871,
+		"divisor": 4,
+		"quotient": 250787718,
+		"remainder": 2
+	},
+	{
+		"total": -1213398403,
+		"divisor": 4,
+		"quotient": 3991617696,
+		"remainder": 0
+	},
+	{
+		"total": -816456165,
+		"divisor": 1,
+		"quotient": 3478511131,
+		"remainder": 0
+	},
+	{
+		"total": -1314310164,
+		"divisor": 4,
+		"quotient": 3966389756,
+		"remainder": 4294967295
+	},
+	{
+		"total": 1052881923,
+		"divisor": 1,
+		"quotient": 1052881923,
+		"remainder": 0
+	},
+	{
+		"total": -270495185,
+		"divisor": 2,
+		"quotient": 4159719704,
+		"remainder": 0
+	},
+	{
+		"total": 1666017834,
+		"divisor": -1,
+		"quotient": 2628949464,
+		"remainder": 0
+	},
+	{
+		"total": -2119420008,
+		"divisor": 2,
+		"quotient": 3235257293,
+		"remainder": 4294967295
+	},
+	{
+		"total": 731621969,
+		"divisor": 4096,
+		"quotient": 178619,
+		"remainder": 2640
+	},
+	{
+		"total": 1539594847,
+		"divisor": 8,
+		"quotient": 192449356,
+		"remainder": 6
+	},
+	{
+		"total": 423845961,
+		"divisor": 16,
+		"quotient": 26490373,
+		"remainder": 8
+	},
+	{
+		"total": -1056919571,
+		"divisor": 16,
+		"quotient": 4228909824,
+		"remainder": 4294967292
+	},
+	{
+		"total": -2022948856,
+		"divisor": 4096,
+		"quotient": 4294473414,
+		"remainder": 4294963207
+	},
+	{
+		"total": 234298406,
+		"divisor": 4,
+		"quotient": 58574602,
+		"remainder": 1
+	},
+	{
+		"total": 1849704889,
+		"divisor": 8,
+		"quotient": 231213112,
+		"remainder": 0
+	},
+	{
+		"total": 530774453,
+		"divisor": 8,
+		"quotient": 66346807,
+		"remainder": 4
+	},
+	{
+		"total": 144575096,
+		"divisor": 2,
+		"quotient": 72287548,
+		"remainder": 1
+	},
+	{
+		"total": -1831404096,
+		"divisor": 2,
+		"quotient": 3379265249,
+		"remainder": 4294967295
+	}
+]

@@ -6,6 +6,27 @@ WebAssembly target from the same lifted source.
 
 The original executable and game data are not part of this repository.
 
+## C# client
+
+`src2/` is a C# recreation of the same client, targeting .NET 11 on Windows, Linux and WebAssembly. It is ported from the C lift and the original machine code: every ported member keeps its original address, and golden vectors produced by running the machine code in Unicorn verify the result. The client owns rendering through a platform seam, so resolution and anti-aliasing are host settings instead of guest Direct3D 8 state.
+
+```powershell
+dotnet build src2/PsoBB.slnx -c Release
+dotnet test src2/PsoBB.slnx -c Release --no-build
+python src2/oracle/vectors.py
+python src2/tools/coverage.py
+```
+
+Run the Windows program with the folder that contains `data\data.gsl`:
+
+```powershell
+bin\PsoBB.Windows.exe "<game folder>"
+```
+
+`--preview <entry>` draws one texture from `data\data.gsl` instead of starting the client, for example `--preview title2_eng.xvm`.
+
+The tracker reports byte-weighted coverage of the original code. The C lift remains the reference implementation and the oracle.
+
 ## Status
 
 | Area | State |

@@ -1,0 +1,67 @@
+[
+	{
+		"dividend": "0000000000000000",
+		"divisor": "0000000000000001",
+		"result": "0000000000000000"
+	},
+	{
+		"dividend": "0000000000000001",
+		"divisor": "0000000000000001",
+		"result": "0000000000000001"
+	},
+	{
+		"dividend": "ffffffffffffffff",
+		"divisor": "0000000000000001",
+		"result": "ffffffffffffffff"
+	},
+	{
+		"dividend": "ffffffffffffffff",
+		"divisor": "ffffffffffffffff",
+		"result": "0000000000000001"
+	},
+	{
+		"dividend": "8000000000000000",
+		"divisor": "0000000000000002",
+		"result": "4000000000000000"
+	},
+	{
+		"dividend": "123456789abcdef0",
+		"divisor": "0000000000000010",
+		"result": "0123456789abcdef"
+	},
+	{
+		"dividend": "000000007fffffff",
+		"divisor": "0000000080000000",
+		"result": "0000000000000000"
+	},
+	{
+		"dividend": "0000000100000000",
+		"divisor": "0000000100000000",
+		"result": "0000000000000001"
+	},
+	{
+		"dividend": "ffffffffffffffff",
+		"divisor": "0000000100000000",
+		"result": "00000000ffffffff"
+	},
+	{
+		"dividend": "ab54a98ceb1f0ad2",
+		"divisor": "000000003ade68b1",
+		"result": "00000002e90edc8f"
+	},
+	{
+		"dividend": "00000001ffffffff",
+		"divisor": "0000000000000003",
+		"result": "00000000aaaaaaaa"
+	},
+	{
+		"dividend": "ffffffff00000000",
+		"divisor": "00000000ffffffff",
+		"result": "0000000100000000"
+	},
+	{
+		"dividend": "000000003b9aca07",
+		"divisor": "7fffffffffffffff",
+		"result": "0000000000000000"
+	}
+]

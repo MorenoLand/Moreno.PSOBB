@@ -1,0 +1,18 @@
+[
+	{
+		"address": "000102030405060708090a0b0c0d0e0f",
+		"result": "0f0e0d0c"
+	},
+	{
+		"address": "ffffffffffffffffffffffffffffffff",
+		"result": "ffffffff"
+	},
+	{
+		"address": "0000000000000000000000007f000001",
+		"result": "0100007f"
+	},
+	{
+		"address": "123456789abcdef011223344c0a80164",
+		"result": "6401a8c0"
+	}
+]

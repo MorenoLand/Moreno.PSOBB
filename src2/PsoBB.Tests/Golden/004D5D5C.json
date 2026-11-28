@@ -1,0 +1,86 @@
+[
+	{
+		"hasEye": true,
+		"hasTarget": true,
+		"count": 3,
+		"speed": 1075838976,
+		"targetClientId": 65535,
+		"loop": 1,
+		"taskFlags": 0,
+		"cutsceneViewFlags": 1,
+		"cutsceneEye": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"cutsceneTarget": [
+			1082130432,
+			1084227584,
+			1086324736
+		],
+		"cutsceneTargetClientId": -1
+	},
+	{
+		"hasEye": true,
+		"hasTarget": false,
+		"count": 3,
+		"speed": 1069547520,
+		"targetClientId": 2,
+		"loop": 0,
+		"taskFlags": 0,
+		"cutsceneViewFlags": 2,
+		"cutsceneEye": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"cutsceneTarget": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetClientId": 2
+	},
+	{
+		"hasEye": true,
+		"hasTarget": true,
+		"count": 1,
+		"speed": 1065353216,
+		"targetClientId": 65535,
+		"loop": 0,
+		"taskFlags": 1,
+		"cutsceneViewFlags": 0,
+		"cutsceneEye": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTarget": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetClientId": -1
+	},
+	{
+		"hasEye": false,
+		"hasTarget": true,
+		"count": 3,
+		"speed": 1065353216,
+		"targetClientId": 65535,
+		"loop": 0,
+		"taskFlags": 1,
+		"cutsceneViewFlags": 0,
+		"cutsceneEye": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTarget": [
+			0,
+			0,
+			0
+		],
+		"cutsceneTargetClientId": -1
+	}
+]

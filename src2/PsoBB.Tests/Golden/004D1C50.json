@@ -1,0 +1,28 @@
+[
+	{
+		"hasPlayer": true,
+		"playerPosition": [
+			1095237632,
+			3226468352,
+			1111490560
+		],
+		"targetOutput": [
+			1095237632,
+			1087897600,
+			1111490560
+		]
+	},
+	{
+		"hasPlayer": false,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"targetOutput": [
+			0,
+			0,
+			0
+		]
+	}
+]

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net11.0-windows</TargetFramework>
+		<ApplicationIcon>Assets\psobb.ico</ApplicationIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\PsoBB.Client\PsoBB.Client.csproj" />
+		<ProjectReference Include="..\PsoBB.Platform.Windows\PsoBB.Platform.Windows.csproj" />
+		<ProjectReference Include="..\PsoBB.Rendering.Direct3D11\PsoBB.Rendering.Direct3D11.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,62 @@
+[
+	{
+		"hasInput": true,
+		"timerInput": 10,
+		"radiusInput": 1103626240,
+		"pitchInput": 0,
+		"yawInput": 0,
+		"timerOutput": 0,
+		"radiusOutput": 1103626240,
+		"pitchOutput": 0,
+		"yawOutput": 0,
+		"subState": 4
+	},
+	{
+		"hasInput": false,
+		"timerInput": 255,
+		"radiusInput": 1103626240,
+		"pitchInput": 500,
+		"yawInput": 0,
+		"timerOutput": 256,
+		"radiusOutput": 1103626240,
+		"pitchOutput": 391,
+		"yawOutput": 218,
+		"subState": 3
+	},
+	{
+		"hasInput": false,
+		"timerInput": 767,
+		"radiusInput": 1103626240,
+		"pitchInput": -50,
+		"yawInput": 0,
+		"timerOutput": 768,
+		"radiusOutput": 1103608764,
+		"pitchOutput": 0,
+		"yawOutput": 0,
+		"subState": 3
+	},
+	{
+		"hasInput": false,
+		"timerInput": 1279,
+		"radiusInput": 1103626240,
+		"pitchInput": -500,
+		"yawInput": 4096,
+		"timerOutput": 1280,
+		"radiusOutput": 1103626240,
+		"pitchOutput": -391,
+		"yawOutput": 3878,
+		"subState": 3
+	},
+	{
+		"hasInput": false,
+		"timerInput": 1791,
+		"radiusInput": 1103626240,
+		"pitchInput": 50,
+		"yawInput": 0,
+		"timerOutput": 1792,
+		"radiusOutput": 1103643716,
+		"pitchOutput": 0,
+		"yawOutput": 0,
+		"subState": 3
+	}
+]

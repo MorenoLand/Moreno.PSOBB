@@ -1,0 +1,438 @@
+# Original functions with no C# counterpart because the .NET runtime replaces them.
+# address	reason
+0x0082E940	The CLR allocator replaces the original heap allocation.
+0x0082E94C	The CLR allocator replaces the original two-argument allocation wrapper.
+0x0082E960	The CLR garbage collector replaces the original heap release.
+0x0082E96C	The CLR allocator replaces the original aligned allocation wrapper.
+0x0082E98C	The CLR allocator replaces the original reallocation wrapper.
+0x0082E9A0	The CLR allocator replaces the original zeroed allocation wrapper.
+0x0082E9C0	The CLR garbage collector replaces the original release.
+0x0085B199	The CLR garbage collector replaces the original aligned release.
+0x0085B1AE	.NET arrays replace the original aligned allocation.
+0x0085B312	.NET arrays replace the original aligned reallocation.
+0x0086B688	Span.Clear replaces the original memory fill.
+0x00819240	The CLR initializes its own CRT state; this stdout initializer has no counterpart.
+0x0081924C	The CLR initializes its own CRT state; this stdio table initializer has no counterpart.
+0x0081930C	The CLR initializes its own CRT state; this stdio table initializer has no counterpart.
+0x0083DD24	The CLR allocator replaces the original heap allocation.
+0x00857999	C# exceptions replace the original non-local jump notification.
+0x008579A2	C# exceptions replace the original non-local jump notification.
+0x008587C7	The CLR allocator replaces the original zeroed allocation.
+0x00858882	The CLR garbage collector replaces the original heap release.
+0x00859BAE	The CLR allocator replaces the original heap allocator.
+0x00859C29	The CLR allocator replaces the original new-handler allocation.
+0x00859C55	The CLR allocator replaces the original heap allocation.
+0x00859EDB	The port has no CRT lock table; this exit lock has no counterpart.
+0x00859EE4	The port has no CRT lock table; this exit unlock has no counterpart.
+0x0085B11E	.NET arrays replace the original aligned allocation.
+0x0085B1C1	.NET arrays replace the original aligned reallocation.
+0x0085B78A	C# exceptions and finally blocks replace the original SEH unwind.
+0x0085BBFC	The CLR provides locks; this stdio file lock has no counterpart because CrtFile keeps its own state.
+0x0085BC2B	The CLR provides locks; this stdio file lock has no counterpart because CrtFile keeps its own state.
+0x0085BC4E	The CLR provides locks; this stdio file unlock has no counterpart because CrtFile keeps its own state.
+0x0085BC7D	The CLR provides locks; this stdio file unlock has no counterpart because CrtFile keeps its own state.
+0x0085C54A	The CLR provides thread-local storage; this CRT TLS allocation has no counterpart.
+0x0085C583	The CLR provides thread-local storage; this per-thread CRT block has no counterpart.
+0x0085C5F4	The CLR provides thread-local storage; this per-thread CRT release has no counterpart.
+0x0085C73B	The CLR provides thread-local storage; this per-thread CRT release has no counterpart.
+0x0085D7EB	The CLR provides thread-local storage; this locale cleanup has no counterpart.
+0x0085E4C5	The CLR provides locks; this CRT unlock has no counterpart.
+0x0085E57A	The CLR provides locks; this CRT lock has no counterpart.
+0x0085E5AC	C# try blocks replace the original structured exception frame setup.
+0x0085E5E7	C# try blocks replace the original structured exception frame teardown.
+0x0085F50F	The CLR allocator replaces the original heap selection.
+0x0085F529	The CLR initializes its own heap; this heap initializer has no counterpart.
+0x0085F5E0	The CLR initializes its own heap; this small-block heap initializer has no counterpart.
+0x0085F653	The CLR garbage collector replaces the original small-block release.
+0x00860F6C	The CLR allocator replaces the original reallocation.
+0x00861119	The CLR allocator replaces the original allocation-size query; arrays carry their own length.
+0x0086215B	The CLR releases stream buffers; this stdio cleanup has no counterpart.
+0x00863A51	The platform file interface replaces the original file handle table release.
+0x00863B11	The CLR provides locks; this file handle lock has no counterpart because CrtFileDescriptor keeps its own state.
+0x00863BB1	The CLR provides locks; this file handle unlock has no counterpart because CrtFileDescriptor keeps its own state.
+0x008673AC	The CLR releases locale tables; this CRT cleanup has no counterpart.
+0x0086759B	The CLR releases locale tables; this CRT cleanup has no counterpart.
+0x008677C7	The CLR releases locale tables; this CRT cleanup has no counterpart.
+0x008CB064	C# exceptions replace the original exception frame setup.
+0x00857E98	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x0085A0FA	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x0088F686	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008BEFF2	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008BFA40	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B00	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B06	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B0C	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B12	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B18	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B1E	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B24	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B2A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B30	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B36	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B3C	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B42	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B48	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B4E	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B54	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B5A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C0B60	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B0E	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B14	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B1A	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x008C9B20	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x0085CE9F	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085CEC4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085CEE9	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008606E4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00860717	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086073B	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00862186	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086203D	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00861A75	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086485B	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008691B9	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008596C4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085B9E3	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A81A	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A8F2	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008692A8	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00868B19	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00864767	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00865F69	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086A2A4	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00869656	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00868E7D	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086936E	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086A9EB	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00863AD0	The platform file interface replaces the original file handle table.
+0x008639D5	The platform file interface replaces the original file handle table.
+0x00857976	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x0085B6A4	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x0085790E	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x008578CC	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x008578EC	C# exceptions and finally blocks replace the original structured exception handler frames.
+0x0085E3E8	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x00864CEF	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085AB18	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085AAF3	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085A063	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x00858FBD	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x00864B78	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x008CB57F	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x006A71C8	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x006A71D0	The host reports errors and exits through .NET exceptions; the CRT run-time error reporting has no counterpart.
+0x0085F628	The CLR allocator replaces the original small-block heap.
+0x0085F96B	The CLR allocator replaces the original small-block heap.
+0x0085FA22	The CLR allocator replaces the original small-block heap.
+0x0085FB28	The CLR allocator replaces the original small-block heap.
+0x0085FE07	The CLR allocator replaces the original small-block heap.
+0x008688D0	The CLR has no stack cookie to initialize or check; this buffer-security routine has no counterpart.
+0x00868936	The CLR has no stack cookie to initialize or check; this buffer-security routine has no counterpart.
+0x0086753C	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x008675FA	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x008678A0	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x00867ADF	The CLR initializes its own culture data; this CRT locale initializer has no counterpart.
+0x00864FB0	The host starts with the .NET command line and environment; this CRT start-up routine has no counterpart.
+0x0086AE44	The host starts with the .NET command line and environment; this CRT start-up routine has no counterpart.
+0x0086A433	The host starts with the .NET command line and environment; this CRT start-up routine has no counterpart.
+0x0085CD1D	A Pentium FDIV startup probe; the port runs no such check and has no counterpart.
+0x0085CD5D	A Pentium FDIV startup probe; the port runs no such check and has no counterpart.
+0x00863BD3	The platform file interface replaces the original file handle table allocation.
+0x00858020	The CLR probes stack pages itself; this page-probe helper has no counterpart.
+0x00707664	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
+0x00707678	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
+0x0070768C	Microsoft C runtime telemetry set-up; the port has no telemetry service and no counterpart.
+0x00866D7B	x87 control-word helper for the C runtime's floating-point state; the port's arithmetic is double and does not read or change that state.
+0x00866CE9	x87 control-word helper for the C runtime's floating-point state; the port's arithmetic is double and does not read or change that state.
+0x0085E6A1	Stream wrapper: ungets a character unless it is WEOF; the .NET file streams replace the original stream call.
+0x004C8BE4	SEH epilog continuation: it restores the frame and the fs:[0] exception chain; C# try and finally blocks replace that.
+0x006A6F68	Unnamed stub that only returns zero; the call graph has no caller and no callee for it, so the port has no counterpart.
+0x0085E5F8	The CLR character classification (char and CharUnicodeInfo) replaces the original ctype lookup behind isalpha, isdigit and the other ctype wrappers; the port has no such call sites.
+0x00858B4C	The CLR character classification replaces the original wide ctype lookup behind iswctype; the port has no call sites.
+0x0085A4B3	The CLR case mapping (char.ToLowerInvariant) replaces the original wide lower-case conversion through LCMapStringW; the port has no call sites.
+0x00859AD6	The CLR case mapping (char.ToUpperInvariant) replaces the original wide upper-case conversion through LCMapStringW; the port has no call sites.
+0x00869797	The CLR encodings replace the original multibyte lead-byte table lookup behind __ismbblead; the port's text is UTF-16 and has no multibyte call sites.
+0x00861667	The CLR encodings replace the original multibyte string search behind mbspbrk; the port's text is UTF-16 and has no call sites.
+0x00857E9D	The CLR encodings replace the original multibyte-to-wide string conversion behind mbstowcs; the port's text is UTF-16 and has no call sites.
+0x00866EBF	The CLR encodings replace the original multibyte character conversion behind mbtowc; the port's text is UTF-16 and has no call sites.
+0x00858467	The CLR encodings replace the original wide-to-multibyte conversion behind wcstombs and wcsftime; the port's text is UTF-16 and has no call sites.
+0x0085AD11	The CLR encodings replace the original wide-to-multibyte character conversion behind wctomb; the port's text is UTF-16 and has no call sites.
+0x008664A7	The CLR encodings and CultureInfo replace the original code-page switch behind setmbcp; the port selects no code page.
+0x0085D8BB	The CLR CultureInfo replaces the original thread locale table update behind setlocale; the port has no MSVC locale table.
+0x0085DFAF	The CLR CultureInfo replaces the original setlocale implementation; the port has no MSVC locale table and no setlocale call site.
+0x0085DB05	The CLR CultureInfo replaces the original category lookup behind setlocale; the port has no MSVC locale table.
+0x0085DD20	The CLR CultureInfo replaces the original category assignment behind setlocale; the port has no MSVC locale table.
+0x0085D9A0	The CLR CultureInfo replaces the original locale-name parser behind setlocale; the port has no MSVC locale table.
+0x0085DA7C	The CLR CultureInfo replaces the original locale-name formatter behind setlocale; the port has no MSVC locale table.
+0x00868455	The CLR CultureInfo replaces the original qualified-locale expansion behind setlocale; the port has no MSVC locale table.
+0x00858094	The CLR current directory API replaces the original drive-directory lookup behind getcwd; the port reads no drive-relative directories.
+0x008642A1	The CLR TimeZoneInfo replaces the original daylight-saving check behind mktime and localtime; the port uses DateTime.
+0x00863E41	The CLR TimeZoneInfo replaces the original time zone set-up behind mktime and localtime; the port uses DateTime.
+0x0085B329	The CLR DateTime replaces the original time_t construction behind mktime; the port uses DateTime.
+0x00861345	The CLR DateTime replaces the original local-time-to-time_t conversion behind stat; the port uses DateTime.
+0x00867045	The CLR CultureInfo replaces the original time-locale table set-up behind the CRT start-up time initializer; the port has no MSVC locale table.
+0x0086571B	The .NET string formatting replaces the original printf output store used by the time formatter; the port formats text in C#.
+0x0086573B	The .NET number formatting replaces the original printf output number store used by the time formatter; the port formats text in C#.
+0x00865A1A	The .NET string formatting replaces the original printf wide-string store used by the time formatter; the port formats text in C#.
+0x00869EEF	The .NET number formatting replaces the original long-double printf output used by the float formatter; the port formats text in C#.
+0x008C0B70	Start-up call thunk: it loads a static object's address into ecx and calls its initializer; the port has no such static object and the CLR runs no _atexit handlers.
+0x008C9900	Start-up call thunk: it loads a static object's address into ecx and calls its initializer; the port has no such static object and the CLR runs no _atexit handlers.
+0x00790149	Continuation of the multibyte and locale table builder (locale pointer at 0xA9CCCC, lead-byte scan); the CLR Encoding and CultureInfo replace that build and no caller reaches this entry.
+0x00792A77	Continuation of the multibyte and locale table builder (locale pointer at 0xA9CCCC, lead-byte scan); the CLR Encoding and CultureInfo replace that build and no caller reaches this entry.
+0x00859DD6	The host reports errors through .NET exceptions; the CRT errno table has no counterpart.
+0x00859DDF	The host reports errors through .NET exceptions; the CRT errno table has no counterpart.
+0x00859DE8	The host reports errors through .NET exceptions; the CRT errno table has no counterpart.
+0x0085B4E9	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x008616E3	The CLR encodings replace the original multibyte string search; the port's text is UTF-16.
+0x0086251E	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00864474	The CLR TimeZoneInfo replaces the original daylight-saving check; the port uses DateTime.
+0x00865448	The CLR allocator replaces the original heap expansion.
+0x008667A5	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x008667D7	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866824	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866896	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x008668B1	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x008668CA	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x008697CA	The CLR encodings replace the original multibyte lead-byte lookup; the port's text is UTF-16.
+0x008CB083	The CLR double.IsFinite replaces the original finite test.
+0x00857A43	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x00857DCE	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00857DEC	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00857E29	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x00857F98	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00857FC3	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00857FED	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00858009	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085805D	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x0085817F	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008581D3	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858212	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0085824C	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858286	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x008582C0	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x008582FF	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858339	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858378	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085838C	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00858431	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x00858618	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858643	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00858900	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00858AED	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858B0F	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00858BA3	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00858BF5	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x00858C4D	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085903D	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00859065	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085909D	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085916C	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008591D9	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x00859520	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085957C	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085958F	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00859710	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00859761	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008599C1	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x008599E3	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00859A50	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00859B37	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00859B7A	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x00859C67	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x00859C78	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00859D2D	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x00859D66	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x00859E5B	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00859EAB	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00859EED	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00859F05	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00859F6F	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085A032	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085A043	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085A054	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085A1A6	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x0085A1D0	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x0085A1FE	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085A27D	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0085A3FD	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085A45B	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A514	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0085A55F	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085A581	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085A5D8	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085A698	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0085A708	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0085A76F	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0085A7AB	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A807	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085A8A9	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085AA54	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085AA95	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085AD71	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0085AE8A	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085AEBB	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085AF50	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085AFDB	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x0085B4F6	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0085B5FD	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085B66E	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x0085B7A5	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0085B918	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085B986	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085BA11	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085BAE6	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085BB36	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085BB3F	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085BBE8	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085BD0D	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x0085BDDB	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x0085C4A8	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x0085C553	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085C570	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085C76A	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085C8C0	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x0085C90C	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085C948	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085C993	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085C9AD	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085C9EB	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CA08	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CAB6	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CB22	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CBBE	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CC20	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CCBA	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CD0B	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0085CD86	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0085CF26	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085D760	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085D97C	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085DACA	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0085DBC4	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0085E188	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0085E2F0	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085E300	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0085E427	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085E470	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085E4DA	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x0085E66F	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085E6B0	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085E6CF	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0085F4F4	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0085F580	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00860103	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x008604BF	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00860772	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x0086118F	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008612DA	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00861453	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008614FD	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008615E2	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0086170A	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00861872	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00861994	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00861C50	The platform file interface replaces the original low-level file handle I/O; the port has no CRT file handles.
+0x00861D00	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008620C0	The platform file interface replaces the original low-level file handle I/O; the port has no CRT file handles.
+0x00862354	The platform file interface replaces the original low-level file handle I/O; the port has no CRT file handles.
+0x00862460	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00862777	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086278D	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x00863578	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00863590	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x008635BE	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00863737	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x0086386E	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x008638A0	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008640E9	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x00864428	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x008644B2	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x0086453A	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00864570	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008645F8	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008648CF	The platform file interface replaces the original low-level file handle I/O; the port has no CRT file handles.
+0x0086497A	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00864D28	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x00864E8C	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x00864EE9	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x0086511C	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x008651BE	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x008652E0	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00865365	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x008654F2	C# exceptions and finally blocks replace the original structured and C++ exception frames.
+0x008657B4	The CLR DateTime and TimeZoneInfo replace the original time conversion and formatting.
+0x0086603F	The platform file interface replaces the original low-level file handle I/O; the port has no CRT file handles.
+0x008660FB	The host reports errors, runs start-up and exits through .NET; this CRT run-time routine has no counterpart.
+0x00866254	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00866283	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x008662AC	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00866438	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00866637	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00866787	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00866945	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866B43	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866BBA	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866C74	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866CE0	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866E09	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866E3B	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00866E51	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x00866E95	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x00866F7F	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00866FB0	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00867D16	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867D76	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867D90	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867E06	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867E24	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867F07	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867F3C	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867F59	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00867FED	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0086805E	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868278	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868343	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0086837A	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868400	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868610	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008686C8	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868890	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x00868A7E	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x00868A8E	The CLR provides threads, locks and thread-local storage; this per-thread CRT setup has no counterpart.
+0x00868C29	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868C37	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00868C7A	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x00869164	The platform file interface replaces the original low-level file handle I/O; the port has no CRT file handles.
+0x0086923C	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008692ED	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x008696AB	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008697DB	The .NET file streams replace the original locked stdio call; the port has no CRT locks or stream flags.
+0x008699DD	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x00869ABB	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0086A17D	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0086A3E5	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0086A4C3	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0086A6F5	The port's arithmetic is double and does not read or change the x87 long-double state; .NET formatting replaces the conversion.
+0x0086A77B	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0086A8AB	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0086AA57	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0086AA73	The CLR CultureInfo and encodings replace the original locale, code-page and character lookup; the port has no MSVC locale table.
+0x0086ADF7	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x0086AEA5	The host starts with the .NET command line and environment; this CRT start-up or environment routine has no counterpart.
+0x0086B07A	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x0086B0A5	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008CAAA0	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008CAAA8	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008CAB7C	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008CACC0	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008CB098	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x008CB0F0	C# exceptions replace the original non-local jump notification.
+0x008CB16C	C# exceptions replace the original non-local jump notification.
+0x008CB22F	The port formats and parses text with .NET; each format the game uses is ported at its call site.
+0x008CB285	The platform file system (System.IO) replaces the original file and path routine; the port reads no CRT file handles.
+0x008CB2CB	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008CB35E	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x008CB410	String and memory primitives: .NET span and string operations replace the original routine; the port's text is UTF-16.
+0x004D2610	The CLR garbage collector replaces the camera controller destructor: it only clears the camera global, destroys the 13 mode objects and frees the object.
+0x004E68CC	Jump thunk: the port calls the target directly, so the thunk has no counterpart.
+0x004EA84C	Jump thunk: the port calls the target directly, so the thunk has no counterpart.

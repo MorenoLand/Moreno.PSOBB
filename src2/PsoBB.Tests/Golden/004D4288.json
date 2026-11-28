@@ -1,0 +1,22 @@
+[
+	{
+		"preset": 0,
+		"countdown": 20,
+		"amplitude": 1016028201
+	},
+	{
+		"preset": 1,
+		"countdown": 30,
+		"amplitude": 1043542835
+	},
+	{
+		"preset": 2,
+		"countdown": 30,
+		"amplitude": 1028443341
+	},
+	{
+		"preset": 9,
+		"countdown": 0,
+		"amplitude": 0
+	}
+]

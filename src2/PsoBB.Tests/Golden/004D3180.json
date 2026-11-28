@@ -1,0 +1,52 @@
+[
+	{
+		"flagsBefore": 0,
+		"flagsAfter": 8,
+		"activeBefore": 0,
+		"activeAfter": 4,
+		"prevBefore": 0,
+		"prevAfter": 0,
+		"requested": 4,
+		"result": true
+	},
+	{
+		"flagsBefore": 8,
+		"flagsAfter": 8,
+		"activeBefore": 2,
+		"activeAfter": 2,
+		"prevBefore": 1,
+		"prevAfter": 1,
+		"requested": 4,
+		"result": false
+	},
+	{
+		"flagsBefore": 4,
+		"flagsAfter": 12,
+		"activeBefore": 5,
+		"activeAfter": 6,
+		"prevBefore": 1,
+		"prevAfter": 1,
+		"requested": 6,
+		"result": true
+	},
+	{
+		"flagsBefore": 4,
+		"flagsAfter": 12,
+		"activeBefore": 9,
+		"activeAfter": 3,
+		"prevBefore": 2,
+		"prevAfter": 2,
+		"requested": 3,
+		"result": true
+	},
+	{
+		"flagsBefore": 0,
+		"flagsAfter": 8,
+		"activeBefore": 4,
+		"activeAfter": 4,
+		"prevBefore": 1,
+		"prevAfter": 1,
+		"requested": 4,
+		"result": true
+	}
+]

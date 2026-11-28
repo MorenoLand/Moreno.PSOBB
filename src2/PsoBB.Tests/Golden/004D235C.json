@@ -1,0 +1,98 @@
+[
+	{
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"previousPosition": [
+			0,
+			0,
+			1073741824
+		],
+		"heading": 0,
+		"controllerEye": [
+			0,
+			1103626240,
+			1110704128
+		],
+		"controllerTarget": [
+			0,
+			1101004800,
+			3231711232
+		],
+		"controllerYaw": 0,
+		"withHit": false,
+		"hit": false,
+		"stepState": 11,
+		"collisionPoint": [
+			0,
+			0,
+			0
+		]
+	},
+	{
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"previousPosition": [
+			0,
+			0,
+			3221225472
+		],
+		"heading": 0,
+		"controllerEye": [
+			0,
+			1101004800,
+			1110704128
+		],
+		"controllerTarget": [
+			0,
+			1101004800,
+			3231711232
+		],
+		"controllerYaw": 0,
+		"withHit": true,
+		"hit": false,
+		"stepState": 11,
+		"collisionPoint": [
+			0,
+			0,
+			0
+		]
+	},
+	{
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"previousPosition": [
+			1056964608,
+			0,
+			0
+		],
+		"heading": 16384,
+		"controllerEye": [
+			0,
+			1101004800,
+			1110704128
+		],
+		"controllerTarget": [
+			0,
+			1101004800,
+			3231711232
+		],
+		"controllerYaw": 0,
+		"withHit": true,
+		"hit": true,
+		"stepState": 11,
+		"collisionPoint": [
+			0,
+			1101004800,
+			1099956224
+		]
+	}
+]

@@ -1,0 +1,127 @@
+[
+	{
+		"hasPlayer": true,
+		"hasFocus": true,
+		"playerPosition": [
+			1092616192,
+			1073741824,
+			1092616192
+		],
+		"focusPosition": [
+			1092616192,
+			1084227584,
+			1109393408
+		],
+		"eyeOutput": [
+			1092616192,
+			1094713344,
+			3248488448
+		],
+		"targetOutput": [
+			1092616192,
+			1084227584,
+			1109393408
+		],
+		"eyeSmoothingOutput": 1065353216
+	},
+	{
+		"hasPlayer": true,
+		"hasFocus": true,
+		"playerPosition": [
+			3231711232,
+			1069547520,
+			1103626240
+		],
+		"focusPosition": [
+			1097859072,
+			1090519040,
+			1084227584
+		],
+		"eyeOutput": [
+			3251745956,
+			1094189056,
+			1111022162
+		],
+		"targetOutput": [
+			1097859072,
+			1090519040,
+			1084227584
+		],
+		"eyeSmoothingOutput": 1065353216
+	},
+	{
+		"hasPlayer": true,
+		"hasFocus": true,
+		"playerPosition": [
+			1077936128,
+			1082130432,
+			1084227584
+		],
+		"focusPosition": [
+			1077936128,
+			1092616192,
+			1084227584
+		],
+		"eyeOutput": [
+			0,
+			0,
+			0
+		],
+		"targetOutput": [
+			1077936128,
+			1092616192,
+			1084227584
+		],
+		"eyeSmoothingOutput": 1065353216
+	},
+	{
+		"hasPlayer": true,
+		"hasFocus": false,
+		"playerPosition": [
+			1077936128,
+			1082130432,
+			1084227584
+		],
+		"focusPosition": [
+			0,
+			0,
+			0
+		],
+		"eyeOutput": [
+			0,
+			0,
+			0
+		],
+		"targetOutput": [
+			0,
+			0,
+			1065353216
+		],
+		"eyeSmoothingOutput": 1065353216
+	},
+	{
+		"hasPlayer": false,
+		"hasFocus": true,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"focusPosition": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"eyeOutput": [
+			0,
+			0,
+			0
+		],
+		"targetOutput": [
+			0,
+			0,
+			1065353216
+		],
+		"eyeSmoothingOutput": 1065353216
+	}
+]

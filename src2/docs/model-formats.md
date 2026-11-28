@@ -1,0 +1,84 @@
+# Model and animation formats
+
+The portable model readers live in `PsoBB.Models`. They parse the Ninja chunk data the client stores in `.bml`, `.rel`, `.rlc` and PAE archives and expose node trees, vertex arrays, triangle strips, accumulated material state, texture names and motion keyframes.
+
+## Ninja IFF chunks
+
+`NinjaChunkReader` reads an eight-byte header (four-character big-endian tag, little-endian body size) followed by the body. A following `POF0` chunk lists the body words that hold chunk-relative pointers. Each table entry is a one-, two- or four-byte control word whose low six bits are a delta in four-byte units; the deltas accumulate. The original reader is `read_ninjalib_iff_chunk` at `0x0083B124`.
+
+Known tags are `NJIN`, `NJCM`, `NJTL`, `NJLI`, `NJCA`, `NMDM`, `NSSM` and `POF0`. Unknown tags are rejected.
+
+## NJCM model
+
+The body starts with the first `njcm_model_node`. Each node is 0x34 bytes, or 0x38 when flag `0x400` selects quaternion rotation:
+
+| Offset | Type | Meaning |
+| --- | --- | --- |
+| 0x00 | u32 | Evaluation flags |
+| 0x04 | u32 | Mesh offset, or zero |
+| 0x08 | float[3] | Position |
+| 0x14 | i32[3] | Euler angles in 1/65536-turn units, or three quaternion components |
+| 0x20 | float[3] | Scale |
+| 0x2C | u32 | First child offset |
+| 0x30 | u32 | Next sibling offset |
+| 0x34 | float | Quaternion W, when flag `0x400` is set |
+
+Flags `0x1`, `0x2`, `0x4` skip translation, rotation and scale; `0x8` hides the node; `0x10` skips its children; `0x20` selects the alternate Euler order. The model walker is `ModelObject_AllocateNodes_005121F8` at `0x005121F8`; the visible-node count matches `CountModelObjectNodes_00782A88` at `0x00782A88`.
+
+A mesh is 0x1C bytes: flags, vertex-buffer offset and count, index-buffer offset and count, translucent index-buffer offset and count. A vertex buffer is 0x10 bytes: format word, data offset, stride and count. A vertex layout is the low 16 bits of the format word:
+
+| Format | Fields | Size |
+| --- | --- | --- |
+| 1 | position, UV | 20 |
+| 2 | position, normal | 24 |
+| 3 | position, normal, UV | 32 |
+| 4 | position, color | 16 |
+| 5 | position, color, UV | 24 |
+| 6 | position, color, normal | 28 |
+| 7 | position, normal, color, UV | 36 |
+
+Flag `0x10000` marks translucent geometry. Colors are stored in R, G, B, A byte order. The decoded
+vertex array can be written back in its original layout and stride for `SceneSurface` submission.
+
+An index buffer is 0x14 bytes: render-state argument offset and count, index-data offset and count, and the vertex-buffer index. Indices are 16-bit triangle-strip values. Render-state arguments are 0x10 bytes: setter index, two arguments and a reserved word. Setter 2 is blend, 3 texture, 4 addressing, 5 material color, 6 lighting, 7 camera-space normals and 8 material source. The accumulated state for each index buffer is exposed as `NinjaMaterial`.
+
+### Retail chunk model
+
+A retail BML entry stores the unconverted `NJS_CNK_MODEL` at the node's mesh pointer: the first word is the vlist offset, the second the plist offset, followed by the center and radius. The model reader detects this layout and parses both streams; the converted 0x1C mesh path is unchanged.
+
+The vlist is a chain of 8-byte vertex chunks: format word, size word, index offset and vertex count. The stored data starts after the header and the next chunk is `4 + size*4` bytes later; `0xFF` ends the chain. `size` is `dataBytes/4 + 1`. The index offset selects the chunk's slots in the model-wide vertex scratch array. Implemented formats are `0x21`, `0x23`, `0x29`, `0x2A`, `0x2B`, `0x2C`, `0x2D`, `0x2E` and `0x2F`; `0x29` is position and normal, `0x2A` adds an ARGB color, and `0x2C` adds Ninja flags. The original vlist walker is `0x008453FC`.
+
+The plist is a chain of chunks with a 2-byte head and 2-byte payload size in 16-bit words; `0xFF` ends it. Type 4 caches a chunk, type 5 draws a cached chunk, types 8-`0x0F` select a texture-list index from the low 13 bits of the payload word and set the address modes from the head flags, and types `0x10`-`0x1F` are material commands. The blend factors come from head bits 8-13 through the original Ninja-to-Direct3D table (`ZERO`, `ONE`, `DESTCOLOR`, `INVDESTCOLOR`, `SRCALPHA`, `INVSRCALPHA`, `DESTALPHA`, `INVDESTALPHA`). Commands `0x11`, `0x13`, `0x15` and `0x17` set the diffuse colour from the first payload word, `0x14` and `0x16` reset it to white, and `0x12` and `0x18`-`0x1F` change only the blend state. The PC build ignores the ambient and specular payload words; the opcode flags identify the original Dreamcast material fields, not separate Direct3D states. Type `0x41` is a triangle-strip chunk. Its payload starts with `userOffset(2)|stripCount(14)`, followed by that many strips. Each strip starts with a signed 16-bit count; the absolute value is the vertex count. Each vertex record is `3 + userOffset` words: index, U and V. U and V are 8-bit fixed point scaled by 1/255. Strip head bit `0x100` disables fixed-function lighting, and bit `0x800` puts the strip in the translucent pass. The strip is drawn with `DrawPrimitiveUP(D3DPT_TRIANGLESTRIP)` by `0x00847E00`; the plist dispatcher is `ProcessVertexDrawList_008370E4`. The port expands each strip into layout-7 vertices so the existing scene renderer and texture binding apply unchanged, and writes the active diffuse colour into the vertex colour channel.
+
+The parser bakes each strip vertex through its owner node's world matrix and attaches one mesh to a synthetic identity node, matching the original upload-time transform. Static chunk models build surfaces through the existing `ModelRenderer`, which binds the selected NJTL entry through `TextureCache` and leaves unresolved names unbound. Blend, texture selection and address modes, diffuse colour and the lighting flag reach `NinjaMaterial`; the plist does not set culling or alpha test, so those keep the renderer defaults. `RetailModelRenderTests` checks the retail strip geometry and renders `bm_ene_astark.bml` and `plAbdy00.nj` to non-black pixels when `PSOBB_RETAIL_DATA` is set. Astark splits into 238 translucent surfaces; the player body splits into 141 opaque and 1 translucent surface. Strip chunk types `0x40` and `0x59` and animated chunk-model skinning remain unsupported.
+
+## NJTL texture list
+
+The body stores a pointer to an array of 0x0C-byte entries and the entry count. Each entry starts with a pointer to a null-terminated ASCII name, followed by two words the client fills at runtime. The name order is the texture index that render-state setter 3 selects.
+
+## NMDM motion
+
+The body starts with a 12-byte header: keyframe-record offset, frame count, a motion-flag word and a factor word. The factor word's low six bits are the channel count and bits 6-7 select the interpolation mode. Each bone record holds that many keyframe pointers followed by the same number of keyframe counts. A keyframe is 0x10 bytes: frame index and three components. Translation and scale tracks store floats; rotation tracks store 1/65536-turn integers, exposed as radians. The original context setup is `NJM_InitializeAnimationContext_008303DC` at `0x008303DC`.
+
+The NMDM header has no bone count. The caller supplies the model node count, as the original does; the reader can also infer a bound from the body length for a standalone animation file.
+
+## BML archive
+
+The 0x40-byte header holds a file count at 0x04, a compression marker at 0x08 and the texture flag at 0x09. Each 0x40-byte descriptor holds a 32-byte name, stored size at 0x20, decompressed size at 0x28, compressed texture size at 0x2C and decompressed texture size at 0x30. Entry data starts at the next 0x800 boundary. Marker `P` selects PRS; otherwise bytes are stored. Entries are 0x800-aligned, or 0x20-aligned when the archive carries textures. The original loader is `LoadBML_005B7A84` at `0x005B7A84`.
+
+## REL and PAE relocation
+
+A relocated block stores the pointer-table offset at end-0x20, the table entry count at end-0x1C and the payload offset at end-0x10. Table entries are little-endian 16-bit deltas in four-byte units from the previous pointer location. The original function is `HandleRewriteAssetPointers_005BA264` at `0x005BA264`; `.rel` uses the same table shape.
+
+A PAE archive's model section is a relocated block, a raw NJCM body or a Ninja chunk stream. Its texture-list section is a relocated block around an NJTL body, a raw NJTL body or a chunk stream containing NJTL. The embedded XVM archive supplies the decoded pixels.
+
+## Limitations
+
+- The readers take complete buffers, use flat offsets and reject malformed ranges. The original trusts its loaders and dereferences guest addresses directly.
+- The NJCM reader accepts both the converted 0x1C mesh layout and the retail `NJS_CNK_MODEL` vlist/plist layout. In `bin/data/bm_ene_astark.bml`, entry `nj00_astark.nj` parses 21 vertex chunks and 238 strips into 1474 vertices and 1474 indices; `plAnj.bml` body `plAbdy00.nj` parses 976 vertices and 976 indices in 142 draws. Animated chunk-model skinning remains unsupported; static chunk models are baked through their node transforms.
+- The NMDM reader detects the retail quaternion track record (20 bytes) and the 16-bit and 32-bit Euler angle records. A retail motion such as `cstand_bm2c_s_moj_body.njm` parses with quaternion tracks; only the retail model mesh remains unsupported.
+- The BML archive reader aligns entries to 0x20 when the first entry carries an embedded texture block, otherwise to 0x800; real archives with external AFS textures use 0x800.
+- A `.rlc` file has no index or bone count; the caller supplies the model node count.
+- A BML archive with separate model and animation entries uses the first model entry's animated node count. Callers that pair a specific model with a specific motion can parse the exposed chunks with that model's count.
+- PAE texture names are paired with decoded archive textures by list order. The render-state index selects the NJTL entry; the client fills each entry's texture slot from the same archive.
+- The PAE container has no original loader of its own. The inner NJCM, NJTL, XVM and relocation rules are the client's.

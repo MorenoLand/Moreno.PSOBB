@@ -1,0 +1,20 @@
+[
+	{
+		"hasCamera": false,
+		"hasTarget": false,
+		"playerIndex": 9,
+		"result": 65535
+	},
+	{
+		"hasCamera": true,
+		"hasTarget": false,
+		"playerIndex": 9,
+		"result": 65535
+	},
+	{
+		"hasCamera": true,
+		"hasTarget": true,
+		"playerIndex": 9,
+		"result": 9
+	}
+]

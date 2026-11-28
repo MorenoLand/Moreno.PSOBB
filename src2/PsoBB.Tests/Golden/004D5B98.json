@@ -1,0 +1,134 @@
+[
+	{
+		"controllerEye": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"controllerTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"destination": [
+			1106247680,
+			1101004800,
+			1092616192
+		],
+		"moveFrames": 60,
+		"holdFrames": 30,
+		"stepSpeed": 1057712436,
+		"elapsedFrames": 0,
+		"moveFramesOutput": 60,
+		"holdFramesOutput": 30,
+		"startTarget": [
+			1105804530,
+			1101004800,
+			1093502491
+		],
+		"endTarget": [
+			0,
+			1092616192,
+			0
+		],
+		"cutsceneViewFlags": 1,
+		"cutsceneEye": [
+			0,
+			1101004800,
+			1109393408
+		],
+		"cutsceneTarget": [
+			0,
+			1092616192,
+			0
+		]
+	},
+	{
+		"controllerEye": [
+			1092616192,
+			1084227584,
+			3248488448
+		],
+		"controllerTarget": [
+			1092616192,
+			1084227584,
+			3248488448
+		],
+		"destination": [
+			1092616192,
+			1084227584,
+			3248488448
+		],
+		"moveFrames": 0,
+		"holdFrames": 15,
+		"stepSpeed": 0,
+		"elapsedFrames": 0,
+		"moveFramesOutput": 1,
+		"holdFramesOutput": 15,
+		"startTarget": [
+			1092616192,
+			1084227584,
+			3248488448
+		],
+		"endTarget": [
+			1092616192,
+			1084227584,
+			3248488448
+		],
+		"cutsceneViewFlags": 1,
+		"cutsceneEye": [
+			1092616192,
+			1084227584,
+			3248488448
+		],
+		"cutsceneTarget": [
+			1092616192,
+			1084227584,
+			3248488448
+		]
+	},
+	{
+		"controllerEye": [
+			3245342720,
+			1094713344,
+			1090519040
+		],
+		"controllerTarget": [
+			1084227584,
+			1092616192,
+			3229614080
+		],
+		"destination": [
+			1103626240,
+			1106247680,
+			1094713344
+		],
+		"moveFrames": 120,
+		"holdFrames": 0,
+		"stepSpeed": 1042033287,
+		"elapsedFrames": 0,
+		"moveFramesOutput": 120,
+		"holdFramesOutput": 0,
+		"startTarget": [
+			1086868573,
+			1101826199,
+			1092748241
+		],
+		"endTarget": [
+			1084227584,
+			1092616192,
+			3229614080
+		],
+		"cutsceneViewFlags": 1,
+		"cutsceneEye": [
+			3245342720,
+			1094713344,
+			1090519040
+		],
+		"cutsceneTarget": [
+			1084227584,
+			1092616192,
+			3229614080
+		]
+	}
+]

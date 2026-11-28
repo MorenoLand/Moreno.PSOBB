@@ -1,0 +1,50 @@
+[
+	{
+		"current": 0,
+		"target": 16384,
+		"speed": 5,
+		"result": 635
+	},
+	{
+		"current": 0,
+		"target": 200,
+		"speed": 2,
+		"result": 200
+	},
+	{
+		"current": 4096,
+		"target": 4224,
+		"speed": 1,
+		"result": 4223
+	},
+	{
+		"current": 65535,
+		"target": 256,
+		"speed": 1,
+		"result": 126
+	},
+	{
+		"current": 32768,
+		"target": 32256,
+		"speed": 2,
+		"result": 32514
+	},
+	{
+		"current": 16384,
+		"target": 16383,
+		"speed": 1,
+		"result": 16383
+	},
+	{
+		"current": -4096,
+		"target": 8192,
+		"speed": 5,
+		"result": 62075
+	},
+	{
+		"current": 4096,
+		"target": 50324,
+		"speed": 364,
+		"result": 50324
+	}
+]

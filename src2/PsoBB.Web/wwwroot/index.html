@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>PSOBB Web client</title>
+	<style>
+		:root { color-scheme: dark; font: 15px/1.5 system-ui, sans-serif; background: #101317; color: #e6e8eb; }
+		* { box-sizing: border-box; }
+		body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+		.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.7rem 1rem; border-bottom: 1px solid #262c33; background: #171b20; }
+		.brand { font-weight: 600; letter-spacing: 0.01em; }
+		.session { display: flex; align-items: center; gap: 0.75rem; color: #a9b1bb; font-size: 0.875rem; }
+		#status { font-family: ui-monospace, monospace; }
+		main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1rem; }
+		#frame { display: block; width: min(100%, 64rem); height: auto; aspect-ratio: 4 / 3; border: 1px solid #2b3037; background: #000; }
+		.setup { width: min(100%, 40rem); padding: 1rem; border: 1px solid #2b3037; border-radius: 0.4rem; background: #171b20; }
+		.setup label { display: block; margin-bottom: 0.4rem; font-size: 0.875rem; color: #a9b1bb; }
+		.row { display: flex; gap: 0.5rem; }
+		.row input { flex: 1; min-width: 0; padding: 0.45rem 0.6rem; border: 1px solid #39414b; border-radius: 0.25rem; background: #101317; color: inherit; font: inherit; }
+		button { padding: 0.45rem 0.9rem; border: 1px solid #4b5563; border-radius: 0.25rem; background: #242b33; color: #e6e8eb; font: inherit; cursor: pointer; }
+		button:hover { background: #2d3540; }
+		.hint { margin: 0.7rem 0 0; color: #8b949e; font-size: 0.8125rem; }
+		code { font-family: ui-monospace, monospace; color: #c9d1d9; }
+		#error { width: min(100%, 64rem); margin: 0; padding: 0.75rem; border: 1px solid #6e2b2b; border-radius: 0.25rem; background: #2a1717; color: #ffb3ad; font-family: ui-monospace, monospace; font-size: 0.8125rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+	</style>
+</head>
+<body>
+	<header class="topbar">
+		<span class="brand">Phantasy Star Online Blue Burst</span>
+		<span class="session">
+			<span id="status" role="status">Starting the WebAssembly runtime…</span>
+			<button id="stop" type="button" hidden>Stop</button>
+		</span>
+	</header>
+	<main>
+		<pre id="error" role="alert" hidden></pre>
+		<section id="setup" class="setup" hidden>
+			<form id="data-form">
+				<label for="data-root">Data folder URL</label>
+				<div class="row">
+					<input id="data-root" type="text" autocomplete="off" spellcheck="false" placeholder="https://host/psobb/" required>
+					<button type="submit">Start</button>
+				</div>
+			</form>
+			<p class="hint">The folder must contain <code>manifest.json</code> mapping each game file to its URL. Set <code>?data=&lt;folder-url&gt;</code> or <code>window.psobbWeb</code> before the module runs to start without the form.</p>
+		</section>
+		<canvas id="frame" width="1024" height="768" aria-label="Game frame"></canvas>
+	</main>
+	<script>
+		(() => {
+			const show = (error) => {
+				const target = document.getElementById('error');
+				if (target === null)
+					return;
+				target.hidden = false;
+				target.textContent = String((error && error.stack) || error || 'Unknown error');
+			};
+			window.addEventListener('error', (event) => show(event.error ?? event.message));
+			window.addEventListener('unhandledrejection', (event) => show(event.reason));
+		})();
+	</script>
+	<script type="module" src="psobb-web.js"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+[
+	{
+		"hasPlayer": true,
+		"heading": 0,
+		"distance": 1103626240,
+		"target": [
+			1065353216,
+			1094713344,
+			1077936128
+		],
+		"yawOutput": 0,
+		"eyeOutput": [
+			1065353216,
+			1094713344,
+			1105199104
+		]
+	},
+	{
+		"hasPlayer": true,
+		"heading": 16384,
+		"distance": 1103626240,
+		"target": [
+			1092616192,
+			1084227584,
+			3238002688
+		],
+		"yawOutput": 16384,
+		"eyeOutput": [
+			1108082688,
+			1084227584,
+			3238002688
+		]
+	},
+	{
+		"hasPlayer": true,
+		"heading": 45824,
+		"distance": 1109393408,
+		"target": [
+			3229614080,
+			0,
+			1088421888
+		],
+		"yawOutput": 45824,
+		"eyeOutput": [
+			3257396394,
+			0,
+			3232858960
+		]
+	},
+	{
+		"hasPlayer": false,
+		"heading": 0,
+		"distance": 1103626240,
+		"target": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"yawOutput": 0,
+		"eyeOutput": [
+			0,
+			0,
+			0
+		]
+	}
+]

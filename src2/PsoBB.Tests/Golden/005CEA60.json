@@ -1,0 +1,26 @@
+[
+	{
+		"initial": 0,
+		"result": 1
+	},
+	{
+		"initial": 1,
+		"result": 1
+	},
+	{
+		"initial": 2,
+		"result": 3
+	},
+	{
+		"initial": 32768,
+		"result": 32769
+	},
+	{
+		"initial": 65534,
+		"result": 65535
+	},
+	{
+		"initial": 65535,
+		"result": 65535
+	}
+]

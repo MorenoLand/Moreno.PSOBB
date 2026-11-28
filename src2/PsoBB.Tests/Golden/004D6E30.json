@@ -1,0 +1,77 @@
+[
+	{
+		"hasPlayer": true,
+		"playerPosition": [
+			1092616192,
+			1084227584,
+			1101004800
+		],
+		"smoothing": 1053609165,
+		"eyeInput": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"eyeOutput": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"targetOutput": [
+			1092616192,
+			1103521382,
+			1101004800
+		],
+		"eyeSmoothingOutput": 1053609165
+	},
+	{
+		"hasPlayer": true,
+		"playerPosition": [
+			3245867008,
+			1048576000,
+			1110114304
+		],
+		"smoothing": 1040187392,
+		"eyeInput": [
+			3231711232,
+			1106247680,
+			1092616192
+		],
+		"eyeOutput": [
+			3231711232,
+			1106247680,
+			1092616192
+		],
+		"targetOutput": [
+			3245867008,
+			1101031014,
+			1110114304
+		],
+		"eyeSmoothingOutput": 1040187392
+	},
+	{
+		"hasPlayer": false,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"smoothing": 1056964608,
+		"eyeInput": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"eyeOutput": [
+			0,
+			0,
+			0
+		],
+		"targetOutput": [
+			0,
+			0,
+			1065353216
+		],
+		"eyeSmoothingOutput": 0
+	}
+]

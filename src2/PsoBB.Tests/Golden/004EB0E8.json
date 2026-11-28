@@ -1,0 +1,38 @@
+[
+	{
+		"classId": 0,
+		"heightRatio": 1056964608,
+		"targetY": 1095919206,
+		"radius": 1087504384,
+		"introStartRadius": 1087504384,
+		"timer": 120,
+		"subState": 2
+	},
+	{
+		"classId": 2,
+		"heightRatio": 1065353216,
+		"targetY": 1097859072,
+		"radius": 1087897600,
+		"introStartRadius": 1087897600,
+		"timer": 120,
+		"subState": 2
+	},
+	{
+		"classId": 6,
+		"heightRatio": 1048576000,
+		"targetY": 1095814349,
+		"radius": 1086914560,
+		"introStartRadius": 1086914560,
+		"timer": 120,
+		"subState": 2
+	},
+	{
+		"classId": 11,
+		"heightRatio": 0,
+		"targetY": 1097859072,
+		"radius": 1088133529,
+		"introStartRadius": 1088133529,
+		"timer": 120,
+		"subState": 2
+	}
+]

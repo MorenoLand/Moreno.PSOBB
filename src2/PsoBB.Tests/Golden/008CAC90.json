@@ -1,0 +1,352 @@
+[
+	{
+		"value": "0000000000000000",
+		"count": 0,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 1,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 31,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 32,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 33,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 63,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 64,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 65,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 127,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000000",
+		"count": 255,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 0,
+		"result": "0000000000000001"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 1,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 31,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 32,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 33,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 63,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 64,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 65,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 127,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "0000000000000001",
+		"count": 255,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 0,
+		"result": "7fffffffffffffff"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 1,
+		"result": "3fffffffffffffff"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 31,
+		"result": "00000000ffffffff"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 32,
+		"result": "000000007fffffff"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 33,
+		"result": "000000003fffffff"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 63,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 64,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 65,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 127,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "7fffffffffffffff",
+		"count": 255,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 0,
+		"result": "8000000000000000"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 1,
+		"result": "c000000000000000"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 31,
+		"result": "ffffffff00000000"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 32,
+		"result": "ffffffff80000000"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 33,
+		"result": "ffffffffc0000000"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 63,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 64,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 65,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 127,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "8000000000000000",
+		"count": 255,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 0,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 1,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 31,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 32,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 33,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 63,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 64,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 65,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 127,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "ffffffffffffffff",
+		"count": 255,
+		"result": "ffffffffffffffff"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 0,
+		"result": "123456789abcdef0"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 1,
+		"result": "091a2b3c4d5e6f78"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 31,
+		"result": "000000002468acf1"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 32,
+		"result": "0000000012345678"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 33,
+		"result": "00000000091a2b3c"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 63,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 64,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 65,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 127,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "123456789abcdef0",
+		"count": 255,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 0,
+		"result": "00000001ffffffff"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 1,
+		"result": "00000000ffffffff"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 31,
+		"result": "0000000000000003"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 32,
+		"result": "0000000000000001"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 33,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 63,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 64,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 65,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 127,
+		"result": "0000000000000000"
+	},
+	{
+		"value": "00000001ffffffff",
+		"count": 255,
+		"result": "0000000000000000"
+	}
+]

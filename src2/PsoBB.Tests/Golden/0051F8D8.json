@@ -1,0 +1,258 @@
+[
+	{
+		"value": 0,
+		"result": 1
+	},
+	{
+		"value": 1,
+		"result": 1
+	},
+	{
+		"value": 2,
+		"result": 1
+	},
+	{
+		"value": 4094,
+		"result": 1
+	},
+	{
+		"value": 4095,
+		"result": 1
+	},
+	{
+		"value": 4096,
+		"result": 0
+	},
+	{
+		"value": 4097,
+		"result": 0
+	},
+	{
+		"value": 8191,
+		"result": 0
+	},
+	{
+		"value": 32767,
+		"result": 0
+	},
+	{
+		"value": 32768,
+		"result": 0
+	},
+	{
+		"value": 65534,
+		"result": 0
+	},
+	{
+		"value": 65535,
+		"result": 0
+	},
+	{
+		"value": 18012,
+		"result": 0
+	},
+	{
+		"value": 29473,
+		"result": 0
+	},
+	{
+		"value": 2235,
+		"result": 1
+	},
+	{
+		"value": 4483,
+		"result": 0
+	},
+	{
+		"value": 54908,
+		"result": 0
+	},
+	{
+		"value": 33548,
+		"result": 0
+	},
+	{
+		"value": 12030,
+		"result": 0
+	},
+	{
+		"value": 1785,
+		"result": 1
+	},
+	{
+		"value": 35709,
+		"result": 0
+	},
+	{
+		"value": 25723,
+		"result": 0
+	},
+	{
+		"value": 61231,
+		"result": 0
+	},
+	{
+		"value": 12213,
+		"result": 0
+	},
+	{
+		"value": 6859,
+		"result": 0
+	},
+	{
+		"value": 27694,
+		"result": 0
+	},
+	{
+		"value": 25172,
+		"result": 0
+	},
+	{
+		"value": 15579,
+		"result": 0
+	},
+	{
+		"value": 13025,
+		"result": 0
+	},
+	{
+		"value": 19652,
+		"result": 0
+	},
+	{
+		"value": 50464,
+		"result": 0
+	},
+	{
+		"value": 34988,
+		"result": 0
+	},
+	{
+		"value": 15152,
+		"result": 0
+	},
+	{
+		"value": 37820,
+		"result": 0
+	},
+	{
+		"value": 41881,
+		"result": 0
+	},
+	{
+		"value": 21859,
+		"result": 0
+	},
+	{
+		"value": 61312,
+		"result": 0
+	},
+	{
+		"value": 51852,
+		"result": 0
+	},
+	{
+		"value": 35746,
+		"result": 0
+	},
+	{
+		"value": 22031,
+		"result": 0
+	},
+	{
+		"value": 38114,
+		"result": 0
+	},
+	{
+		"value": 16353,
+		"result": 0
+	},
+	{
+		"value": 29421,
+		"result": 0
+	},
+	{
+		"value": 57043,
+		"result": 0
+	},
+	{
+		"value": 3861,
+		"result": 1
+	},
+	{
+		"value": 42255,
+		"result": 0
+	},
+	{
+		"value": 41620,
+		"result": 0
+	},
+	{
+		"value": 54411,
+		"result": 0
+	},
+	{
+		"value": 2507,
+		"result": 1
+	},
+	{
+		"value": 13431,
+		"result": 0
+	},
+	{
+		"value": 35054,
+		"result": 0
+	},
+	{
+		"value": 27533,
+		"result": 0
+	},
+	{
+		"value": 34037,
+		"result": 0
+	},
+	{
+		"value": 43320,
+		"result": 0
+	},
+	{
+		"value": 9879,
+		"result": 0
+	},
+	{
+		"value": 62185,
+		"result": 0
+	},
+	{
+		"value": 3345,
+		"result": 1
+	},
+	{
+		"value": 50207,
+		"result": 0
+	},
+	{
+		"value": 51242,
+		"result": 0
+	},
+	{
+		"value": 15008,
+		"result": 0
+	},
+	{
+		"value": 19674,
+		"result": 0
+	},
+	{
+		"value": 22651,
+		"result": 0
+	},
+	{
+		"value": 48845,
+		"result": 0
+	},
+	{
+		"value": 4476,
+		"result": 0
+	}
+]

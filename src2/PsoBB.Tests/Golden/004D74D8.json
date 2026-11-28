@@ -1,0 +1,90 @@
+[
+	{
+		"hasPlayer": true,
+		"presetIndex": 0,
+		"playerPosition": [
+			1092616192,
+			1073741824,
+			3231711232
+		],
+		"heading": 0,
+		"withHit": false,
+		"yaw": 32768,
+		"eye": [
+			1092616192,
+			1101948518,
+			3253731328
+		],
+		"target": [
+			1092616192,
+			1101948518,
+			3231711232
+		]
+	},
+	{
+		"hasPlayer": true,
+		"presetIndex": 1,
+		"playerPosition": [
+			3229614080,
+			1084227584,
+			1090519040
+		],
+		"heading": 16384,
+		"withHit": false,
+		"yaw": 49152,
+		"eye": [
+			3259346452,
+			1103521382,
+			1090519040
+		],
+		"target": [
+			3229614080,
+			1103521382,
+			1090519040
+		]
+	},
+	{
+		"hasPlayer": true,
+		"presetIndex": 1,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"heading": 0,
+		"withHit": true,
+		"yaw": 32768,
+		"eye": [
+			0,
+			1100899942,
+			3247964160
+		],
+		"target": [
+			0,
+			1100899942,
+			0
+		]
+	},
+	{
+		"hasPlayer": false,
+		"presetIndex": 1,
+		"playerPosition": [
+			0,
+			0,
+			0
+		],
+		"heading": 0,
+		"withHit": false,
+		"yaw": 0,
+		"eye": [
+			0,
+			0,
+			0
+		],
+		"target": [
+			0,
+			0,
+			0
+		]
+	}
+]

@@ -40,10 +40,15 @@ if os.path.exists(fn_json):
                      cat, len(fa.get("callers", [])), fa.get("callees", []), fa.get("apis", [])))
 else:
     src = os.path.join(D, "functions.tsv")
+    facts_path = os.path.join(D, "facts.json")
+    facts = json.load(open(facts_path, encoding="utf-8")) if os.path.exists(facts_path) else {}
     for r in csv.DictReader(open(src, encoding="utf-8"), delimiter="\t"):
         ea = int(r["address"], 16)
+        fa = facts.get("0x%x" % ea, {})
         cat = r.get("category") or category(ea)
-        rows.append((ea, r["name"], int(r["size"]), cat, 0, [], []))
+        if cat == "app" and r.get("lib") == "1":
+            cat = "lib:crt"
+        rows.append((ea, r["name"], int(r["size"]), cat, len(fa.get("callers", [])), fa.get("callees", []), fa.get("apis", [])))
 
 rows.sort()
 with open(OUT, "w", encoding="utf-8", newline="") as o:

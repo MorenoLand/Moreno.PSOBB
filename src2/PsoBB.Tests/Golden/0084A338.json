@@ -1,0 +1,67 @@
+[
+	{
+		"colorFlags": 0,
+		"renderFlagsIn": 1024,
+		"ambient": [
+			0,
+			0,
+			0,
+			0
+		],
+		"color": 4286595104,
+		"packedColorOut": 4286595104,
+		"renderFlagsOut": 0
+	},
+	{
+		"colorFlags": 0,
+		"renderFlagsIn": 0,
+		"ambient": [
+			0,
+			0,
+			0,
+			0
+		],
+		"color": 2155888672,
+		"packedColorOut": 2155888672,
+		"renderFlagsOut": 1024
+	},
+	{
+		"colorFlags": 2,
+		"renderFlagsIn": 1024,
+		"ambient": [
+			1048576000,
+			3204448256,
+			1056964608,
+			1065353216
+		],
+		"color": 2160099392,
+		"packedColorOut": 3208708095,
+		"renderFlagsOut": 1024
+	},
+	{
+		"colorFlags": 1,
+		"renderFlagsIn": 0,
+		"ambient": [
+			1065353216,
+			1065353216,
+			1065353216,
+			1065353216
+		],
+		"color": 4279246896,
+		"packedColorOut": 3405691582,
+		"renderFlagsOut": 0
+	},
+	{
+		"colorFlags": 3,
+		"renderFlagsIn": 1024,
+		"ambient": [
+			1056964608,
+			1056964608,
+			1056964608,
+			1056964608
+		],
+		"color": 2131763248,
+		"packedColorOut": 3405691582,
+		"renderFlagsOut": 1024
+	}
+]
