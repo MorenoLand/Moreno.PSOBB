@@ -1,4 +1,7 @@
+using PsoBB.Game;
 using PsoBB.Mathematics;
+using PsoBB.Player;
+using PsoBB.Scenes;
 
 namespace PsoBB.Rendering;
 
@@ -8,6 +11,11 @@ namespace PsoBB.Rendering;
 /// </summary>
 public sealed class FieldCameraController
 {
+	/// <summary>
+	/// The number of per-viewport eye and target slots kept inside the controller.
+	/// </summary>
+	public const int SlotCount = 4;
+
 	/// <summary>
 	/// Gets or sets the active global field camera controller instance.
 	/// </summary>
@@ -60,6 +68,36 @@ public sealed class FieldCameraController
 	/// Gets the embedded scripted override request cleared when override flags become inactive.
 	/// </summary>
 	public FieldCameraOverrideRequest OverrideRequest { get; } = new();
+
+	/// <summary>
+	/// Gets or sets the target entity tracked by the controller.
+	/// </summary>
+	public PlayerCharacter? TargetEntity { get; set; }
+
+	/// <summary>
+	/// Gets or sets the yaw angle recorded after the previous mode update.
+	/// </summary>
+	public int AppliedYawAngle { get; set; }
+
+	/// <summary>
+	/// Gets the per-slot eye positions maintained for immediate mode updates.
+	/// </summary>
+	public Vector3[] SlotEyes { get; } = new Vector3[SlotCount];
+
+	/// <summary>
+	/// Gets the per-slot target positions maintained for immediate mode updates.
+	/// </summary>
+	public Vector3[] SlotTargets { get; } = new Vector3[SlotCount];
+
+	/// <summary>
+	/// Gets or sets whether the camera eye sweep struck map geometry on the last collision pass.
+	/// </summary>
+	public bool HasCollisionHit { get; set; }
+
+	/// <summary>
+	/// Gets or sets the active vertical field-of-view angle in 16-bit turn units.
+	/// </summary>
+	public int FieldOfView { get; set; } = 0x3555;
 
 	/// <summary>
 	/// Gets or sets the eye position the active camera mode asks for.
@@ -261,5 +299,106 @@ public sealed class FieldCameraController
 		Eye = DesiredEye;
 		Target = DesiredTarget;
 		SnappedEye = DesiredEye;
+	}
+
+	/// <summary>
+	/// Selects the active camera mode by index and runs its activation handler.
+	/// </summary>
+	/// <param name="modeIndex">The zero-based camera mode index.</param>
+	[Original(0x004D3AA0)]
+	public static void SelectMode(byte modeIndex)
+	{
+		ActiveModeIndex = modeIndex;
+		if (modeIndex < Modes.Length)
+			Modes[modeIndex]?.OnActivated();
+	}
+
+	/// <summary>
+	/// Evaluates camera mode transitions and target re-attachment for the current frame.
+	/// </summary>
+	[Original(0x004D3974)]
+	public void UpdateModeSelection()
+	{
+		uint flags = Flags;
+		if ((flags & 0xCu) != 0 && (flags & 0x20u) == 0 && (flags & 0x80u) == 0 && (flags & 0x800u) == 0)
+			return;
+
+		if ((flags & 2u) != 0)
+		{
+			SelectMode(unchecked((byte)(OverrideRequest.ModeOffset + 9)));
+			return;
+		}
+
+		if ((flags & 0xA0u) == 0)
+			return;
+
+		SelectMode(PreviousModeIndex);
+		PlayerCharacter? player = PlayerCharacter.GetSlot(Scene2TransitionOverlay.GetDisplayId());
+		if (player is null)
+			return;
+
+		if (Modes[ActiveModeIndex] is FieldCameraMode activeMode)
+		{
+			if (Current is FieldCameraController current)
+				current.TargetEntity = player;
+			activeMode.AttachTarget(player);
+			Flags |= 0x800u;
+		}
+
+		FieldCameraMode? defaultMode = Modes[0];
+		if (defaultMode is not null)
+			defaultMode.AttachTarget(player);
+
+		if (Current is FieldCameraController controller && defaultMode is not null)
+		{
+			controller.SlotEyes[0] = defaultMode.Eye;
+			controller.SlotTargets[0] = defaultMode.Target;
+		}
+	}
+
+	/// <summary>
+	/// Sweeps from the snapped eye toward the desired eye against world collision geometry.
+	/// </summary>
+	/// <param name="ground">The collision query used for the sweep.</param>
+	[Original(0x004D3BA8)]
+	public void ResolveSnappedCollision(IGroundCollision ground)
+	{
+		ArgumentNullException.ThrowIfNull(ground);
+		GroundContact? contact = ground.Sweep(SnappedEye, DesiredEye, 0x901);
+		if (contact is GroundContact hit)
+		{
+			Vector3 delta = Vector3.Subtract(DesiredEye, SnappedEye);
+			if (delta.Length() != 0.0f)
+				Vector3.Normalize(ref delta);
+			SnappedEye = Vector3.Subtract(hit.Position, delta);
+			HasCollisionHit = true;
+		}
+		else
+		{
+			SnappedEye = Eye;
+			HasCollisionHit = false;
+		}
+	}
+
+	/// <summary>
+	/// Refines the camera eye and snapped eye after a primary collision hit by sweeping from target to eye.
+	/// </summary>
+	/// <param name="ground">The collision query used for the sweep.</param>
+	[Original(0x004D3D6C)]
+	public void ResolveTargetCollision(IGroundCollision ground)
+	{
+		ArgumentNullException.ThrowIfNull(ground);
+		_ = Scene2TransitionOverlay.GetDisplayId();
+		if (!HasCollisionHit)
+			return;
+		GroundContact? contact = ground.Sweep(Target, Eye, 0x901);
+		if (contact is GroundContact hit)
+		{
+			Eye = hit.Position;
+			SnappedEye = new Vector3(
+				(float)((double)hit.Position.X + hit.Normal.X),
+				(float)((double)hit.Position.Y + hit.Normal.Y),
+				(float)((double)hit.Position.Z + hit.Normal.Z));
+		}
 	}
 }

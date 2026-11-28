@@ -8,6 +8,11 @@ namespace PsoBB.Rendering;
 public sealed class FieldCameraOverrideRequest
 {
 	/// <summary>
+	/// Gets or sets the override mode offset relative to the base cutscene modes.
+	/// </summary>
+	public int ModeOffset { get; set; }
+
+	/// <summary>
 	/// Gets or sets the smoothing speed requested for the override transition.
 	/// </summary>
 	public float Smoothing { get; set; }

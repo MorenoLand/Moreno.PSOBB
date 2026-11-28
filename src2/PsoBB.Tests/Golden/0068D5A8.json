@@ -1,0 +1,164 @@
+[
+	{
+		"index": 0,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": 0
+	},
+	{
+		"index": 1,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": 1
+	},
+	{
+		"index": 2,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	},
+	{
+		"index": 5,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	},
+	{
+		"index": 11,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	},
+	{
+		"index": 12,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	},
+	{
+		"index": -1,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	},
+	{
+		"index": 65535,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	},
+	{
+		"index": 65536,
+		"slots": [
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false,
+			true,
+			true,
+			false
+		],
+		"expectedSlotIndex": -1
+	}
+]

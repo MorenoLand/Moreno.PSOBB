@@ -1506,6 +1506,13 @@ def main():
     camera_orientation_axes_vectors(read)
     camera_offset_vectors(read)
     camera_snap_vectors(read)
+    player_slot_vectors(read)
+    display_id_vectors(read)
+    camera_apply_mode_vectors(read)
+    camera_select_mode_vectors(read)
+    camera_resolve_snapped_collision_vectors(read)
+    camera_resolve_target_collision_vectors(read)
+    camera_update_mode_selection_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -1521,6 +1528,326 @@ def main():
     tolower_c_vectors(read)
     toupper_c_vectors(read)
 
+
+def player_slot_vectors(read):
+    """0x0068D5A8: looks up a player object from the twelve-entry active player table."""
+    slots = [0x60001000 + i * 0x100 if i % 3 != 2 else 0 for i in range(12)]
+    table = struct.pack("<12I", *slots)
+    vectors = []
+    for index in [0, 1, 2, 5, 11, 12, -1, 0xFFFF, 0x10000]:
+        _, result, _, _ = run_extended(
+            read,
+            0x0068D5A8,
+            31,
+            [index & 0xFFFFFFFF],
+            memory=[(0x00A94254, table)],
+        )
+        slot_index = -1
+        for i, ptr in enumerate(slots):
+            if ptr != 0 and ptr == result:
+                slot_index = i
+                break
+        vectors.append({
+            "index": index,
+            "slots": [ptr != 0 for ptr in slots],
+            "expectedSlotIndex": slot_index,
+        })
+    write("0068D5A8.json", vectors)
+
+
+def display_id_vectors(read):
+    """0x007BB6D0: reads the local display / player slot index global at 0x00A9C4F4."""
+    vectors = []
+    for value in [0, 1, 2, 3, 11, 0xFFFF, 0x12345678]:
+        _, result, _, _ = run_extended(
+            read,
+            0x007BB6D0,
+            6,
+            [],
+            memory=[(0x00A9C4F4, struct.pack("<I", value))],
+        )
+        vectors.append({"displayId": value, "result": result})
+    write("007BB6D0.json", vectors)
+
+
+def camera_apply_mode_vectors(read):
+    """0x004D1FF4: applies a mode object's eye, target, smoothing, and FOV to the active controller."""
+    MODE_ADDR = 0x50001000
+    MODE_SIZE = 108
+    vectors = []
+    cases = [
+        (0x00000000, 0, (1.0, 2.0, 3.0), (4.0, 5.0, 6.0), 0x36C1, 0.25, 0.5, 0x3555),
+        (0x00000004, 1, (-12.5, 3.25, 48.75), (2.5, -1.5, 12.25), 0x3555, 0.125, 0.75, 0x3555),
+        (0x00000008, 2, (100.25, 20.5, -30.75), (90.5, 15.25, -20.125), 0x4000, 0.4, 0.289, 0x36C1),
+        (0x0000000C, 3, (0.5, 1.5, -2.5), (-0.5, 2.5, 3.5), 0x2AAA, 0.0, 1.0, 0x2AAA),
+        (0x00000001, 0, (10.0, 20.0, 30.0), (11.0, 22.0, 33.0), 0x36C1, 0.33, 0.66, 0x36C1),
+    ]
+    for flags_before, display_id, eye, target, fov, eye_smooth, target_smooth, ctrl_fov in cases:
+        cam = bytearray(CAMERA_SIZE)
+        struct.pack_into("<3f", cam, 0x178, 9.0, 8.0, 7.0)
+        struct.pack_into("<3f", cam, 0x184, 6.0, 5.0, 4.0)
+        struct.pack_into("<i", cam, 0x19C, ctrl_fov)
+        mode = bytearray(MODE_SIZE)
+        struct.pack_into("<I", mode, 0x00, 0x00AFC4E8)
+        struct.pack_into("<3f", mode, 0x3C, *eye)
+        struct.pack_into("<3f", mode, 0x48, *target)
+        struct.pack_into("<i", mode, 0x54, fov)
+        struct.pack_into("<2f", mode, 0x58, eye_smooth, target_smooth)
+        mem = [
+            (CAMERA, bytes(cam)),
+            (MODE_ADDR, bytes(mode)),
+            (0x00A48A54, struct.pack("<I", CAMERA)),
+            (0x00A489FC, struct.pack("<I", flags_before)),
+            (0x00A9C4F4, struct.pack("<I", display_id)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D1FF4,
+            353,
+            [],
+            registers={"ecx": MODE_ADDR},
+            memory=mem,
+            capture=[(CAMERA, CAMERA_SIZE), (0x00A489FC, 4)],
+        )
+        vectors.append({
+            "flagsBefore": flags_before,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "displayId": display_id,
+            "modeInput": bytes(mode).hex(),
+            "cameraInput": bytes(cam).hex(),
+            "cameraOutput": captured[CAMERA].hex(),
+        })
+    write("004D1FF4.json", vectors)
+
+
+def camera_select_mode_vectors(read):
+    """0x004D3AA0: updates the active camera mode index and invokes the mode activation slot."""
+    MODE_BASE = 0x50001000
+    vectors = []
+    ptrs = [MODE_BASE + i * 128 if i != 7 else 0 for i in range(13)]
+    table = struct.pack("<13I", *ptrs)
+    base_mode = bytearray(108)
+    struct.pack_into("<I", base_mode, 0x00, 0x00AFC4E8)
+    for initial in [0, 3]:
+        for target in [0, 1, 4, 7, 12]:
+            mem = [
+                (0x00A489F4, struct.pack("<B", initial)),
+                (0x00A48A00, table),
+            ]
+            for ptr in ptrs:
+                if ptr != 0:
+                    mem.append((ptr, bytes(base_mode)))
+            _, _, captured = run(
+                read,
+                0x004D3AA0,
+                25,
+                [],
+                registers={"eax": target},
+                memory=mem,
+                capture=[(0x00A489F4, 1)],
+            )
+            vectors.append({
+                "initialMode": initial,
+                "targetMode": target,
+                "hasMode": ptrs[target] != 0,
+                "activeModeAfter": captured[0x00A489F4][0],
+            })
+    write("004D3AA0.json", vectors)
+
+
+def _collision_memory(triangle_hit, tri_v0, tri_v1, tri_v2, normal):
+    verts = struct.pack("<9f", *tri_v0, *tri_v1, *tri_v2)
+    tri = struct.pack("<4H3f", 0, 1, 2, 0x901, *normal) + b"\x00" * 16
+    hdr = struct.pack("<4I", 0, 0x50002300, 1, 0x50002400)
+    node = struct.pack("<I4fI", 0x50002200, 0.0, 0.0, 0.0, 10000.0, 0x901)
+    sec = b"\x00" * 28 + struct.pack("<2I", 0x50002100 if triangle_hit else 0, 0)
+    return [
+        (0x50002000, sec),
+        (0x50002100, node),
+        (0x50002200, hdr),
+        (0x50002300, verts),
+        (0x50002400, tri),
+        (0x50003000, b"\x00" * 64),
+        (0x00AAB3F0, struct.pack("<I", 0x50002000)),
+        (0x00A9BC88, struct.pack("<I", 0x50003000)),
+    ]
+
+
+def camera_resolve_snapped_collision_vectors(read):
+    """0x004D3BA8: sweeps from snapped eye to desired eye against collision geometry."""
+    norm_diag = (0.0, 0.6, 0.8)
+    planes = [
+        ((-100.0, -100.0, 0.0), (100.0, -100.0, 0.0), (0.0, 100.0, 0.0), (0.0, 0.0, 1.0)),
+        ((-200.0, -100.0, -200.0), (200.0, -100.0, 200.0), (-200.0, 200.0, 200.0), norm_diag),
+    ]
+    cases = [
+        (False, 0, (1.5, 2.5, 3.5), (0.0, 0.0, 10.0), (0.0, 0.0, -10.0)),
+        (True, 0, (1.5, 2.5, 3.5), (0.0, 0.0, 10.0), (0.0, 0.0, -10.0)),
+        (True, 0, (5.0, 6.0, 7.0), (0.0, 0.0, 10.0), (0.0, 0.0, 20.0)),
+        (True, 1, (2.0, 3.0, 4.0), (10.0, 25.0, 30.0), (-5.0, -10.0, -15.0)),
+        (True, 0, (-1.0, -2.0, -3.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+    ]
+    vectors = []
+    for has_mesh, plane_idx, eye, snapped, desired in cases:
+        cam = bytearray(CAMERA_SIZE)
+        struct.pack_into("<3f", cam, 0x178, *eye)
+        struct.pack_into("<3f", cam, 0x1C8, *snapped)
+        struct.pack_into("<3f", cam, 0x1A0, *desired)
+        mem = [(CAMERA, bytes(cam))] + _collision_memory(has_mesh, *planes[plane_idx])
+        _, _, captured = run(
+            read,
+            0x004D3BA8,
+            240,
+            [0],
+            registers={"ecx": CAMERA, "fpcw": 0x027F},
+            memory=mem,
+            capture=[(CAMERA, CAMERA_SIZE), (0x00A9BC84, 4), (0x50003000, 24)],
+        )
+        hit_flag = struct.unpack("<I", captured[0x00A9BC84])[0] != 0
+        hit_vals = struct.unpack("<6f", captured[0x50003000])
+        vectors.append({
+            "hit": hit_flag,
+            "hitPosition": [float_bits(c) for c in hit_vals[0:3]],
+            "hitNormal": [float_bits(c) for c in hit_vals[3:6]],
+            "input": bytes(cam).hex(),
+            "output": captured[CAMERA].hex(),
+        })
+    write("004D3BA8.json", vectors)
+
+
+def camera_resolve_target_collision_vectors(read):
+    """0x004D3D6C: sweeps from target to eye when a primary collision hit occurred."""
+    norm_diag = (0.0, 0.6, 0.8)
+    planes = [
+        ((-100.0, -100.0, 0.0), (100.0, -100.0, 0.0), (0.0, 100.0, 0.0), (0.0, 0.0, 1.0)),
+        ((-200.0, -100.0, -200.0), (200.0, -100.0, 200.0), (-200.0, 200.0, 200.0), norm_diag),
+    ]
+    cases = [
+        (0, False, 0, (1.0, 2.0, 3.0), (4.0, 5.0, 10.0), (0.0, 0.0, -10.0)),
+        (1, False, 0, (1.0, 2.0, 3.0), (0.0, 0.0, 10.0), (0.0, 0.0, -10.0)),
+        (1, True, 0, (1.0, 2.0, 3.0), (0.0, 0.0, 10.0), (0.0, 0.0, -10.0)),
+        (1, True, 1, (7.0, 8.0, 9.0), (10.0, 25.0, 30.0), (-5.0, -10.0, -15.0)),
+    ]
+    vectors = []
+    for has_hit, has_mesh, plane_idx, snapped, target, eye in cases:
+        cam = bytearray(CAMERA_SIZE)
+        struct.pack_into("<I", cam, 0x174, has_hit)
+        struct.pack_into("<3f", cam, 0x178, *eye)
+        struct.pack_into("<3f", cam, 0x184, *target)
+        struct.pack_into("<3f", cam, 0x1C8, *snapped)
+        mem = [
+            (CAMERA, bytes(cam)),
+            (0x00A9C4F4, struct.pack("<I", 0)),
+        ] + _collision_memory(has_mesh, *planes[plane_idx])
+        _, _, captured = run(
+            read,
+            0x004D3D6C,
+            134,
+            [0],
+            registers={"ecx": CAMERA, "fpcw": 0x027F},
+            memory=mem,
+            capture=[(CAMERA, CAMERA_SIZE), (0x00A9BC84, 4), (0x50003000, 24)],
+        )
+        hit_flag = struct.unpack("<I", captured[0x00A9BC84])[0] != 0
+        hit_vals = struct.unpack("<6f", captured[0x50003000])
+        vectors.append({
+            "hit": hit_flag,
+            "hitPosition": [float_bits(c) for c in hit_vals[0:3]],
+            "hitNormal": [float_bits(c) for c in hit_vals[3:6]],
+            "input": bytes(cam).hex(),
+            "output": captured[CAMERA].hex(),
+        })
+    write("004D3D6C.json", vectors)
+
+
+def camera_update_mode_selection_vectors(read):
+    """0x004D3974: evaluates mode transitions and rebinds the local player entity."""
+    MODE0_ADDR = 0x50001000
+    MODE3_ADDR = 0x50001100
+    PLAYER_ADDR = 0x50004000
+    MODE_SIZE = 108
+    vectors = []
+
+    def make_mode(eye, target):
+        m = bytearray(MODE_SIZE)
+        struct.pack_into("<I", m, 0x00, 0x00AFC4E8)
+        struct.pack_into("<H", m, 0x20, 0xFFFF)
+        struct.pack_into("<3f", m, 0x3C, *eye)
+        struct.pack_into("<3f", m, 0x48, *target)
+        return bytes(m)
+
+    player_bytes = bytearray(32)
+    struct.pack_into("<H", player_bytes, 0x1C, 7)
+
+    mode0_bytes = make_mode((1.0, 2.0, 3.0), (4.0, 5.0, 6.0))
+    mode3_bytes = make_mode((10.0, 20.0, 30.0), (40.0, 50.0, 60.0))
+
+    cases = [
+        (0x00000004, 1, 3, 2, 0, True),
+        (0x00000002, 1, 3, 2, 0, True),
+        (0x00000024, 1, 3, 0, 0, True),
+        (0x00000084, 0, 3, 0, 5, False),
+        (0x00000804, 0, 3, 0, 0, True),
+    ]
+    for flags_before, active_before, prev_before, mode_offset, display_id, has_player in cases:
+        cam = bytearray(CAMERA_SIZE)
+        struct.pack_into("<i", cam, 0x20, mode_offset)
+        modes_table = [0] * 13
+        modes_table[0] = MODE0_ADDR
+        modes_table[3] = MODE3_ADDR
+        slots = [0] * 12
+        if has_player:
+            slots[display_id] = PLAYER_ADDR
+        mem = [
+            (CAMERA, bytes(cam)),
+            (MODE0_ADDR, mode0_bytes),
+            (MODE3_ADDR, mode3_bytes),
+            (PLAYER_ADDR, bytes(player_bytes)),
+            (0x00A48A54, struct.pack("<I", CAMERA)),
+            (0x00A489FC, struct.pack("<I", flags_before)),
+            (0x00A489F4, struct.pack("<B", active_before)),
+            (0x00A489F5, struct.pack("<B", prev_before)),
+            (0x00A48A00, struct.pack("<13I", *modes_table)),
+            (0x00A9C4F4, struct.pack("<I", display_id)),
+            (0x00A94254, struct.pack("<12I", *slots)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D3974,
+            295,
+            [],
+            registers={"ecx": CAMERA},
+            memory=mem,
+            capture=[
+                (CAMERA, CAMERA_SIZE),
+                (MODE0_ADDR, MODE_SIZE),
+                (MODE3_ADDR, MODE_SIZE),
+                (0x00A489FC, 4),
+                (0x00A489F4, 1),
+            ],
+        )
+        m0_out = captured[MODE0_ADDR]
+        m3_out = captured[MODE3_ADDR]
+        vectors.append({
+            "flagsBefore": flags_before,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "activeBefore": active_before,
+            "activeAfter": captured[0x00A489F4][0],
+            "previousMode": prev_before,
+            "modeOffset": mode_offset,
+            "displayId": display_id,
+            "hasPlayer": has_player,
+            "playerIndex": 7,
+            "mode0Eye": [float_bits(1.0), float_bits(2.0), float_bits(3.0)],
+            "mode0Target": [float_bits(4.0), float_bits(5.0), float_bits(6.0)],
+            "expectedMode0ClientId": struct.unpack_from("<H", m0_out, 0x20)[0],
+            "expectedMode0Attached": struct.unpack_from("<I", m0_out, 0x1C)[0] == PLAYER_ADDR,
+            "expectedMode3ClientId": struct.unpack_from("<H", m3_out, 0x20)[0],
+            "expectedMode3Attached": struct.unpack_from("<I", m3_out, 0x1C)[0] == PLAYER_ADDR,
+            "expectedControllerAttached": struct.unpack_from("<I", captured[CAMERA], 0x90)[0] == PLAYER_ADDR,
+            "cameraOutput": captured[CAMERA].hex(),
+        })
+    write("004D3974.json", vectors)
 
 
 if __name__ == "__main__":

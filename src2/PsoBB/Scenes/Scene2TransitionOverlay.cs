@@ -50,6 +50,13 @@ public sealed class Scene2TransitionOverlay
 	public static uint DisplayId { get; set; }
 
 	/// <summary>
+	/// Returns the active display and local player slot index.
+	/// </summary>
+	/// <returns>The local player slot index.</returns>
+	[Original(0x007BB6D0)]
+	public static int GetDisplayId() => unchecked((int)DisplayId);
+
+	/// <summary>
 	/// Returns whether the pump may run; bit zero of the manager flags suppresses it.
 	/// </summary>
 	/// <returns><see langword="true"/> when bit zero is clear.</returns>

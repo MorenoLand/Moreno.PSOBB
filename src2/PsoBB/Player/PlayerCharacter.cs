@@ -15,6 +15,28 @@ public sealed class PlayerCharacter
 {
 	private readonly PlayerAnimationSet _animations;
 
+	/// <summary>The maximum number of active player slots tracked by the field subsystem.</summary>
+	public const int MaximumSlots = 12;
+
+	/// <summary>
+	/// Gets the active player character table indexed by slot number.
+	/// </summary>
+	[OriginalGlobal(0x00A94254)]
+	public static PlayerCharacter?[] Slots { get; } = new PlayerCharacter?[MaximumSlots];
+
+	/// <summary>
+	/// Clears all registered player slots to their startup empty state for test isolation.
+	/// </summary>
+	public static void ResetGlobals() => Array.Clear(Slots);
+
+	/// <summary>
+	/// Looks up an active player character by slot index.
+	/// </summary>
+	/// <param name="index">The player slot index.</param>
+	/// <returns>The player occupying that slot, or <see langword="null"/> when empty or out of range.</returns>
+	[Original(0x0068D5A8)]
+	public static PlayerCharacter? GetSlot(int index) => (uint)index < MaximumSlots ? Slots[index] : null;
+
 	private PlayerCharacter(int playerIndex, Vector3 position, ushort heading, PlayerAnimationSet animations)
 	{
 		PlayerIndex = playerIndex;

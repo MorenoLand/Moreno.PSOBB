@@ -1,5 +1,9 @@
+using System.Text.Json;
+using PsoBB.Game;
 using PsoBB.Mathematics;
+using PsoBB.Player;
 using PsoBB.Rendering;
+using PsoBB.Scenes;
 
 namespace PsoBB.Tests;
 
@@ -13,10 +17,14 @@ public sealed class FieldCameraControllerGoldenTests
 	private const int OverrideEyeOffset = 0x3C;
 	private const int OverrideTargetOffset = 0x48;
 	private const int OffsetOffset = 0x68;
+	private const int SlotEyesOffset = 0xD4;
+	private const int SlotTargetsOffset = 0x104;
+	private const int HasCollisionHitOffset = 0x174;
 	private const int EyeOffset = 0x178;
 	private const int TargetOffset = 0x184;
 	private const int PitchAngleOffset = 0x190;
 	private const int YawAngleOffset = 0x194;
+	private const int FieldOfViewOffset = 0x19C;
 	private const int DesiredEyeOffset = 0x1A0;
 	private const int DesiredTargetOffset = 0x1AC;
 	private const int EyeSmoothingOffset = 0x1B8;
@@ -94,6 +102,83 @@ public sealed class FieldCameraControllerGoldenTests
 		{
 			Convert.FromHexString(vector.GetProperty("input").GetString()!),
 			Convert.FromHexString(vector.GetProperty("output").GetString()!),
+		});
+
+	public static IEnumerable<object[]> PlayerSlotVectors() => GoldenVectors.Load("0068D5A8.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("index").GetInt32(),
+			vector.GetProperty("slots").EnumerateArray().Select(item => item.GetBoolean()).ToArray(),
+			vector.GetProperty("expectedSlotIndex").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> DisplayIdVectors() => GoldenVectors.Load("007BB6D0.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("displayId").GetUInt32(),
+			vector.GetProperty("result").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> ApplyModeVectors() => GoldenVectors.Load("004D1FF4.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("flagsBefore").GetUInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+			vector.GetProperty("displayId").GetInt32(),
+			Convert.FromHexString(vector.GetProperty("modeInput").GetString()!),
+			Convert.FromHexString(vector.GetProperty("cameraInput").GetString()!),
+			Convert.FromHexString(vector.GetProperty("cameraOutput").GetString()!),
+		});
+
+	public static IEnumerable<object[]> SelectModeVectors() => GoldenVectors.Load("004D3AA0.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("initialMode").GetByte(),
+			vector.GetProperty("targetMode").GetByte(),
+			vector.GetProperty("hasMode").GetBoolean(),
+			vector.GetProperty("activeModeAfter").GetByte(),
+		});
+
+	public static IEnumerable<object[]> ResolveSnappedCollisionVectors() => GoldenVectors.Load("004D3BA8.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("hit").GetBoolean(),
+			ReadVector(vector.GetProperty("hitPosition")),
+			ReadVector(vector.GetProperty("hitNormal")),
+			Convert.FromHexString(vector.GetProperty("input").GetString()!),
+			Convert.FromHexString(vector.GetProperty("output").GetString()!),
+		});
+
+	public static IEnumerable<object[]> ResolveTargetCollisionVectors() => GoldenVectors.Load("004D3D6C.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("hit").GetBoolean(),
+			ReadVector(vector.GetProperty("hitPosition")),
+			ReadVector(vector.GetProperty("hitNormal")),
+			Convert.FromHexString(vector.GetProperty("input").GetString()!),
+			Convert.FromHexString(vector.GetProperty("output").GetString()!),
+		});
+
+	public static IEnumerable<object[]> UpdateModeSelectionVectors() => GoldenVectors.Load("004D3974.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("flagsBefore").GetUInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+			vector.GetProperty("activeBefore").GetByte(),
+			vector.GetProperty("activeAfter").GetByte(),
+			vector.GetProperty("previousMode").GetByte(),
+			vector.GetProperty("modeOffset").GetInt32(),
+			vector.GetProperty("displayId").GetUInt32(),
+			vector.GetProperty("hasPlayer").GetBoolean(),
+			vector.GetProperty("playerIndex").GetInt32(),
+			ReadVector(vector.GetProperty("mode0Eye")),
+			ReadVector(vector.GetProperty("mode0Target")),
+			vector.GetProperty("expectedMode0ClientId").GetUInt16(),
+			vector.GetProperty("expectedMode0Attached").GetBoolean(),
+			vector.GetProperty("expectedMode3ClientId").GetUInt16(),
+			vector.GetProperty("expectedMode3Attached").GetBoolean(),
+			vector.GetProperty("expectedControllerAttached").GetBoolean(),
+			Convert.FromHexString(vector.GetProperty("cameraOutput").GetString()!),
 		});
 
 	[Theory]
@@ -283,6 +368,250 @@ public sealed class FieldCameraControllerGoldenTests
 		Assert.Equal(ReadVector(output, DesiredEyeOffset), controller.DesiredEye);
 		Assert.Equal(ReadVector(output, DesiredTargetOffset), controller.DesiredTarget);
 	}
+
+	[Theory]
+	[MemberData(nameof(PlayerSlotVectors))]
+	public void GetPlayerSlotMatchesTheMachineCode(int index, bool[] occupiedSlots, int expectedSlotIndex)
+	{
+		PlayerCharacter.ResetGlobals();
+		try
+		{
+			PlayerAnimationSet animations = PlayerAnimationSet.Empty;
+			for (int i = 0; i < occupiedSlots.Length; i++)
+			{
+				if (occupiedSlots[i])
+					PlayerCharacter.Slots[i] = PlayerCharacter.Create(i, default, 0, animations);
+			}
+
+			PlayerCharacter? result = PlayerCharacter.GetSlot(index);
+			if (expectedSlotIndex < 0)
+				Assert.Null(result);
+			else
+				Assert.Same(PlayerCharacter.Slots[expectedSlotIndex], result);
+		}
+		finally
+		{
+			PlayerCharacter.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(DisplayIdVectors))]
+	public void GetDisplayIdMatchesTheMachineCode(uint displayId, int expected)
+	{
+		Scene2TransitionOverlay.Reset();
+		try
+		{
+			Scene2TransitionOverlay.DisplayId = displayId;
+			Assert.Equal(expected, Scene2TransitionOverlay.GetDisplayId());
+		}
+		finally
+		{
+			Scene2TransitionOverlay.Reset();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ApplyModeVectors))]
+	public void ApplyModeToControllerMatchesTheMachineCode(uint flagsBefore, uint flagsAfter, int displayId, byte[] modeInput, byte[] cameraInput, byte[] cameraOutput)
+	{
+		FieldCameraController.ResetGlobals();
+		Scene2TransitionOverlay.Reset();
+		try
+		{
+			FieldCameraController.Flags = flagsBefore;
+			Scene2TransitionOverlay.DisplayId = unchecked((uint)displayId);
+			FieldCameraController controller = new()
+			{
+				Eye = ReadVector(cameraInput, EyeOffset),
+				Target = ReadVector(cameraInput, TargetOffset),
+				FieldOfView = BitConverter.ToInt32(cameraInput, FieldOfViewOffset),
+			};
+			FieldCameraController.Current = controller;
+
+			FieldCameraMode mode = new()
+			{
+				Eye = ReadVector(modeInput, 0x3C),
+				Target = ReadVector(modeInput, 0x48),
+				FieldOfView = BitConverter.ToInt32(modeInput, 0x54),
+				EyeSmoothing = BitConverter.ToSingle(modeInput, 0x58),
+				TargetSmoothing = BitConverter.ToSingle(modeInput, 0x5C),
+			};
+
+			mode.ApplyToController();
+
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, EyeOffset), controller.Eye);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, TargetOffset), controller.Target);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, DesiredEyeOffset), controller.DesiredEye);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, DesiredTargetOffset), controller.DesiredTarget);
+			GoldenVectors.AssertFloat(BitConverter.ToSingle(cameraOutput, EyeSmoothingOffset), controller.EyeSmoothing);
+			GoldenVectors.AssertFloat(BitConverter.ToSingle(cameraOutput, TargetSmoothingOffset), controller.TargetSmoothing);
+			Assert.Equal(BitConverter.ToInt32(cameraOutput, FieldOfViewOffset), controller.FieldOfView);
+			for (int slot = 0; slot < FieldCameraController.SlotCount; slot++)
+			{
+				GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotEyesOffset + slot * 12), controller.SlotEyes[slot]);
+				GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotTargetsOffset + slot * 12), controller.SlotTargets[slot]);
+			}
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+			Scene2TransitionOverlay.Reset();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(SelectModeVectors))]
+	public void SelectModeMatchesTheMachineCode(byte initialMode, byte targetMode, bool hasMode, byte expectedActiveMode)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.ActiveModeIndex = initialMode;
+			TrackingCameraMode? mode = hasMode ? new TrackingCameraMode() : null;
+			FieldCameraController.Modes[targetMode] = mode;
+
+			FieldCameraController.SelectMode(targetMode);
+
+			Assert.Equal(expectedActiveMode, FieldCameraController.ActiveModeIndex);
+			Assert.Equal(hasMode ? 1 : 0, mode?.ActivatedCount ?? 0);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ResolveSnappedCollisionVectors))]
+	public void ResolveSnappedCollisionMatchesTheMachineCode(bool hit, Vector3 hitPosition, Vector3 hitNormal, byte[] input, byte[] output)
+	{
+		FieldCameraController controller = new()
+		{
+			HasCollisionHit = BitConverter.ToUInt32(input, HasCollisionHitOffset) != 0,
+			Eye = ReadVector(input, EyeOffset),
+			DesiredEye = ReadVector(input, DesiredEyeOffset),
+			SnappedEye = ReadVector(input, SnappedEyeOffset),
+		};
+		FixedGroundCollision ground = new(hit ? new GroundContact(hitPosition, hitNormal) : null);
+
+		controller.ResolveSnappedCollision(ground);
+
+		Assert.Equal(BitConverter.ToUInt32(output, HasCollisionHitOffset) != 0, controller.HasCollisionHit);
+		GoldenVectors.AssertVector(ReadVector(output, SnappedEyeOffset), controller.SnappedEye);
+		GoldenVectors.AssertVector(ReadVector(output, EyeOffset), controller.Eye);
+		GoldenVectors.AssertVector(ReadVector(output, DesiredEyeOffset), controller.DesiredEye);
+	}
+
+	[Theory]
+	[MemberData(nameof(ResolveTargetCollisionVectors))]
+	public void ResolveTargetCollisionMatchesTheMachineCode(bool hit, Vector3 hitPosition, Vector3 hitNormal, byte[] input, byte[] output)
+	{
+		Scene2TransitionOverlay.Reset();
+		try
+		{
+			FieldCameraController controller = new()
+			{
+				HasCollisionHit = BitConverter.ToUInt32(input, HasCollisionHitOffset) != 0,
+				Eye = ReadVector(input, EyeOffset),
+				Target = ReadVector(input, TargetOffset),
+				SnappedEye = ReadVector(input, SnappedEyeOffset),
+			};
+			FixedGroundCollision ground = new(hit ? new GroundContact(hitPosition, hitNormal) : null);
+
+			controller.ResolveTargetCollision(ground);
+
+			GoldenVectors.AssertVector(ReadVector(output, EyeOffset), controller.Eye);
+			GoldenVectors.AssertVector(ReadVector(output, SnappedEyeOffset), controller.SnappedEye);
+			GoldenVectors.AssertVector(ReadVector(output, TargetOffset), controller.Target);
+		}
+		finally
+		{
+			Scene2TransitionOverlay.Reset();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(UpdateModeSelectionVectors))]
+	public void UpdateModeSelectionMatchesTheMachineCode(
+		uint flagsBefore,
+		uint flagsAfter,
+		byte activeBefore,
+		byte activeAfter,
+		byte previousMode,
+		int modeOffset,
+		uint displayId,
+		bool hasPlayer,
+		int playerIndex,
+		Vector3 mode0Eye,
+		Vector3 mode0Target,
+		ushort expectedMode0ClientId,
+		bool expectedMode0Attached,
+		ushort expectedMode3ClientId,
+		bool expectedMode3Attached,
+		bool expectedControllerAttached,
+		byte[] cameraOutput)
+	{
+		FieldCameraController.ResetGlobals();
+		PlayerCharacter.ResetGlobals();
+		Scene2TransitionOverlay.Reset();
+		try
+		{
+			FieldCameraController.Flags = flagsBefore;
+			FieldCameraController.ActiveModeIndex = activeBefore;
+			FieldCameraController.PreviousModeIndex = previousMode;
+			Scene2TransitionOverlay.DisplayId = displayId;
+
+			FieldCameraController controller = new();
+			controller.OverrideRequest.ModeOffset = modeOffset;
+			FieldCameraController.Current = controller;
+
+			FieldCameraMode mode0 = new() { Eye = mode0Eye, Target = mode0Target };
+			FieldCameraMode mode3 = new();
+			FieldCameraController.Modes[0] = mode0;
+			FieldCameraController.Modes[3] = mode3;
+
+			PlayerCharacter? player = hasPlayer ? PlayerCharacter.Create(playerIndex, default, 0, PlayerAnimationSet.Empty) : null;
+			if (hasPlayer)
+				PlayerCharacter.Slots[displayId] = player;
+
+			controller.UpdateModeSelection();
+
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+			Assert.Equal(activeAfter, FieldCameraController.ActiveModeIndex);
+			Assert.Equal(expectedMode0ClientId, mode0.TargetClientId);
+			Assert.Equal(expectedMode0Attached, ReferenceEquals(mode0.TargetEntity, player) && player is not null);
+			Assert.Equal(expectedMode3ClientId, mode3.TargetClientId);
+			Assert.Equal(expectedMode3Attached, ReferenceEquals(mode3.TargetEntity, player) && player is not null);
+			Assert.Equal(expectedControllerAttached, ReferenceEquals(controller.TargetEntity, player) && player is not null);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotEyesOffset), controller.SlotEyes[0]);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotTargetsOffset), controller.SlotTargets[0]);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+			PlayerCharacter.ResetGlobals();
+			Scene2TransitionOverlay.Reset();
+		}
+	}
+
+	private sealed class TrackingCameraMode : FieldCameraMode
+	{
+		public int ActivatedCount { get; private set; }
+
+		public override void OnActivated() => ActivatedCount++;
+	}
+
+	private sealed class FixedGroundCollision(GroundContact? contact) : IGroundCollision
+	{
+		public GroundContact? Sweep(Vector3 from, Vector3 to, int mask) => contact;
+	}
+
+	private static Vector3 ReadVector(JsonElement array) => new(
+		GoldenVectors.ReadFloat(array[0]),
+		GoldenVectors.ReadFloat(array[1]),
+		GoldenVectors.ReadFloat(array[2]));
 
 	private static Vector3 ReadVector(byte[] block, int offset) => new(
 		BitConverter.ToSingle(block, offset),

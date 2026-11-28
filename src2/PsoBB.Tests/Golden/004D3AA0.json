@@ -1,0 +1,62 @@
+[
+	{
+		"initialMode": 0,
+		"targetMode": 0,
+		"hasMode": true,
+		"activeModeAfter": 0
+	},
+	{
+		"initialMode": 0,
+		"targetMode": 1,
+		"hasMode": true,
+		"activeModeAfter": 1
+	},
+	{
+		"initialMode": 0,
+		"targetMode": 4,
+		"hasMode": true,
+		"activeModeAfter": 4
+	},
+	{
+		"initialMode": 0,
+		"targetMode": 7,
+		"hasMode": false,
+		"activeModeAfter": 7
+	},
+	{
+		"initialMode": 0,
+		"targetMode": 12,
+		"hasMode": true,
+		"activeModeAfter": 12
+	},
+	{
+		"initialMode": 3,
+		"targetMode": 0,
+		"hasMode": true,
+		"activeModeAfter": 0
+	},
+	{
+		"initialMode": 3,
+		"targetMode": 1,
+		"hasMode": true,
+		"activeModeAfter": 1
+	},
+	{
+		"initialMode": 3,
+		"targetMode": 4,
+		"hasMode": true,
+		"activeModeAfter": 4
+	},
+	{
+		"initialMode": 3,
+		"targetMode": 7,
+		"hasMode": false,
+		"activeModeAfter": 7
+	},
+	{
+		"initialMode": 3,
+		"targetMode": 12,
+		"hasMode": true,
+		"activeModeAfter": 12
+	}
+]

@@ -41,22 +41,25 @@ has been read for.
   give for `FieldCamera`), calls the mode object's slot `+0x24`, and copies `+0x194` to `+0x94`.
 - `0x004D3FB0` builds two rotation matrices on the matrix stack from the camera's `+0x194` and `+0x190` angles and
   stores the results in the globals `0x00A489E8` and `0x00A489DC`.
-- Unread helpers: `0x004D1FF4`, `0x004D3BA8`, `0x004D3C98`, `0x004D3D14`, `0x004D3D6C`, `0x004D3DF4`, `0x004D3E90`,
-  `0x004D3EF4`, `0x0082EBC8`, `0x004D4048`.
+- Remaining helpers: `0x004D3ABC`, `0x0082EBC8`, `0x004D386C`, `0x004D4048`, `0x004D2FB4`, and the 13 mode objects.
 
 ## Ported members
 
 `FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`), `FieldCameraMode` (`src2/PsoBB/Rendering/FieldCameraMode.cs`)
 and `FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`) name the proven fields and globals:
 - Globals: `0x00A48A54` (`Current`), `0x00A489FC` (`Flags`), `0x00A48A44` (`SnapRequested`), `0x00A489E8` (`RightAxis`),
-  `0x00A489DC` (`UpAxis`), `0x00A489F4` (`ActiveModeIndex`), `0x00A489F5` (`PreviousModeIndex`), `0x00A48A00` (`Modes`).
-- Controller fields: the override request at `+0x20..+0x64` (`Smoothing` at `+0x30`, `FieldOfViewDegrees` at `+0x34`, `Eye` at `+0x3C`,
-  `Target` at `+0x48`), the shake offset at `+0x68..+0x70`, the eye at `+0x178`, the target at `+0x184` (the update subtracts the eye
-  from the target to get the viewing direction), `PitchAngle` at `+0x190`, `YawAngle` at `+0x194`, the eye and target the active mode
-  asks for at `+0x1A0` and `+0x1AC`, `EyeSmoothing` at `+0x1B8`, `TargetSmoothing` at `+0x1BC`, the offset countdown at `+0x1C0`, the
-  offset amplitude at `+0x1C4`, and the eye recorded at `+0x1C8`.
+  `0x00A489DC` (`UpAxis`), `0x00A489F4` (`ActiveModeIndex`), `0x00A489F5` (`PreviousModeIndex`), `0x00A48A00` (`Modes`),
+  `0x00A94254` (`PlayerCharacter.Slots`), `0x00A9C4F4` (`Scene2TransitionOverlay.DisplayId`).
+- Controller fields: the override request at `+0x20..+0x64` (`ModeOffset` at `+0x20`, `Smoothing` at `+0x30`, `FieldOfViewDegrees` at `+0x34`,
+  `Eye` at `+0x3C`, `Target` at `+0x48`), the shake offset at `+0x68..+0x70`, `TargetEntity` at `+0x90`, `AppliedYawAngle` at `+0x94`,
+  `SlotEyes` at `+0xD4..+0xF8`, `SlotTargets` at `+0x104..+0x128`, `HasCollisionHit` at `+0x174`, the eye at `+0x178`, the target at `+0x184`
+  (the update subtracts the eye from the target to get the viewing direction), `PitchAngle` at `+0x190`, `YawAngle` at `+0x194`,
+  `FieldOfView` at `+0x19C`, the eye and target the active mode asks for at `+0x1A0` and `+0x1AC`, `EyeSmoothing` at `+0x1B8`,
+  `TargetSmoothing` at `+0x1BC`, the offset countdown at `+0x1C0`, the offset amplitude at `+0x1C4`, and the eye recorded at `+0x1C8`.
 - Ported helpers: `StepTowards` (`0x004D63B0`), `SmoothFollowDesired` (`0x004D3D14`), `SnapEyeAndSmoothTarget` (`0x004D3C98`),
-  `StepOffsetCountdown` (`0x004D3DF4`), `SnapToDesired` (`0x004D3E90`), `AdvanceFlagsAndClearOverride` (`0x004D3EF4`), and
-  `UpdateOrientationAxes` (`0x004D3FB0`).
-- Mode base (`FieldCameraMode`, ctor `0x004D1F68`, vtable `0x00AFC4E8`): `Flags` at `+0x38`, `Eye` at `+0x3C`, `Target` at `+0x48`,
-  `FieldOfView` at `+0x54`, `EyeSmoothing` at `+0x58`, `TargetSmoothing` at `+0x5C`.
+  `StepOffsetCountdown` (`0x004D3DF4`), `SnapToDesired` (`0x004D3E90`), `AdvanceFlagsAndClearOverride` (`0x004D3EF4`),
+  `UpdateOrientationAxes` (`0x004D3FB0`), `SelectMode` (`0x004D3AA0`), `UpdateModeSelection` (`0x004D3974`),
+  `ResolveSnappedCollision` (`0x004D3BA8`), `ResolveTargetCollision` (`0x004D3D6C`), `FieldCameraMode.ApplyToController` (`0x004D1FF4`),
+  `PlayerCharacter.GetSlot` (`0x0068D5A8`), and `Scene2TransitionOverlay.GetDisplayId` (`0x007BB6D0`).
+- Mode base (`FieldCameraMode`, ctor `0x004D1F68`, vtable `0x00AFC4E8`): `TargetEntity` at `+0x1C`, `TargetClientId` at `+0x20`,
+  `Flags` at `+0x38`, `Eye` at `+0x3C`, `Target` at `+0x48`, `FieldOfView` at `+0x54`, `EyeSmoothing` at `+0x58`, `TargetSmoothing` at `+0x5C`.
