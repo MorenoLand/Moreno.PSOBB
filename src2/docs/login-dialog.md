@@ -131,15 +131,23 @@ place the value was read.
   parent's `+0x10` and `+0x14`. Text width is clamped to the item's `+0x1C`. Flag `0x40` selects an
   unbounded width (`0x970EBC` = 1e7) instead of the parent's `+0x44`.
 
-Not decoded yet, so the port does not change these: which of the four appended elements is the
-header, the UserID row, the Password row or the buttons; the centring formula behind the text x in
-`0x0072D9B4` (it uses the parent's `+0x30` and `+0x38`); and the blend state set by
-`0x0082BB30(1)`, which decides whether the strip looks white.
+- The UI box builder `0x0071B900` (reached via `0x007108F4` -> `0x00712658` -> `0x0071B8D4`) computes the
+  content origin `[box+0x10]` and `[box+0x14]` on the global layout box `0x00A98584`. With flag
+  `0x800` clear it adds `10.0` (`0x009700C0`) to the window top `y`, and because `0x00738364` sets
+  window flag bit `0x40` for the attached header, `0x00712658` calls `0x0071BC28` to add another
+  `6.0` (`0x009700A4`), giving `330 + 10 + 6 = 346` for `[box+0x14]` (`TitleRegisterDialog.RowTop`).
+- `0x0072D9B4` computes the remaining line-width limit from `[box+0x30]`, `[box+0x18]`, item
+  `+0x08`/`+0x0C`, and `0x00970EB0..0x00970EB8` (`((charsRemaining - (y/21 + x/width)*7.5) * 17)`),
+  clamped by `[item+0x1C]`.
+- `0x007120EC` selects additive-alpha blending explicitly via `0x007A902C` -> `0x0082ACFC(0, 8)` /
+  `0x0082ACFC(1, 10)` -> `0x00837468` (`SourceBlend = SrcAlpha [5]`, `DestinationBlend = One [2]`)
+  before `0x0082BB30(1)` (`AlphaBlendEnable = 1`, `TextureStage[0].AlphaOp = Modulate [4]`), then
+  restores standard alpha blending (`SrcAlpha / InvSrcAlpha`, `8, 6`) via `0x007A9044`.
+  `LoginDialogFrame.AddRow` using `UiBlendMode.AdditiveAlpha` matches that state transition.
 
 Element mapping, verified in `0x00762224`: `0x00792FE8(41, n)` returns unitxt list 41 string `n`.
 The header is string 8 (Input UserID), attached through `0x00738364` to `[window+0x60]`. The four
 appended children are string 9 (UserId, element 0, value object `[window+0x20]`), string 10
 (Password, element 1, buffer `esi`), string 1 (Confirm, element 2) and string 0 (Cancel, element 3).
-Element `c` sits at `origin.y + 20 * c`. The UserId editor at 346 and the Password editor at 366 are
-one row apart, so the origin that lines the rows up with them is 346. That origin is an inference
-from the editor positions; the write to `[window+0x14]` is not located yet.
+Element `c` sits at `origin.y + 20 * c`, placing element 0 at `346` and element 1 at `366` in
+agreement with the editor positions in `0x007624E0`.

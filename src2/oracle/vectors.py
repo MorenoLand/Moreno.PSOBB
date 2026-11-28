@@ -1550,6 +1550,11 @@ def main():
     camera_follow_lock_target_vectors(read)
     camera_close_follow_lock_target_vectors(read)
     camera_close_follow_focus_vectors(read)
+    camera_cutscene_post_update_vectors(read)
+    camera_preview_eye_spherical_vectors(read)
+    camera_preview_intro_vectors(read)
+    camera_preview_zoom_vectors(read)
+    camera_preview_idle_orbit_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -3314,6 +3319,216 @@ def camera_close_follow_focus_vectors(read):
             "lockedEyeOutput": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x124)],
         })
     write("004D1870.json", vectors)
+
+
+def camera_cutscene_post_update_vectors(read):
+    """0x004D6BC0: builds camera look-at transform with optional view roll."""
+    CTRL = 0x50000000
+    MODE = 0x50001000
+    STACK = 0x50004400
+    DEV = 0x50006100
+    VTBL = 0x50006200
+    STUB = 0x50006000
+    d3dx_x87 = read(0x00A34070, 0x39 * 4)
+    vtbl = bytearray(256)
+    struct.pack_into("<I", vtbl, 148, STUB)
+    vectors = []
+    for meye, mtgt, roll, ceye, ctgt in [
+        ((0.0, 20.0, 40.0), (0.0, 10.0, 0.0), 0, (0.0, 20.0, 40.0), (0.0, 10.0, 0.0)),
+        ((10.0, 20.0, 30.0), (-5.0, 5.0, 0.0), 0x2000, (10.0, 20.0, 30.0), (-5.0, 5.0, 0.0)),
+        ((-20.0, 5.0, -10.0), (15.0, 15.0, 25.0), -0x1800, (-20.0, 5.0, -10.0), (15.0, 15.0, 25.0)),
+    ]:
+        ctrl = bytearray(468)
+        struct.pack_into("<3f", ctrl, 0x178, *ceye)
+        struct.pack_into("<3f", ctrl, 0x184, *ctgt)
+        mode = bytearray(168)
+        struct.pack_into("<I", mode, 0x00, 0x00AFC8F8)
+        struct.pack_into("<3f", mode, 0x3C, *meye)
+        struct.pack_into("<3f", mode, 0x48, *mtgt)
+        struct.pack_into("<i", mode, 0x90, roll)
+        _, _, captured = run(
+            read,
+            0x004D6BC0,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[
+                (CTRL, bytes(ctrl)),
+                (MODE, bytes(mode)),
+                (STACK, b"\x00" * 256),
+                (DEV, struct.pack("<I", VTBL)),
+                (VTBL, bytes(vtbl)),
+                (STUB, b"\xC2\x0C\x00"),
+                (0x00A33F88, d3dx_x87),
+                (0x00A347CC, struct.pack("<I", 0xFFFF)),
+                (0x008CB083, b"\xB8\x01\x00\x00\x00\xC3"),
+                (0x00A48A54, struct.pack("<I", CTRL)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00AF0380, struct.pack("<I", 128)),
+                (0x00AF0384, struct.pack("<I", 0)),
+                (0x00AEB494, struct.pack("<I", 0)),
+                (0x00ACD528, struct.pack("<I", DEV)),
+                (0x00ACBF80, b"\x00" * 256),
+                (0x00ACD3E0, b"\x00" * 256),
+            ],
+            capture=[(CTRL, 468), (STACK, 64), (0x00A48780, 12)],
+        )
+        out_ctrl = captured[CTRL]
+        vectors.append({
+            "modeEye": [float_bits(v) for v in meye],
+            "modeTarget": [float_bits(v) for v in mtgt],
+            "roll": roll,
+            "controllerEye": [float_bits(v) for v in ceye],
+            "controllerTarget": [float_bits(v) for v in ctgt],
+            "pitchOutput": struct.unpack_from("<i", out_ctrl, 0x190)[0],
+            "yawOutput": struct.unpack_from("<i", out_ctrl, 0x194)[0],
+            "viewMatrix": [float_bits(v) for v in struct.unpack("<16f", captured[STACK])],
+            "globalEye": [float_bits(v) for v in struct.unpack("<3f", captured[0x00A48780])],
+        })
+    write("004D6BC0.json", vectors)
+
+
+def camera_preview_eye_spherical_vectors(read):
+    """0x004EA5A8: computes preview eye position from spherical radius, pitch and yaw."""
+    MODE = 0x50001000
+    vectors = []
+    for radius, pitch, yaw, target_y in [
+        (30.0, 0, 0, 10.0),
+        (25.0, 0x1000, 0x2000, 12.5),
+        (45.0, -0x800, 0x6000, 15.0),
+    ]:
+        mode = bytearray(144)
+        struct.pack_into("<f", mode, 0x4C, target_y)
+        struct.pack_into("<f", mode, 0x6C, radius)
+        struct.pack_into("<i", mode, 0x70, pitch)
+        struct.pack_into("<i", mode, 0x74, yaw)
+        _, _, captured = run(read, 0x004EA5A8, 0, [], registers={"ecx": MODE, "fpcw": 0x027F}, memory=[(MODE, bytes(mode))], capture=[(MODE, 144)])
+        out = captured[MODE]
+        vectors.append({
+            "radius": float_bits(radius),
+            "pitch": pitch,
+            "yaw": yaw,
+            "targetY": float_bits(target_y),
+            "eye": [float_bits(v) for v in struct.unpack_from("<3f", out, 0x3C)],
+        })
+    write("004EA5A8.json", vectors)
+
+
+def camera_preview_intro_vectors(read):
+    """0x004EB0E8: computes preview intro target height and starting radius from preview model."""
+    MODE = 0x50001000
+    CHAR = 0x50002000
+    vectors = []
+    for class_id, height_ratio in [
+        (0, 0.5),
+        (2, 1.0),
+        (6, 0.25),
+        (11, 0.0),
+    ]:
+        mode = bytearray(144)
+        char = bytearray(128)
+        char[49] = class_id
+        struct.pack_into("<f", char, 76, height_ratio)
+        _, _, captured = run(
+            read,
+            0x004EB0E8,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[
+                (MODE, bytes(mode)),
+                (CHAR, bytes(char)),
+                (0x00A4D7F8, struct.pack("<I", CHAR)),
+                (0x00A72238, struct.pack("<i", 1)),
+            ],
+            capture=[(MODE, 144), (0x00A72238, 4)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "classId": class_id,
+            "heightRatio": float_bits(height_ratio),
+            "targetY": float_bits(struct.unpack_from("<f", out, 0x4C)[0]),
+            "radius": float_bits(struct.unpack_from("<f", out, 0x6C)[0]),
+            "introStartRadius": float_bits(struct.unpack_from("<f", out, 0x80)[0]),
+            "timer": struct.unpack_from("<i", out, 0x84)[0],
+            "subState": struct.unpack("<i", captured[0x00A72238])[0],
+        })
+    write("004EB0E8.json", vectors)
+
+
+def camera_preview_zoom_vectors(read):
+    """0x004EB15C: advances 120-frame cosine intro radius curve."""
+    MODE = 0x50001000
+    vectors = []
+    for timer_in, start_radius in [(120, 40.0), (60, 40.0), (1, 40.0), (0, 25.0)]:
+        mode = bytearray(144)
+        struct.pack_into("<f", mode, 0x80, start_radius)
+        struct.pack_into("<i", mode, 0x84, timer_in)
+        _, _, captured = run(
+            read,
+            0x004EB15C,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[(MODE, bytes(mode)), (0x00A72238, struct.pack("<i", 2))],
+            capture=[(MODE, 144), (0x00A72238, 4)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "timerInput": timer_in,
+            "startRadius": float_bits(start_radius),
+            "timerOutput": struct.unpack_from("<i", out, 0x84)[0],
+            "radiusOutput": float_bits(struct.unpack_from("<f", out, 0x6C)[0]),
+            "subState": struct.unpack("<i", captured[0x00A72238])[0],
+        })
+    write("004EB15C.json", vectors)
+
+
+def camera_preview_idle_orbit_vectors(read):
+    """0x004EB1C8: updates idle auto-orbit pitch damping and oscillating yaw/radius steps."""
+    MODE = 0x50001000
+    vectors = []
+    for has_input, timer_in, radius_in, pitch_in, yaw_in in [
+        (True, 10, 25.0, 0, 0),
+        (False, 0x0FF, 25.0, 500, 0),
+        (False, 0x2FF, 25.0, -50, 0),
+        (False, 0x4FF, 25.0, -500, 0x1000),
+        (False, 0x6FF, 25.0, 50, 0),
+    ]:
+        mode = bytearray(144)
+        struct.pack_into("<f", mode, 0x6C, radius_in)
+        struct.pack_into("<i", mode, 0x70, pitch_in)
+        struct.pack_into("<i", mode, 0x74, yaw_in)
+        struct.pack_into("<i", mode, 0x84, timer_in)
+        _, _, captured = run(
+            read,
+            0x004EB1C8,
+            0,
+            [],
+            registers={"ecx": MODE, "fpcw": 0x027F},
+            memory=[
+                (MODE, bytes(mode)),
+                (0x00A72220, bytes([1])),
+                (0x00A72224, struct.pack("<I", 1)),
+                (0x00A72618, struct.pack("<I", 1 if has_input else 0)),
+                (0x00A72238, struct.pack("<i", 3)),
+            ],
+            capture=[(MODE, 144), (0x00A72238, 4)],
+        )
+        out = captured[MODE]
+        vectors.append({
+            "hasInput": has_input,
+            "timerInput": timer_in,
+            "radiusInput": float_bits(radius_in),
+            "pitchInput": pitch_in,
+            "yawInput": yaw_in,
+            "timerOutput": struct.unpack_from("<i", out, 0x84)[0],
+            "radiusOutput": float_bits(struct.unpack_from("<f", out, 0x6C)[0]),
+            "pitchOutput": struct.unpack_from("<i", out, 0x70)[0],
+            "yawOutput": struct.unpack_from("<i", out, 0x74)[0],
+            "subState": struct.unpack("<i", captured[0x00A72238])[0],
+        })
+    write("004EB1C8.json", vectors)
 
 
 if __name__ == "__main__":

@@ -101,6 +101,18 @@ public sealed class FieldCameraController
 	public static int StoredMode5FieldOfView { get; set; }
 
 	/// <summary>
+	/// Gets or sets the override field-of-view value applied by cutscene mode five when not equal to minus one.
+	/// </summary>
+	[OriginalGlobal(0x00A48B20)]
+	public static int CutsceneOverrideFieldOfView { get; set; }
+
+	/// <summary>
+	/// Gets or sets the active sub-state index used by character-preview orbit mode eight.
+	/// </summary>
+	[OriginalGlobal(0x00A72238)]
+	public static int PreviewOrbitSubState { get; set; }
+
+	/// <summary>
 	/// Gets or sets the active follow distance preset index in the range zero through four.
 	/// </summary>
 	[OriginalGlobal(0x009ACEDC)]
@@ -262,6 +274,8 @@ public sealed class FieldCameraController
 		GlobalUpAxis = default;
 		RenderRefreshDisabled = 1;
 		StoredMode5FieldOfView = 0;
+		CutsceneOverrideFieldOfView = 0;
+		PreviewOrbitSubState = 0;
 		FollowPresetIndex = 1;
 		CutsceneViewFlags = 0;
 		CutsceneEye = default;

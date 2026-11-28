@@ -1,0 +1,30 @@
+[
+	{
+		"timerInput": 120,
+		"startRadius": 1109393408,
+		"timerOutput": 119,
+		"radiusOutput": 1109392729,
+		"subState": 2
+	},
+	{
+		"timerInput": 60,
+		"startRadius": 1109393408,
+		"timerOutput": 59,
+		"radiusOutput": 1107375686,
+		"subState": 2
+	},
+	{
+		"timerInput": 1,
+		"startRadius": 1109393408,
+		"timerOutput": 0,
+		"radiusOutput": 0,
+		"subState": 3
+	},
+	{
+		"timerInput": 0,
+		"startRadius": 1103626240,
+		"timerOutput": 0,
+		"radiusOutput": 0,
+		"subState": 3
+	}
+]

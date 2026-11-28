@@ -41,18 +41,22 @@ has been read for.
   give for `FieldCamera`), calls the mode object's slot `+0x24`, and copies `+0x194` to `+0x94`.
 - `0x004D3FB0` builds two rotation matrices on the matrix stack from the camera's `+0x194` and `+0x190` angles and
   stores the results in the globals `0x00A489E8` and `0x00A489DC`.
-- Remaining work: the remaining follow/cutscene mode subclasses (`0x004D7E70`, `0x004D665C`, `0x004EB2C0`, `0x004D1A3C`).
+- Remaining work: none for the thirteen field camera modes (`0x004D72D4`/`0x004D7E70`, `0x004D62BC`, `0x004D665C`, `0x004D71C4`, `0x004D1D48`, `0x004EB2C0`, `0x004D5A14`, `0x004D6E88`, `0x004D16B0`, `0x004D1A3C`).
 
 ## Ported members
 
 `FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`), `FieldCameraMode` (`src2/PsoBB/Rendering/FieldCameraMode.cs`),
-`FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`), and the specialized mode classes
-(`FieldCameraOrbitMode`, `FieldCameraSpectatorOrbitMode`, `FieldCameraPadOrbitMode`, `FieldCameraOverrideMode`,
-`FieldCameraTargetOverrideMode`, `FieldCameraFocusLookMode`) name the proven fields and globals:
+`FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`), and all thirteen mode implementations
+(`FieldCameraFollowMode`, `FieldCameraOrbitMode`, `FieldCameraCutsceneMode`, `FieldCameraSpectatorOrbitMode`,
+`FieldCameraPadOrbitMode`, `FieldCameraPreviewOrbitMode`, `FieldCameraOverrideMode`, `FieldCameraTargetOverrideMode`,
+`FieldCameraFocusLookMode`, `FieldCameraCloseFollowMode`) name the proven fields and globals:
 - Globals: `0x00A48A54` (`Current`), `0x00A489FC` (`Flags`), `0x00A48A44` (`SnapRequested`), `0x00A489E8` (`RightAxis`),
   `0x00A489DC` (`UpAxis`), `0x00A489F4` (`ActiveModeIndex`), `0x00A489F5` (`PreviousModeIndex`), `0x00A48A00` (`Modes`),
   `0x00A48780` (`GlobalEye`), `0x00A4878C` (`GlobalForward`), `0x00A48980` (`GlobalInverseViewMatrix`),
   `0x00A489CC` (`GlobalUpAxis`), `0x00A16380` (`RenderRefreshDisabled`), `0x00A48B24` (`StoredMode5FieldOfView`),
+  `0x00A48B20` (`CutsceneOverrideFieldOfView`), `0x00A72238` (`PreviewOrbitSubState`),
+  `0x009ACEDC` (`FollowPresetIndex`), `0x009ACE60` (`FollowPresets`), `0x00A48B74` (`CutsceneViewFlags`),
+  `0x00A48B68` (`CutsceneEye`), `0x00A48B5C` (`CutsceneTarget`), `0x009ACED8` (`CutsceneTargetClientId`),
   `0x00A94254` (`PlayerCharacter.Slots`), `0x00A9C4F4` (`Scene2TransitionOverlay.DisplayId`).
 - Controller fields: `IsActiveFrame` at `+0x1C`, the override request at `+0x20..+0x64` (`ModeOffset` at `+0x20`, `Smoothing` at `+0x30`, `FieldOfViewDegrees` at `+0x34`,
   `Eye` at `+0x3C`, `Target` at `+0x48`), the shake offset at `+0x68..+0x70`, `TargetEntity` at `+0x90`, `AppliedYawAngle` at `+0x94`,
