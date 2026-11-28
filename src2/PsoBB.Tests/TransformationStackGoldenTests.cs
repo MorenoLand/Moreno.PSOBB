@@ -70,6 +70,23 @@ public class TransformationStackGoldenTests
 			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
 		});
 
+	public static IEnumerable<object[]> LoadIdentityVectors() => GoldenVectors.Load("00830CD8.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("useStack").GetBoolean(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("initial")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> TranslateScalarVectors() => GoldenVectors.Load("00830B74.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("useStack").GetBoolean(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			GoldenVectors.ReadVector(vector.GetProperty("translation")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
 	[Theory]
 	[MemberData(nameof(TransformPositionVectors))]
 	public void TransformPositionMatchesTheMachineCode(Matrix4x4 matrix, Vector3 point, Vector3 expected)
@@ -197,6 +214,44 @@ public class TransformationStackGoldenTests
 		{
 			Matrix4x4 target = initial;
 			TransformationStack.RotateAxis(ref target, axis, angle);
+			GoldenVectors.AssertMatrix(expected, target);
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(LoadIdentityVectors))]
+	public void LoadIdentityMatchesTheMachineCode(bool useStack, Matrix4x4 initial, Matrix4x4 expected)
+	{
+		if (useStack)
+		{
+			TransformationStack stack = new();
+			stack.ReplaceCurrent(initial);
+			stack.LoadIdentity();
+			GoldenVectors.AssertMatrix(expected, stack.Current);
+		}
+		else
+		{
+			Matrix4x4 target = initial;
+			TransformationStack.LoadIdentity(ref target);
+			GoldenVectors.AssertMatrix(expected, target);
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(TranslateScalarVectors))]
+	public void TranslateScalarMatchesTheMachineCode(bool useStack, Matrix4x4 initial, Vector3 translation, Matrix4x4 expected)
+	{
+		if (useStack)
+		{
+			TransformationStack stack = new();
+			stack.ReplaceCurrent(initial);
+			stack.Translate(translation.X, translation.Y, translation.Z);
+			GoldenVectors.AssertMatrix(expected, stack.Current);
+		}
+		else
+		{
+			Matrix4x4 target = initial;
+			TransformationStack.Translate(ref target, translation.X, translation.Y, translation.Z);
 			GoldenVectors.AssertMatrix(expected, target);
 		}
 	}

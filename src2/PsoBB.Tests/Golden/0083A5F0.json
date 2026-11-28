@@ -1,0 +1,26 @@
+[
+	{
+		"halfWidth": 1134559232,
+		"halfHeight": 1131413504,
+		"nearPlane": 1065353216,
+		"globalHalfWidth": 1134559232,
+		"globalHalfHeight": 1131413504,
+		"globalNearPlane": 1065353216
+	},
+	{
+		"halfWidth": 1140850688,
+		"halfHeight": 1136656384,
+		"nearPlane": 1075838976,
+		"globalHalfWidth": 1140850688,
+		"globalHalfHeight": 1136656384,
+		"globalNearPlane": 1075838976
+	},
+	{
+		"halfWidth": 1142947840,
+		"halfHeight": 1135869952,
+		"nearPlane": 1061158912,
+		"globalHalfWidth": 1142947840,
+		"globalHalfHeight": 1135869952,
+		"globalNearPlane": 1061158912
+	}
+]

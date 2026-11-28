@@ -1578,6 +1578,12 @@ def main():
     bounds_intersect_vectors(read)
     hexahedron_intersects_sphere_vectors(read)
     rotate_axis_vectors(read)
+    transform_load_identity_vectors(read)
+    transform_translate_xyz_vectors(read)
+    camera_viewport_apply_scale_vectors(read)
+    camera_viewport_apply_vectors(read)
+    camera_viewport_reset_vectors(read)
+    camera_point_view_margin_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -4403,6 +4409,311 @@ def rotate_axis_vectors(read):
             "result": [float_bits(v) for v in out],
         })
     write("0083CDB0.json", vectors)
+
+
+def transform_load_identity_vectors(read):
+    """0x00830CD8: loads the identity matrix into an explicit matrix or the transformation stack top."""
+    STACK = 0x50004400
+    DST = 0x50002000
+    IDENT = (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    non_ident = (2.0, 0.5, -1.0, 0.0, 0.25, 3.0, 0.75, 0.0, -0.5, 1.25, 0.5, 0.0, 10.0, -20.0, 30.0, 1.0)
+    vectors = []
+    for use_stack in [False, True]:
+        target = STACK if use_stack else DST
+        _, _, captured = run(
+            read,
+            0x00830CD8,
+            0,
+            [],
+            registers={"ecx": 0 if use_stack else DST, "fpcw": 0x027F},
+            memory=[
+                (STACK, struct.pack("<16f", *non_ident)),
+                (DST, struct.pack("<16f", *non_ident)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (0x00A21740, struct.pack("<16f", *IDENT)),
+            ],
+            capture=[(target, 64)],
+        )
+        vectors.append({
+            "useStack": use_stack,
+            "initial": [float_bits(v) for v in non_ident],
+            "result": [float_bits(v) for v in struct.unpack("<16f", captured[target])],
+        })
+    write("00830CD8.json", vectors)
+
+
+def transform_translate_xyz_vectors(read):
+    """0x00830B74: translates an explicit matrix or the transformation stack top by scalar (x, y, z)."""
+    STACK = 0x50004400
+    DST = 0x50002000
+    base = (0.8, 0.2, -0.3, 0.0, -0.1, 1.1, 0.4, 0.0, 0.3, -0.4, 0.9, 0.0, 12.0, -5.0, 7.5, 1.0)
+    ident = (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    vectors = []
+    for use_stack, mat, delta in [
+        (True, ident, (3.5, -2.25, 8.75)),
+        (False, base, (0.0, 15.0, -4.5)),
+        (True, base, (-10.5, 4.25, 6.125)),
+    ]:
+        target = STACK if use_stack else DST
+        _, _, captured = run(
+            read,
+            0x00830B74,
+            0,
+            [float_bits(d) for d in delta],
+            registers={"ecx": 0 if use_stack else DST, "fpcw": 0x027F},
+            memory=[
+                (STACK, struct.pack("<16f", *mat)),
+                (DST, struct.pack("<16f", *mat)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+            ],
+            capture=[(target, 64)],
+        )
+        vectors.append({
+            "useStack": use_stack,
+            "matrix": [float_bits(v) for v in mat],
+            "translation": [float_bits(v) for v in delta],
+            "result": [float_bits(v) for v in struct.unpack("<16f", captured[target])],
+        })
+    write("00830B74.json", vectors)
+
+
+def camera_viewport_apply_scale_vectors(read):
+    """0x0083A5F0: copies viewport projection half-width, half-height, and aspect field to projection globals."""
+    SETTINGS = 0x50002000
+    vectors = []
+    for half_w, half_h, near_plane in [(320.0, 240.0, 1.0), (512.0, 384.0, 2.5), (640.0, 360.0, 0.75)]:
+        buf = bytearray(72)
+        struct.pack_into("<f", buf, 0x08, half_w)
+        struct.pack_into("<f", buf, 0x0C, half_h)
+        struct.pack_into("<f", buf, 0x18, near_plane)
+        _, _, captured = run(
+            read,
+            0x0083A5F0,
+            0,
+            [SETTINGS],
+            registers={"fpcw": 0x027F},
+            memory=[(SETTINGS, bytes(buf))],
+            capture=[(0x00AF02C8, 4), (0x00AF02CC, 4), (0x00AF02D8, 4)],
+        )
+        vectors.append({
+            "halfWidth": float_bits(half_w),
+            "halfHeight": float_bits(half_h),
+            "nearPlane": float_bits(near_plane),
+            "globalHalfWidth": struct.unpack("<I", captured[0x00AF02C8])[0],
+            "globalHalfHeight": struct.unpack("<I", captured[0x00AF02CC])[0],
+            "globalNearPlane": struct.unpack("<I", captured[0x00AF02D8])[0],
+        })
+    write("0083A5F0.json", vectors)
+
+
+def camera_viewport_apply_vectors(read):
+    """0x004D4374, 0x004D434C, 0x004D4438, 0x004D46FC: updates active viewport geometry and flags."""
+    SETTINGS = 0x50002000
+    apply_vectors = []
+    custom_vectors = []
+    reset_vectors = []
+    for flags_before, scale_x, scale_y, half_w, half_h, width, height, x, y, m_x, m_y, near_s, far_s in [
+        (0x00000000, 1.0, 0.75, 320.0, 240.0, 640.0, 480.0, 0, 0, 0.0, 0.0, 1.0, 0.85),
+        (0x00000005, 1.25, 1.5, 400.0, 300.0, 800.0, 600.0, 16, 24, 12.0, 8.0, 0.9, 0.75),
+    ]:
+        buf = bytearray(72)
+        struct.pack_into("<f", buf, 0x08, half_w)
+        struct.pack_into("<f", buf, 0x0C, half_h)
+        struct.pack_into("<f", buf, 0x28, width)
+        struct.pack_into("<f", buf, 0x2C, height)
+        struct.pack_into("<i", buf, 0x30, x)
+        struct.pack_into("<i", buf, 0x34, y)
+        struct.pack_into("<f", buf, 0x38, m_x)
+        struct.pack_into("<f", buf, 0x3C, m_y)
+        struct.pack_into("<f", buf, 0x40, near_s)
+        struct.pack_into("<f", buf, 0x44, far_s)
+        mem = [
+            (SETTINGS, bytes(buf)),
+            (0x00A489FC, struct.pack("<I", flags_before)),
+            (0x00ACC08C, struct.pack("<f", scale_x)),
+            (0x00ACC090, struct.pack("<f", scale_y)),
+        ]
+        cap = [(0x00A48820, 72), (0x00A489FC, 4)]
+        _, _, c1 = run(read, 0x004D4374, 0, [], registers={"eax": SETTINGS, "fpcw": 0x027F}, memory=mem, capture=cap)
+        r2, _, c2 = run(read, 0x004D434C, 0, [SETTINGS], registers={"fpcw": 0x027F}, memory=mem, capture=cap)
+        vals1 = struct.unpack("<18I", c1[0x00A48820])
+        vals2 = struct.unpack("<18I", c2[0x00A48820])
+        entry = {
+            "flagsBefore": flags_before,
+            "scaleX": float_bits(scale_x),
+            "scaleY": float_bits(scale_y),
+            "halfWidth": float_bits(half_w),
+            "halfHeight": float_bits(half_h),
+            "width": float_bits(width),
+            "height": float_bits(height),
+            "x": x,
+            "y": y,
+            "offsetX": float_bits(m_x),
+            "offsetY": float_bits(m_y),
+            "nearScale": float_bits(near_s),
+            "farScale": float_bits(far_s),
+            "flagsAfter": struct.unpack("<I", c1[0x00A489FC])[0],
+            "viewport": list(vals1),
+        }
+        apply_vectors.append(entry)
+        custom_vectors.append({
+            **entry,
+            "flagsAfter": struct.unpack("<I", c2[0x00A489FC])[0],
+            "viewport": list(vals2),
+            "result": r2,
+        })
+
+    for flags_before, dw, dh in [(0x00000405, 640, 480), (0x00000008, 1280, 720)]:
+        mem = [
+            (0x00A489FC, struct.pack("<I", flags_before)),
+            (0x00AF0350, struct.pack("<i", dw)),
+            (0x00AF0354, struct.pack("<i", dh)),
+            (0x00ACC08C, struct.pack("<f", 1.0)),
+            (0x00ACC090, struct.pack("<f", 1.0)),
+        ]
+        _, _, c3 = run(read, 0x004D4438, 0, [], registers={"fpcw": 0x027F}, memory=mem, capture=[(0x00A48820, 72), (0x00A489FC, 4)])
+        reset_vectors.append({
+            "flagsBefore": flags_before,
+            "displayWidth": dw,
+            "displayHeight": dh,
+            "flagsAfter": struct.unpack("<I", c3[0x00A489FC])[0],
+            "viewport": list(struct.unpack("<18I", c3[0x00A48820])),
+        })
+
+    _, _, c4 = run(read, 0x004D46FC, 0, [], registers={"fpcw": 0x027F}, memory=[], capture=[(0x00A489C0, 12)])
+    aux = list(struct.unpack("<3I", c4[0x00A489C0]))
+
+    write("004D4374.json", apply_vectors)
+    write("004D434C.json", custom_vectors)
+    write("004D4438.json", reset_vectors)
+    write("004D46FC.json", [{"values": aux}])
+
+
+def camera_viewport_reset_vectors(read):
+    """0x004D471C and 0x004D4800: initializes default camera viewport, flags, and up axis."""
+    vectors_471c = []
+    vectors_4800 = []
+    for dw, dh in [(640, 480), (1024, 768), (1280, 720)]:
+        mem = [
+            (0x00AF0350, struct.pack("<i", dw)),
+            (0x00AF0354, struct.pack("<i", dh)),
+            (0x00ACC08C, struct.pack("<f", 1.0)),
+            (0x00ACC090, struct.pack("<f", 1.0)),
+            (0x00A489FC, struct.pack("<I", 0xFFFFFFFF)),
+            (0x00A489F4, struct.pack("<I", 0x12345678)),
+            (0x00A489F8, struct.pack("<I", 99)),
+            (0x00A48A44, struct.pack("<I", 7)),
+            (0x00A48A34, struct.pack("<H", 1)),
+            (0x00A48A40, struct.pack("<B", 0)),
+        ]
+        _, _, c1 = run(
+            read,
+            0x004D471C,
+            0,
+            [],
+            registers={"fpcw": 0x027F},
+            memory=mem,
+            capture=[(0x00A48820, 72), (0x00A489CC, 16), (0x00A489F4, 12), (0x00A48A34, 24)],
+        )
+        vectors_471c.append({
+            "displayWidth": dw,
+            "displayHeight": dh,
+            "viewport": list(struct.unpack("<18I", c1[0x00A48820])),
+            "upAxis": list(struct.unpack("<3I", c1[0x00A489CC][:12])),
+            "activeMode": c1[0x00A489F4][0],
+            "flags": struct.unpack("<I", c1[0x00A489F4][8:12])[0],
+            "snapRequested": struct.unpack("<I", c1[0x00A48A34][16:20])[0],
+        })
+
+        _, _, c2 = run(
+            read,
+            0x004D4800,
+            0,
+            [],
+            registers={"fpcw": 0x027F},
+            memory=mem + [(0x00A489FC, struct.pack("<I", 0))],
+            capture=[
+                (0x00A48820, 72),
+                (0x009ACB68, 8),
+                (0x00A489FC, 4),
+                (0x00A48A58, 8),
+                (0x00AF02C8, 20),
+            ],
+        )
+        sw = struct.unpack("<h", c2[0x009ACB68][:2])[0]
+        sh = struct.unpack("<h", c2[0x009ACB68][4:6])[0]
+        db_min, db_max = struct.unpack("<2I", c2[0x00A48A58])
+        hw = struct.unpack("<I", c2[0x00AF02C8][:4])[0]
+        hh = struct.unpack("<I", c2[0x00AF02C8][4:8])[0]
+        np_val = struct.unpack("<I", c2[0x00AF02C8][16:20])[0]
+        vectors_4800.append({
+            "displayWidth": dw,
+            "displayHeight": dh,
+            "screenWidth": sw,
+            "screenHeight": sh,
+            "flags": struct.unpack("<I", c2[0x00A489FC])[0],
+            "viewport": list(struct.unpack("<18I", c2[0x00A48820])),
+            "depthBiasMin": db_min,
+            "depthBiasMax": db_max,
+            "globalHalfWidth": hw,
+            "globalHalfHeight": hh,
+            "globalNearPlane": np_val,
+        })
+    write("004D471C.json", vectors_471c)
+    write("004D4800.json", vectors_4800)
+
+
+def camera_point_view_margin_vectors(read):
+    """0x004D45E0: checks whether a world point lies inside the depth band and projected X margin."""
+    STACK = 0x50004400
+    PT = 0x50002000
+    STUB = 0x50006000
+    view_mat = (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    right_axis = (1.0, 0.0, 0.0)
+    vectors = []
+    # Cases: (point, minDepth, margin, projectedX, screenWidth)
+    cases = [
+        ((5.0, 0.0, 2.0), 100.0, 4.0, 100.0, 640),
+        ((5.0, 0.0, 0.0), 100.0, 4.0, 100.0, 640),
+        ((5.0, 0.0, -150.0), 100.0, 4.0, 100.0, 640),
+        ((-5.0, 0.0, -50.0), 100.0, 4.0, -0.5, 640),
+        ((-5.0, 0.0, -50.0), 100.0, 4.0, 0.0, 640),
+        ((-5.0, 0.0, -50.0), 100.0, 4.0, 12.0, 640),
+        ((5.0, 0.0, -50.0), 100.0, 4.0, 640.0, 640),
+        ((5.0, 0.0, -50.0), 100.0, 4.0, 641.0, 640),
+        ((0.0, 0.0, -50.0), 100.0, 4.0, 320.0, 640),
+    ]
+    for pt, min_depth, margin, proj_x, screen_w in cases:
+        # mov eax, [esp+4]; mov dword ptr [eax], imm32; ret 0x18
+        stub = b"\x8B\x44\x24\x04\xC7\x00" + struct.pack("<f", proj_x) + b"\xC2\x18\x00"
+        result, _, _ = run(
+            read,
+            0x004D45E0,
+            0,
+            [PT, float_bits(min_depth), float_bits(margin)],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (STACK, struct.pack("<16f", *view_mat)),
+                (0x00AF0328, struct.pack("<I", STACK)),
+                (PT, struct.pack("<3f", *pt)),
+                (0x00A489E8, struct.pack("<3f", *right_axis)),
+                (0x009ACB68, struct.pack("<H", screen_w)),
+                (0x00ACC0F0, struct.pack("<2f", 0.0, 0.0)),
+                (0x00A33FC0, struct.pack("<I", STUB)),
+                (STUB, stub),
+            ],
+        )
+        vectors.append({
+            "matrix": [float_bits(v) for v in view_mat],
+            "rightAxis": [float_bits(v) for v in right_axis],
+            "point": [float_bits(v) for v in pt],
+            "minDepth": float_bits(min_depth),
+            "horizontalMargin": float_bits(margin),
+            "projectedX": float_bits(proj_x),
+            "screenWidth": screen_w,
+            "visible": result != 0,
+        })
+    write("004D45E0.json", vectors)
 
 
 def camera_apply_inverse_view_vectors(read):

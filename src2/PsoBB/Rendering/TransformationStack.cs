@@ -241,11 +241,43 @@ public sealed class TransformationStack
 	}
 
 	/// <summary>
+	/// Replaces the matrix at the current stack depth with the identity matrix.
+	/// </summary>
+	[Original(0x00830CD8)]
+	public void LoadIdentity() => _matrices[_depth] = Matrix4x4.Identity;
+
+	/// <summary>
+	/// Replaces <paramref name="matrix"/> with the identity matrix.
+	/// </summary>
+	/// <param name="matrix">The matrix to reset to identity.</param>
+	public static void LoadIdentity(ref Matrix4x4 matrix) => matrix = Matrix4x4.Identity;
+
+	/// <summary>
 	/// Applies a translation before the current transform, adding it through the three basis rows.
 	/// </summary>
 	/// <param name="translation">The translation to apply.</param>
 	[Original(0x0082D838, "matrix_translation")]
 	public void Translate(Vector3 translation) => _matrices[_depth] = _matrices[_depth].Translate(translation);
+
+	/// <summary>
+	/// Applies a scalar component translation before the current stack matrix.
+	/// </summary>
+	/// <param name="x">The X translation offset.</param>
+	/// <param name="y">The Y translation offset.</param>
+	/// <param name="z">The Z translation offset.</param>
+	[Original(0x00830B74)]
+	public void Translate(float x, float y, float z) =>
+		_matrices[_depth] = _matrices[_depth].Translate(new Vector3(x, y, z));
+
+	/// <summary>
+	/// Applies a scalar component translation to <paramref name="matrix"/> in place.
+	/// </summary>
+	/// <param name="matrix">The matrix updated in place.</param>
+	/// <param name="x">The X translation offset.</param>
+	/// <param name="y">The Y translation offset.</param>
+	/// <param name="z">The Z translation offset.</param>
+	public static void Translate(ref Matrix4x4 matrix, float x, float y, float z) =>
+		matrix = matrix.Translate(new Vector3(x, y, z));
 
 	/// <summary>
 	/// Applies the original Euler rotation around Z, then Y, then X, or Y, then X, then Z when

@@ -156,6 +156,18 @@ public sealed class FieldCameraController
 	public static short CutsceneTargetClientId { get; set; } = -1;
 
 	/// <summary>
+	/// Gets or sets the cached display width in pixels used for screen-space visibility checks.
+	/// </summary>
+	[OriginalGlobal(0x009ACB68)]
+	public static short ScreenWidth { get; set; }
+
+	/// <summary>
+	/// Gets or sets the cached display height in pixels used for screen-space visibility checks.
+	/// </summary>
+	[OriginalGlobal(0x009ACB6C)]
+	public static short ScreenHeight { get; set; }
+
+	/// <summary>
 	/// Gets or sets whether the camera controller ran an active update on the current frame.
 	/// </summary>
 	public bool IsActiveFrame { get; set; }
@@ -281,6 +293,8 @@ public sealed class FieldCameraController
 		CutsceneEye = default;
 		CutsceneTarget = default;
 		CutsceneTargetClientId = -1;
+		ScreenWidth = 0;
+		ScreenHeight = 0;
 	}
 
 	/// <summary>
@@ -518,6 +532,47 @@ public sealed class FieldCameraController
 	/// <param name="upAxis">The replacement up-axis vector.</param>
 	[Original(0x004D45A0)]
 	public static void SetGlobalUpAxis(Vector3 upAxis) => GlobalUpAxis = upAxis;
+
+	/// <summary>
+	/// Tests whether <paramref name="worldPoint"/> lies within the camera's forward depth band
+	/// and horizontal screen boundary after shifting by <paramref name="horizontalMargin"/> along <see cref="RightAxis"/>.
+	/// </summary>
+	/// <param name="worldPoint">The world-space point to test.</param>
+	/// <param name="minViewDepth">Maximum depth magnitude behind zero along view space <c>-Z</c>.</param>
+	/// <param name="horizontalMargin">World-space margin applied along <see cref="RightAxis"/> before projecting to screen X.</param>
+	/// <param name="transformStack">The transformation stack holding the active view matrix.</param>
+	/// <param name="projectPoint">Screen-space projection callback mapping a world point to viewport coordinates.</param>
+	/// <returns><see langword="true"/> if the point lies inside the depth band and projected screen width; otherwise <see langword="false"/>.</returns>
+	[Original(0x004D45E0)]
+	public static bool IsPointWithinViewMargin(
+		Vector3 worldPoint,
+		float minViewDepth,
+		float horizontalMargin,
+		TransformationStack transformStack,
+		Func<Vector3, Vector3> projectPoint)
+	{
+		ArgumentNullException.ThrowIfNull(transformStack);
+		ArgumentNullException.ThrowIfNull(projectPoint);
+
+		Vector3 view = transformStack.TransformPosition(worldPoint);
+		if (0.0f < (double)view.Z || -minViewDepth > (double)view.Z)
+			return false;
+
+		if (0.0f > (double)view.X)
+		{
+			Vector3 rightPoint = new(
+				(float)((double)RightAxis.X * horizontalMargin + worldPoint.X),
+				(float)((double)RightAxis.Y * horizontalMargin + worldPoint.Y),
+				(float)((double)RightAxis.Z * horizontalMargin + worldPoint.Z));
+			return projectPoint(rightPoint).X >= 0.0f;
+		}
+
+		Vector3 leftPoint = new(
+			(float)(-(double)RightAxis.X * horizontalMargin + worldPoint.X),
+			(float)(-(double)RightAxis.Y * horizontalMargin + worldPoint.Y),
+			(float)(horizontalMargin * -(double)RightAxis.Z + worldPoint.Z));
+		return ScreenWidth >= (double)projectPoint(leftPoint).X;
+	}
 
 	/// <summary>
 	/// Advances the vertical camera offset countdown by one frame and updates the active offset.
