@@ -14,6 +14,10 @@ public static class NinjaColorState
 	[OriginalGlobal(0x00AE7784)]
 	public static uint Flags { get; set; }
 
+	/// <summary>Gets or sets the packed ARGB diffuse color used by flat-lit chunk strips at <c>0x00AE7780</c>.</summary>
+	[OriginalGlobal(0x00AE7780)]
+	public static uint DiffuseColor { get; set; }
+
 	/// <summary>Gets or sets the packed ARGB vertex/material color written to the active render state at <c>0x00AE7788</c>.</summary>
 	[OriginalGlobal(0x00AE7788)]
 	public static uint PackedColor { get; set; }
@@ -44,6 +48,7 @@ public static class NinjaColorState
 	public static void ResetGlobals()
 	{
 		Flags = 0;
+		DiffuseColor = 0;
 		PackedColor = 0;
 		AmbientAlpha = 0.0f;
 		AmbientRed = 0.0f;

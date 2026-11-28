@@ -1606,6 +1606,7 @@ def main():
     ninja_color_resolve_vectors(read)
     ninja_quaternion_euler_vectors(read)
     ninja_vertex_transform_vectors(read)
+    ninja_strip_expander_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -5963,6 +5964,133 @@ def ninja_vertex_transform_vectors(read):
             run_vlist(ea, 0x100, 1, 2, p_nf_28, init_max=5, init_rflags=0xF00),
             run_vlist(ea, 0x200, 1, 2, p_nf_28, init_max=2, init_rflags=0x900),
         ])
+
+
+def ninja_strip_expander_vectors(read):
+    """0x00847E00..0x0084A15C: expands Ninja strip chunks into 12..36-byte primitive buffers."""
+    DEV = 0x50000100
+    VTBL = 0x50000200
+    STUB = 0x50000400
+    CHUNK = 0x50001000
+    VBUF = 0x50002000
+    DRAWBUF = 0x50003000
+
+    # IDirect3DDevice8::DrawPrimitiveUP at +0x120: ret 0x14 (5 args)
+    vtbl_bytes = bytearray(0x130)
+    struct.pack_into("<I", vtbl_bytes, 0x120, STUB)
+    d3d_mem = [
+        (DEV, struct.pack("<I", VTBL)),
+        (VTBL, bytes(vtbl_bytes)),
+        (STUB, b"\xC2\x14\x00"),
+        (0x00ACD528, struct.pack("<I", DEV)),
+        (0x00ACD52C, struct.pack("<I", DRAWBUF)),
+        (0x00ACD534, struct.pack("<I", VBUF)),
+    ]
+
+    scratch_verts = [
+        (1.0, 2.0, 3.0, 0.0, 1.0, 0.0, 0x11223344, 0),
+        (-2.5, 4.0, -1.5, 0.5, 0.5, -0.70710677, 0x55667788, 0),
+        (5.0, -3.25, 2.5, -0.5, 0.25, 0.8291562, 0x99AABBCC, 0),
+        (0.25, 1.5, -6.0, 0.0, 0.0, 1.0, 0xDDEEFF00, 0),
+    ]
+    vbuf_bytes = b"".join(struct.pack("<6f2I", *v) for v in scratch_verts)
+    scratch_words = list(struct.unpack(f"<{len(vbuf_bytes) // 4}I", vbuf_bytes))
+    packed_color = 0x80ABCDEF
+    diffuse_color = 0xFF123456
+
+    # Strip data:
+    # Case 1 (has_uv=True): userOffset=1 (header 0x4001 -> stripCount=1, userOffset=1 -> extra=4 bytes -> stride=8 bytes after vertex 1)
+    #   strip[0] = -4 (4 verts, 2 tris)
+    #   v0=(1, 128, -64), v1=(0, 255, 512), v2=(2, 64, 192, 0x7777), v3=(3, -128, 1024, 0x8888)
+    chunk_uv = (
+        struct.pack("<HHH", 0x0041, 0, 0x4001)
+        + struct.pack("<h", -4)
+        + struct.pack("<Hhh", 1, 128, -64)
+        + struct.pack("<Hhh", 0, 255, 512)
+        + struct.pack("<HhhH", 2, 64, 192, 0x7777)
+        + struct.pack("<HhhH", 3, -128, 1024, 0x8888)
+    )
+    # Case 2 (has_uv=False): userOffset=1 (header 0x4001), 4 verts, v0=1, v1=0, v2=(2, 0x7777), v3=(3, 0x8888)
+    chunk_nouv = (
+        struct.pack("<HHH", 0x0040, 0, 0x4001)
+        + struct.pack("<h", -4)
+        + struct.pack("<HH", 1, 0)
+        + struct.pack("<HH", 2, 0x7777)
+        + struct.pack("<HH", 3, 0x8888)
+    )
+    # Case 3 (2 strips with userOffset=0 to confirm second strip draw output matches)
+    chunk_uv_2strip = (
+        struct.pack("<HHH", 0x0041, 0, 0x0002)
+        + struct.pack("<hHhhHhhHhh", 3, 0, 10, 20, 1, 30, 40, 2, 50, 60)
+        + struct.pack("<hHhhHhhHhh", -3, 3, -10, 255, 1, 0, 128, 0, 512, -256)
+    )
+    chunk_nouv_2strip = (
+        struct.pack("<HHH", 0x0040, 0, 0x0002)
+        + struct.pack("<hHHH", 3, 0, 1, 2)
+        + struct.pack("<hHHH", -3, 3, 1, 0)
+    )
+
+    specs = [
+        (0x00847E00, True, True, 36),
+        (0x00847FB4, True, True, 36),
+        (0x00848168, False, False, 16),
+        (0x00848268, True, False, 24),
+        (0x008483E0, True, False, 24),
+        (0x00848558, False, True, 28),
+        (0x00848698, True, True, 36),
+        (0x0084884C, True, True, 36),
+        (0x00848B00, True, False, 24),
+        (0x00848C74, True, False, 24),
+        (0x00848DE8, False, True, 28),
+        (0x00848F24, True, True, 36),
+        (0x008490D8, True, True, 36),
+        (0x0084928C, False, False, 16),
+        (0x0084938C, True, False, 24),
+        (0x00849504, True, False, 24),
+        (0x0084967C, False, True, 28),
+        (0x008497B8, True, True, 36),
+        (0x0084996C, True, True, 36),
+        (0x00849B20, False, False, 16),
+        (0x00849C20, True, False, 24),
+        (0x00849D98, True, False, 24),
+        (0x00849F10, False, False, 12),
+        (0x00849FFC, True, False, 20),
+        (0x0084A15C, True, False, 20),
+    ]
+
+    for ea, has_uv, _, stride in specs:
+        vectors = []
+        cases = [
+            (4, chunk_uv if has_uv else chunk_nouv),
+            (3, chunk_uv_2strip if has_uv else chunk_nouv_2strip),
+        ]
+        for expected_verts, chunk_bytes in cases:
+            out_bytes = expected_verts * stride
+            _, _, captured = run(
+                read,
+                ea,
+                0,
+                [CHUNK],
+                registers={"fpcw": 0x027F},
+                memory=d3d_mem + [
+                    (CHUNK, chunk_bytes),
+                    (VBUF, vbuf_bytes),
+                    (DRAWBUF, b"\x00" * 256),
+                    (0x00AE7788, struct.pack("<I", packed_color)),
+                    (0x00AE7780, struct.pack("<I", diffuse_color)),
+                ],
+                capture=[(DRAWBUF, out_bytes)],
+            )
+            vectors.append({
+                "stride": stride,
+                "vertexCount": expected_verts,
+                "packedColor": packed_color,
+                "diffuseColor": diffuse_color,
+                "scratchWords": scratch_words,
+                "chunkShorts": list(struct.unpack(f"<{len(chunk_bytes) // 2}h", chunk_bytes)),
+                "expectedWords": list(struct.unpack(f"<{out_bytes // 4}I", captured[DRAWBUF])),
+            })
+        write(f"{ea:08X}.json", vectors)
 
 
 if __name__ == "__main__":
