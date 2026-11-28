@@ -128,6 +128,8 @@ public sealed class Matrix4x4Tests
 			["TransformDirection"] = 0x0083A610,
 			["RotateY"] = 0x0082D8BC,
 			["RotateX"] = 0x0082E9E4,
+			["Determinant"] = 0x0084A778,
+			["TryInvert"] = 0x0083C670,
 		};
 		MethodInfo[] methods = typeof(Matrix4x4)
 			.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly)

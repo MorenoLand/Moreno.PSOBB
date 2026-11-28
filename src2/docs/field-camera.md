@@ -41,7 +41,7 @@ has been read for.
   give for `FieldCamera`), calls the mode object's slot `+0x24`, and copies `+0x194` to `+0x94`.
 - `0x004D3FB0` builds two rotation matrices on the matrix stack from the camera's `+0x194` and `+0x190` angles and
   stores the results in the globals `0x00A489E8` and `0x00A489DC`.
-- Remaining helpers: `0x004D3ABC`, `0x0082EBC8`, `0x004D386C`, `0x004D4048`, `0x004D2FB4`, and the 13 mode objects.
+- Remaining work: the 13 concrete mode subclasses at `0x00A48A00` (`0x004D7E70`, `0x004D62BC`, `0x004D665C`, `0x004D71C4`, `0x004D1D48`, `0x004EB2C0`, `0x004D5A14`, `0x004D6E88`, `0x004D16B0`, `0x004D1A3C`).
 
 ## Ported members
 
@@ -49,8 +49,10 @@ has been read for.
 and `FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`) name the proven fields and globals:
 - Globals: `0x00A48A54` (`Current`), `0x00A489FC` (`Flags`), `0x00A48A44` (`SnapRequested`), `0x00A489E8` (`RightAxis`),
   `0x00A489DC` (`UpAxis`), `0x00A489F4` (`ActiveModeIndex`), `0x00A489F5` (`PreviousModeIndex`), `0x00A48A00` (`Modes`),
+  `0x00A48780` (`GlobalEye`), `0x00A4878C` (`GlobalForward`), `0x00A48980` (`GlobalInverseViewMatrix`),
+  `0x00A489CC` (`GlobalUpAxis`), `0x00A16380` (`RenderRefreshDisabled`), `0x00A48B24` (`StoredMode5FieldOfView`),
   `0x00A94254` (`PlayerCharacter.Slots`), `0x00A9C4F4` (`Scene2TransitionOverlay.DisplayId`).
-- Controller fields: the override request at `+0x20..+0x64` (`ModeOffset` at `+0x20`, `Smoothing` at `+0x30`, `FieldOfViewDegrees` at `+0x34`,
+- Controller fields: `IsActiveFrame` at `+0x1C`, the override request at `+0x20..+0x64` (`ModeOffset` at `+0x20`, `Smoothing` at `+0x30`, `FieldOfViewDegrees` at `+0x34`,
   `Eye` at `+0x3C`, `Target` at `+0x48`), the shake offset at `+0x68..+0x70`, `TargetEntity` at `+0x90`, `AppliedYawAngle` at `+0x94`,
   `SlotEyes` at `+0xD4..+0xF8`, `SlotTargets` at `+0x104..+0x128`, `HasCollisionHit` at `+0x174`, the eye at `+0x178`, the target at `+0x184`
   (the update subtracts the eye from the target to get the viewing direction), `PitchAngle` at `+0x190`, `YawAngle` at `+0x194`,
@@ -59,7 +61,18 @@ and `FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideReque
 - Ported helpers: `StepTowards` (`0x004D63B0`), `SmoothFollowDesired` (`0x004D3D14`), `SnapEyeAndSmoothTarget` (`0x004D3C98`),
   `StepOffsetCountdown` (`0x004D3DF4`), `SnapToDesired` (`0x004D3E90`), `AdvanceFlagsAndClearOverride` (`0x004D3EF4`),
   `UpdateOrientationAxes` (`0x004D3FB0`), `SelectMode` (`0x004D3AA0`), `UpdateModeSelection` (`0x004D3974`),
-  `ResolveSnappedCollision` (`0x004D3BA8`), `ResolveTargetCollision` (`0x004D3D6C`), `FieldCameraMode.ApplyToController` (`0x004D1FF4`),
+  `ResolveSnappedCollision` (`0x004D3BA8`), `ResolveTargetCollision` (`0x004D3D6C`), `UpdateActiveMode` (`0x004D3ABC`),
+  `Update` (`0x004D386C`), `RenderRefresh` (`0x004D4048`), `ApplyViewOffset` (`0x004D4164`),
+  `BindTargetEntity` (`0x004D2FB4`), `LockModeToTarget` (`0x004D307C`), `GetCurrentDisplaySlot` (`0x004D30CC`),
+  `GetCurrentTargetClientId` (`0x004D30D4`), `GetCurrentModeIndex` (`0x004D30F4`), `RequestTemporaryMode` (`0x004D3180`),
+  `ReleaseTemporaryMode` (`0x004D31DC`), `RestoreDefaultTargetAndMode` (`0x004D3250`),
+  `ApplyOverrideRequestToActiveMode` (`0x004D3374`), `TriggerPresetShake` (`0x004D4288`),
+  `TriggerCustomShake` (`0x004D430C`), `GetOffset` (`0x004D433C`), `GetOverrideRequest` (`0x004D4344`),
+  `ComputeAnglesFromDirection` (`0x004D6448`), `FieldCameraMode.ApplyToController` (`0x004D1FF4`),
+  `CameraView.ApplyLookAt` (`0x0082F108`), `CameraProjection.CreateViewportProjection` (`0x00836100`),
+  `CameraProjection.CreateFieldProjection` (`0x0082EBC8`), `TransformationStack.CaptureInverseCurrent` (`0x00782984`),
+  `TransformationStack.CopyCurrentTo` (`0x00831650`), `TransformationStack.ReplaceCurrent` (`0x0083B410`),
+  `Matrix4x4.Determinant` (`0x0084A778`), `Matrix4x4.TryInvert` (`0x0083C670`),
   `PlayerCharacter.GetSlot` (`0x0068D5A8`), and `Scene2TransitionOverlay.GetDisplayId` (`0x007BB6D0`).
 - Mode base (`FieldCameraMode`, ctor `0x004D1F68`, vtable `0x00AFC4E8`): `TargetEntity` at `+0x1C`, `TargetClientId` at `+0x20`,
   `Flags` at `+0x38`, `Eye` at `+0x3C`, `Target` at `+0x48`, `FieldOfView` at `+0x54`, `EyeSmoothing` at `+0x58`, `TargetSmoothing` at `+0x5C`.

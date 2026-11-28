@@ -107,6 +107,15 @@ public class FieldCameraMode
 	}
 
 	/// <summary>
+	/// Performs mode setup when locked onto a target entity with an extra mode parameter.
+	/// </summary>
+	/// <param name="entity">The target entity, or <see langword="null"/> when cleared.</param>
+	/// <param name="parameter">The mode-specific lock parameter.</param>
+	public virtual void OnTargetLocked(PlayerCharacter? entity, int parameter)
+	{
+	}
+
+	/// <summary>
 	/// Pushes this mode's eye, target, smoothing speeds, and field of view onto the active camera controller.
 	/// </summary>
 	[Original(0x004D1FF4)]

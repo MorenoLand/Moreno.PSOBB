@@ -1513,6 +1513,22 @@ def main():
     camera_resolve_snapped_collision_vectors(read)
     camera_resolve_target_collision_vectors(read)
     camera_update_mode_selection_vectors(read)
+    matrix_determinant_vectors(read)
+    matrix_invert_vectors(read)
+    transform_copy_current_vectors(read)
+    transform_replace_current_vectors(read)
+    transform_capture_inverse_vectors(read)
+    camera_viewport_projection_vectors(read)
+    camera_compute_angles_vectors(read)
+    camera_target_client_id_vectors(read)
+    camera_request_temporary_mode_vectors(read)
+    camera_release_temporary_mode_vectors(read)
+    camera_restore_default_target_vectors(read)
+    camera_copy_override_vectors(read)
+    camera_bind_target_vectors(read)
+    camera_lock_target_vectors(read)
+    camera_shake_preset_vectors(read)
+    camera_shake_custom_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -1848,6 +1864,534 @@ def camera_update_mode_selection_vectors(read):
             "cameraOutput": captured[CAMERA].hex(),
         })
     write("004D3974.json", vectors)
+
+
+def _sample_matrices():
+    return [
+        [1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1],
+        [2, 0, 0, 0,  0, 3, 0, 0,  0, 0, 4, 0,  10, -20, 30, 1],
+        [0, 0, 1, 0,  0, 1, 0, 0,  -1, 0, 0, 0,  1.5, -2.25, 3.75, 1],
+        [1.25, -0.5, 0.25, 0.0,  0.5, 1.5, -0.75, 0.0,  -0.25, 0.75, 2.0, 0.0,  4.0, -5.0, 6.0, 1.0],
+        [1, 2, 3, 4,  2, 4, 6, 8,  1, 0, 1, 0,  0, 1, 0, 1],
+        [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0],
+        [0.5, 1.25, -0.75, 0.125,  -1.0, 2.5, 0.5, -0.25,  0.75, -0.5, 1.75, 0.5,  3.25, -1.5, 2.75, 1.25],
+    ]
+
+
+def matrix_determinant_vectors(read):
+    """0x0084A778: 4x4 matrix determinant."""
+    vectors = []
+    for mat in _sample_matrices():
+        raw = struct.pack("<16f", *mat)
+        val, _, _, _ = run_extended(
+            read,
+            0x0084A778,
+            403,
+            [],
+            registers={"ecx": 0x50000000, "fpcw": 0x027F},
+            memory=[(0x50000000, raw)],
+        )
+        det32 = struct.unpack("<f", struct.pack("<f", val))[0]
+        vectors.append({
+            "matrix": [float_bits(v) for v in mat],
+            "result": float_bits(det32),
+        })
+    write("0084A778.json", vectors)
+
+
+def matrix_invert_vectors(read):
+    """0x0083C670: in-place 4x4 matrix inverse with 3.4e38 singular fill."""
+    vectors = []
+    for mat in _sample_matrices():
+        raw = struct.pack("<16f", *mat)
+        _, eax, _, captured = run_extended(
+            read,
+            0x0083C670,
+            1779,
+            [],
+            registers={"ecx": 0x50000000, "fpcw": 0x027F},
+            memory=[(0x50000000, raw)],
+            capture=[(0x50000000, 64)],
+        )
+        out = struct.unpack("<16f", captured[0x50000000])
+        vectors.append({
+            "input": [float_bits(v) for v in mat],
+            "succeeded": eax != 0,
+            "output": [float_bits(v) for v in out],
+        })
+    write("0083C670.json", vectors)
+
+
+def transform_copy_current_vectors(read):
+    """0x00831650: copies top matrix from stack pointer global 0x00AF0328."""
+    vectors = []
+    for mat in _sample_matrices()[:4]:
+        raw = struct.pack("<16f", *mat)
+        mem = [
+            (0x00AF0328, struct.pack("<I", 0x50000000)),
+            (0x50000000, raw),
+            (0x50001000, b"\x00" * 64),
+        ]
+        _, _, captured = run(
+            read,
+            0x00831650,
+            100,
+            [],
+            registers={"ecx": 0x50001000},
+            memory=mem,
+            capture=[(0x50001000, 64)],
+        )
+        out = struct.unpack("<16f", captured[0x50001000])
+        vectors.append({"matrix": [float_bits(v) for v in mat], "result": [float_bits(v) for v in out]})
+    write("00831650.json", vectors)
+
+
+def transform_replace_current_vectors(read):
+    """0x0083B410: replaces top matrix at 0x00AF0328."""
+    vectors = []
+    for mat in _sample_matrices()[:4]:
+        raw = struct.pack("<16f", *mat)
+        mem = [
+            (0x00AF0328, struct.pack("<I", 0x50000000)),
+            (0x50000000, b"\x00" * 64),
+            (0x50001000, raw),
+        ]
+        _, _, captured = run(
+            read,
+            0x0083B410,
+            107,
+            [],
+            registers={"ecx": 0, "edx": 0x50001000},
+            memory=mem,
+            capture=[(0x50000000, 64)],
+        )
+        out = struct.unpack("<16f", captured[0x50000000])
+        vectors.append({"matrix": [float_bits(v) for v in mat], "result": [float_bits(v) for v in out]})
+    write("0083B410.json", vectors)
+
+
+def transform_capture_inverse_vectors(read):
+    """0x00782984: push-copy, invert, copy out, pop on transformation stack."""
+    vectors = []
+    for mat in _sample_matrices():
+        raw = struct.pack("<16f", *mat)
+        mem = [
+            (0x00AF0328, struct.pack("<I", 0x50000000)),
+            (0x00AF0380, struct.pack("<I", 128)),
+            (0x00AF0384, struct.pack("<I", 0)),
+            (0x50000000, raw + b"\x00" * 64),
+            (0x50001000, b"\x00" * 64),
+        ]
+        _, _, captured = run(
+            read,
+            0x00782984,
+            27,
+            [0, 0x50001000],
+            registers={"fpcw": 0x027F},
+            memory=mem,
+            capture=[(0x50001000, 64), (0x50000000, 64), (0x00AF0384, 4)],
+        )
+        inv_out = struct.unpack("<16f", captured[0x50001000])
+        top_out = struct.unpack("<16f", captured[0x50000000])
+        vectors.append({
+            "input": [float_bits(v) for v in mat],
+            "inverse": [float_bits(v) for v in inv_out],
+            "topAfter": [float_bits(v) for v in top_out],
+            "depthAfter": struct.unpack("<I", captured[0x00AF0384])[0],
+        })
+    write("00782984.json", vectors)
+
+
+def camera_viewport_projection_vectors(read):
+    """0x00836100: multiplies fixed viewport scale/offset matrix with projection matrix at 0x00ACC040."""
+    vectors = []
+    for mat in _sample_matrices()[:4]:
+        raw = struct.pack("<16f", *mat)
+        mem = [
+            (0x00ACC040, raw),
+            (0x00ACCA40, b"\x00" * 128),
+        ]
+        _, _, captured = run(
+            read,
+            0x00836100,
+            180,
+            [],
+            memory=mem,
+            capture=[(0x00ACCA40, 64)],
+        )
+        out = struct.unpack("<16f", captured[0x00ACCA40])
+        vectors.append({
+            "projection": [float_bits(v) for v in mat],
+            "result": [float_bits(v) for v in out],
+        })
+    write("00836100.json", vectors)
+
+
+def camera_compute_angles_vectors(read):
+    """0x004D6448: converts a forward vector to 16-bit fixed-point pitch and yaw angles."""
+    vectors = []
+    dirs = [
+        (0.0, 0.0, -1.0),
+        (0.0, 0.0, 1.0),
+        (1.0, 0.0, 0.0),
+        (-1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, -1.0, 0.0),
+        (1.0, 1.0, -1.0),
+        (-2.5, 0.75, 4.25),
+        (0.125, -3.5, -0.25),
+    ]
+    for d in dirs:
+        _, _, captured = run(
+            read,
+            0x004D6448,
+            143,
+            [0x50000000, 0x50001000, 0x50001004],
+            registers={"fpcw": 0x027F},
+            memory=[(0x50000000, struct.pack("<3f", *d)), (0x50001000, b"\x00" * 8)],
+            capture=[(0x50001000, 8)],
+        )
+        pitch, yaw = struct.unpack("<2i", captured[0x50001000])
+        vectors.append({"direction": [float_bits(v) for v in d], "pitch": pitch, "yaw": yaw})
+    write("004D6448.json", vectors)
+
+
+def camera_target_client_id_vectors(read):
+    """0x004D30D4: reads attached entity slot id or returns 0xFFFF."""
+    vectors = []
+    player = bytearray(32)
+    struct.pack_into("<H", player, 0x1C, 9)
+    for has_cam, has_target in [(False, False), (True, False), (True, True)]:
+        cam = bytearray(CAMERA_SIZE)
+        if has_target:
+            struct.pack_into("<I", cam, 0x90, 0x50004000)
+        mem = [
+            (0x00A48A54, struct.pack("<I", CAMERA if has_cam else 0)),
+            (CAMERA, bytes(cam)),
+            (0x50004000, bytes(player)),
+        ]
+        _, eax, _, _ = run_extended(read, 0x004D30D4, 30, [], memory=mem)
+        vectors.append({
+            "hasCamera": has_cam,
+            "hasTarget": has_target,
+            "playerIndex": 9,
+            "result": eax,
+        })
+    write("004D30D4.json", vectors)
+
+
+def camera_request_temporary_mode_vectors(read):
+    """0x004D3180: enters a temporary camera mode when bit 3 is clear."""
+    MODE_BASE = 0x50001000
+    vectors = []
+    base_mode = bytearray(108)
+    struct.pack_into("<I", base_mode, 0x00, 0x00AFC4E8)
+    for flags_before, active_before, prev_before, requested in [
+        (0x0, 0, 0, 4),
+        (0x8, 2, 1, 4),
+        (0x4, 5, 1, 6),
+        (0x4, 9, 2, 3),
+        (0x0, 4, 1, 4),
+    ]:
+        table = struct.pack("<13I", *([MODE_BASE + i * 128 for i in range(13)]))
+        mem = [
+            (0x00A489FC, struct.pack("<I", flags_before)),
+            (0x00A489F4, struct.pack("<B", active_before)),
+            (0x00A489F5, struct.pack("<B", prev_before)),
+            (0x00A48A00, table),
+        ]
+        for i in range(13):
+            mem.append((MODE_BASE + i * 128, bytes(base_mode)))
+        _, eax, _, captured = run_extended(
+            read,
+            0x004D3180,
+            92,
+            [requested],
+            memory=mem,
+            capture=[(0x00A489FC, 4), (0x00A489F4, 1), (0x00A489F5, 1)],
+        )
+        vectors.append({
+            "flagsBefore": flags_before,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "activeBefore": active_before,
+            "activeAfter": captured[0x00A489F4][0],
+            "prevBefore": prev_before,
+            "prevAfter": captured[0x00A489F5][0],
+            "requested": requested,
+            "result": eax != 0,
+        })
+    write("004D3180.json", vectors)
+
+
+def camera_release_temporary_mode_vectors(read):
+    """0x004D31DC: clears temporary bit 0x08 and sets restore bit 0x20."""
+    vectors = []
+    for flags_before in [0x0, 0x8, 0x28, 0x808, 0x4]:
+        _, _, captured = run(
+            read,
+            0x004D31DC,
+            23,
+            [],
+            memory=[(0x00A489FC, struct.pack("<I", flags_before))],
+            capture=[(0x00A489FC, 4)],
+        )
+        vectors.append({
+            "flagsBefore": flags_before,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+        })
+    write("004D31DC.json", vectors)
+
+
+def camera_restore_default_target_vectors(read):
+    """0x004D3250: clears lock flag bit 2, restores mode 5 FOV, and rebinds player."""
+    MODE0 = 0x50001000
+    MODE5 = 0x50001100
+    PLAYER = 0x50004000
+    vectors = []
+
+    def mk_mode(eye, target, fov=0x36C1):
+        m = bytearray(108)
+        struct.pack_into("<I", m, 0x00, 0x00AFC4E8)
+        struct.pack_into("<H", m, 0x20, 0xFFFF)
+        struct.pack_into("<3f", m, 0x3C, *eye)
+        struct.pack_into("<3f", m, 0x48, *target)
+        struct.pack_into("<i", m, 0x54, fov)
+        return bytes(m)
+
+    player = bytearray(32)
+    struct.pack_into("<H", player, 0x1C, 5)
+    for flags_before, active, stored_fov, has_player in [
+        (0x4, 5, 0x2800, True),
+        (0x4, 0, 0x2800, True),
+        (0x0, 5, 0x2800, False),
+    ]:
+        cam = bytearray(CAMERA_SIZE)
+        table = [0] * 13
+        table[0] = MODE0
+        table[5] = MODE5
+        slots = [0] * 12
+        if has_player:
+            slots[0] = PLAYER
+        mem = [
+            (CAMERA, bytes(cam)),
+            (MODE0, mk_mode((1.0, 2.0, 3.0), (4.0, 5.0, 6.0))),
+            (MODE5, mk_mode((7.0, 8.0, 9.0), (1.0, 1.0, 1.0), 0x36C1)),
+            (PLAYER, bytes(player)),
+            (0x00A48A54, struct.pack("<I", CAMERA)),
+            (0x00A489FC, struct.pack("<I", flags_before)),
+            (0x00A489F4, struct.pack("<B", active)),
+            (0x00A48A00, struct.pack("<13I", *table)),
+            (0x00A48B24, struct.pack("<i", stored_fov)),
+            (0x00A9C4F4, struct.pack("<I", 0)),
+            (0x00A94254, struct.pack("<12I", *slots)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D3250,
+            292,
+            [],
+            memory=mem,
+            capture=[(CAMERA, CAMERA_SIZE), (MODE0, 108), (MODE5, 108), (0x00A489FC, 4)],
+        )
+        m5_out = captured[MODE5]
+        m0_out = captured[MODE0]
+        vectors.append({
+            "flagsBefore": flags_before,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "activeMode": active,
+            "storedFov": stored_fov,
+            "hasPlayer": has_player,
+            "playerIndex": 5,
+            "mode0Eye": [float_bits(1.0), float_bits(2.0), float_bits(3.0)],
+            "mode0Target": [float_bits(4.0), float_bits(5.0), float_bits(6.0)],
+            "mode5FovAfter": struct.unpack_from("<i", m5_out, 0x54)[0],
+            "mode0ClientIdAfter": struct.unpack_from("<H", m0_out, 0x20)[0],
+            "mode5ClientIdAfter": struct.unpack_from("<H", m5_out, 0x20)[0],
+            "cameraOutput": captured[CAMERA].hex(),
+        })
+    write("004D3250.json", vectors)
+
+
+def camera_copy_override_vectors(read):
+    """0x004D3374: copies eye, target, and FOV from an override request into active mode."""
+    MODE = 0x50001000
+    REQ = 0x50002000
+    vectors = []
+    for flags in [0x0, 0x4, 0x8]:
+        req = bytearray(68)
+        struct.pack_into("<i", req, 0x14, 0x3000)
+        struct.pack_into("<3f", req, 0x1C, 11.0, 22.0, 33.0)
+        struct.pack_into("<3f", req, 0x28, 44.0, 55.0, 66.0)
+        mode = bytearray(108)
+        struct.pack_into("<I", mode, 0x00, 0x00AFC4E8)
+        struct.pack_into("<3f", mode, 0x3C, 1.0, 2.0, 3.0)
+        struct.pack_into("<3f", mode, 0x48, 4.0, 5.0, 6.0)
+        struct.pack_into("<i", mode, 0x54, 0x36C1)
+        table = struct.pack("<13I", MODE, *([0] * 12))
+        _, _, captured = run(
+            read,
+            0x004D3374,
+            74,
+            [REQ],
+            memory=[
+                (MODE, bytes(mode)),
+                (REQ, bytes(req)),
+                (0x00A489FC, struct.pack("<I", flags)),
+                (0x00A489F4, struct.pack("<B", 0)),
+                (0x00A48A00, table),
+            ],
+            capture=[(MODE, 108)],
+        )
+        m_out = captured[MODE]
+        vectors.append({
+            "flags": flags,
+            "modeEyeAfter": [float_bits(v) for v in struct.unpack_from("<3f", m_out, 0x3C)],
+            "modeTargetAfter": [float_bits(v) for v in struct.unpack_from("<3f", m_out, 0x48)],
+            "modeFovAfter": struct.unpack_from("<i", m_out, 0x54)[0],
+        })
+    write("004D3374.json", vectors)
+
+
+def camera_bind_target_vectors(read):
+    """0x004D2FB4: binds target entity to active mode and mode 0."""
+    MODE0 = 0x50001000
+    MODE2 = 0x50001100
+    PLAYER = 0x50004000
+    vectors = []
+    player = bytearray(32)
+    struct.pack_into("<H", player, 0x1C, 4)
+
+    def mk_mode(eye, target):
+        m = bytearray(108)
+        struct.pack_into("<I", m, 0x00, 0x00AFC4E8)
+        struct.pack_into("<H", m, 0x20, 0xFFFF)
+        struct.pack_into("<3f", m, 0x3C, *eye)
+        struct.pack_into("<3f", m, 0x48, *target)
+        return bytes(m)
+
+    for has_player in [False, True]:
+        cam = bytearray(CAMERA_SIZE)
+        table = [0] * 13
+        table[0] = MODE0
+        table[2] = MODE2
+        mem = [
+            (CAMERA, bytes(cam)),
+            (MODE0, mk_mode((2.0, 4.0, 6.0), (8.0, 10.0, 12.0))),
+            (MODE2, mk_mode((0.0, 0.0, 0.0), (0.0, 0.0, 1.0))),
+            (PLAYER, bytes(player)),
+            (0x00A48A54, struct.pack("<I", CAMERA)),
+            (0x00A489FC, struct.pack("<I", 0x4)),
+            (0x00A489F4, struct.pack("<B", 2)),
+            (0x00A48A00, struct.pack("<13I", *table)),
+        ]
+        _, _, captured = run(
+            read,
+            0x004D2FB4,
+            200,
+            [PLAYER if has_player else 0],
+            memory=mem,
+            capture=[(CAMERA, CAMERA_SIZE), (MODE0, 108), (MODE2, 108), (0x00A489FC, 4)],
+        )
+        vectors.append({
+            "hasPlayer": has_player,
+            "playerIndex": 4,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "mode0ClientIdAfter": struct.unpack_from("<H", captured[MODE0], 0x20)[0],
+            "mode2ClientIdAfter": struct.unpack_from("<H", captured[MODE2], 0x20)[0],
+            "controllerAttached": struct.unpack_from("<I", captured[CAMERA], 0x90)[0] == PLAYER,
+            "cameraOutput": captured[CAMERA].hex(),
+        })
+    write("004D2FB4.json", vectors)
+
+
+def camera_lock_target_vectors(read):
+    """0x004D307C: attaches target with extra parameter to active mode."""
+    MODE2 = 0x50001100
+    PLAYER = 0x50004000
+    vectors = []
+    player = bytearray(32)
+    struct.pack_into("<H", player, 0x1C, 6)
+    for has_player in [False, True]:
+        mode = bytearray(108)
+        struct.pack_into("<I", mode, 0x00, 0x00AFC4E8)
+        struct.pack_into("<H", mode, 0x20, 0xFFFF)
+        table = [0] * 13
+        table[2] = MODE2
+        _, _, captured = run(
+            read,
+            0x004D307C,
+            78,
+            [PLAYER if has_player else 0, 42],
+            memory=[
+                (CAMERA, bytes(CAMERA_SIZE)),
+                (MODE2, bytes(mode)),
+                (PLAYER, bytes(player)),
+                (0x00A48A54, struct.pack("<I", CAMERA)),
+                (0x00A489FC, struct.pack("<I", 0)),
+                (0x00A489F4, struct.pack("<B", 2)),
+                (0x00A48A00, struct.pack("<13I", *table)),
+            ],
+            capture=[(CAMERA, CAMERA_SIZE), (MODE2, 108), (0x00A489FC, 4)],
+        )
+        vectors.append({
+            "hasPlayer": has_player,
+            "playerIndex": 6,
+            "flagsAfter": struct.unpack("<I", captured[0x00A489FC])[0],
+            "modeClientIdAfter": struct.unpack_from("<H", captured[MODE2], 0x20)[0],
+            "controllerAttached": struct.unpack_from("<I", captured[CAMERA], 0x90)[0] == PLAYER,
+        })
+    write("004D307C.json", vectors)
+
+
+def camera_shake_preset_vectors(read):
+    """0x004D4288: sets preset shake amplitude and countdown."""
+    vectors = []
+    for preset in [0, 1, 2, 9]:
+        _, _, captured = run(
+            read,
+            0x004D4288,
+            132,
+            [preset],
+            memory=[
+                (CAMERA, bytes(CAMERA_SIZE)),
+                (0x00A48A54, struct.pack("<I", CAMERA)),
+                (0x00A96980, struct.pack("<B", 0) + b"\x00" * 511),
+            ],
+            capture=[(CAMERA, CAMERA_SIZE)],
+        )
+        out = captured[CAMERA]
+        vectors.append({
+            "preset": preset,
+            "countdown": struct.unpack_from("<I", out, 0x1C0)[0],
+            "amplitude": float_bits(struct.unpack_from("<f", out, 0x1C4)[0]),
+        })
+    write("004D4288.json", vectors)
+
+
+def camera_shake_custom_vectors(read):
+    """0x004D430C: sets custom shake amplitude and countdown."""
+    vectors = []
+    for amp, dur in [(0.125, 15), (0.5, 45), (0.0, 0)]:
+        _, _, captured = run(
+            read,
+            0x004D430C,
+            45,
+            [float_bits(amp), dur],
+            memory=[
+                (CAMERA, bytes(CAMERA_SIZE)),
+                (0x00A48A54, struct.pack("<I", CAMERA)),
+                (0x00A96980, struct.pack("<B", 0) + b"\x00" * 511),
+            ],
+            capture=[(CAMERA, CAMERA_SIZE)],
+        )
+        out = captured[CAMERA]
+        vectors.append({
+            "amplitudeInput": float_bits(amp),
+            "durationInput": dur,
+            "countdown": struct.unpack_from("<I", out, 0x1C0)[0],
+            "amplitudeOutput": float_bits(struct.unpack_from("<f", out, 0x1C4)[0]),
+        })
+    write("004D430C.json", vectors)
 
 
 if __name__ == "__main__":

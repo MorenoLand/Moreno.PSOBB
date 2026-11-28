@@ -36,4 +36,20 @@ public static class CameraView
 			-(zz * eye.Z + zy * eye.Y + zx * eye.X),
 			1);
 	}
+
+	/// <summary>
+	/// Builds the look-at view transform and stores it at the current depth of <paramref name="transformStack"/> when provided.
+	/// </summary>
+	/// <param name="eye">The camera position.</param>
+	/// <param name="center">The point the camera looks at.</param>
+	/// <param name="up">The up vector.</param>
+	/// <param name="transformStack">The transformation stack to update with the view matrix, when supplied.</param>
+	/// <returns>The constructed view transform.</returns>
+	[Original(0x0082F108)]
+	public static Matrix4x4 ApplyLookAt(Vector3 eye, Vector3 center, Vector3 up, TransformationStack? transformStack = null)
+	{
+		Matrix4x4 view = CreateLookAt(eye, center, up);
+		transformStack?.ReplaceCurrent(view);
+		return view;
+	}
 }

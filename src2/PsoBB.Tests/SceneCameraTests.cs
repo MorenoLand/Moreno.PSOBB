@@ -131,6 +131,48 @@ public sealed class SceneCameraTests
 		Assert.NotEqual(first.Current, second.Current);
 	}
 
+	[Fact]
+	public void TransformationStackCaptureInverseInvertsCopyWithoutChangingDepth()
+	{
+		TransformationStack stack = new();
+		stack.Translate(new Vector3(4, -5, 6));
+		stack.RotateEuler(0, 0x4000, 0, false);
+		Matrix4x4 original = stack.Current;
+		int depthBefore = stack.Depth;
+
+		Matrix4x4 inverse = stack.CaptureInverseCurrent();
+
+		Assert.Equal(depthBefore, stack.Depth);
+		Assert.Equal(original, stack.Current);
+		Matrix4x4 product = Matrix4x4.Multiply(original, inverse);
+		Assert.Equal(1.0f, product.M11, 5);
+		Assert.Equal(1.0f, product.M22, 5);
+		Assert.Equal(1.0f, product.M33, 5);
+		Assert.Equal(1.0f, product.M44, 5);
+		Assert.Equal(0.0f, product.M41, 5);
+		Assert.Equal(0.0f, product.M42, 5);
+		Assert.Equal(0.0f, product.M43, 5);
+	}
+
+	[Fact]
+	public void CreateFieldProjectionMatchesVerticalScaleAndViewportMatrix()
+	{
+		float scale = CameraProjection.CreateFieldProjection(
+			SceneCamera.DefaultFieldOfViewAngle,
+			SceneCamera.DefaultFieldOfViewAspect,
+			SceneCamera.DefaultNearPlane,
+			SceneCamera.DefaultFarPlane,
+			480,
+			out Matrix4x4 projection,
+			out Matrix4x4 viewportProjection);
+
+		Matrix4x4 expected = SceneCamera.Default.CreateProjection();
+		Assert.Equal(expected, projection);
+		Assert.Equal(480 * expected.M22 * 0.5f, scale, 5);
+		Assert.Equal(expected.M11 * 0.5f, viewportProjection.M11, 5);
+		Assert.Equal(expected.M22 * -0.5f, viewportProjection.M22, 5);
+	}
+
 	private static Vector3 Transform(Matrix4x4 matrix, Vector3 point) => new(
 		point.X * matrix.M11 + point.Y * matrix.M21 + point.Z * matrix.M31 + matrix.M41,
 		point.X * matrix.M12 + point.Y * matrix.M22 + point.Z * matrix.M32 + matrix.M42,

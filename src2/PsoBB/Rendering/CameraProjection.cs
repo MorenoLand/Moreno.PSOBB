@@ -46,6 +46,70 @@ public static class CameraProjection
 		Create(CalculateVerticalFieldOfView(fieldOfViewAngle, fieldOfViewAspect), ProjectionAspect, nearPlane, farPlane);
 
 	/// <summary>
+	/// Scales a projection matrix by the fixed viewport-space half-size and center offset transform.
+	/// </summary>
+	/// <param name="projection">The projection matrix to transform.</param>
+	/// <returns>The viewport-scaled projection matrix.</returns>
+	[Original(0x00836100)]
+	public static Matrix4x4 CreateViewportProjection(Matrix4x4 projection)
+	{
+		Matrix4x4 viewportScale = new(
+			0.5f, 0.0f, 0.0f, 0.0f,
+			0.0f, -0.5f, 0.0f, 0.0f,
+			0.5f, 0.5f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f);
+		return Matrix4x4.Multiply(projection, viewportScale);
+	}
+
+	/// <summary>
+	/// Builds the field camera projection and viewport matrices from a 16-bit field-of-view angle and returns the vertical screen scale.
+	/// </summary>
+	/// <param name="fieldOfViewAngle">The field-of-view angle in 16-bit turn units.</param>
+	/// <param name="fieldOfViewAspect">The tangent divisor.</param>
+	/// <param name="nearPlane">The near clip distance.</param>
+	/// <param name="farPlane">The far clip distance.</param>
+	/// <param name="viewportHeight">The active render target height in pixels.</param>
+	/// <param name="projection">Receives the viewport-adjusted projection transform.</param>
+	/// <param name="viewportProjection">Receives the combined viewport-space projection matrix.</param>
+	/// <param name="viewportScaleX">The horizontal viewport scale.</param>
+	/// <param name="viewportScaleY">The vertical viewport scale.</param>
+	/// <returns>The computed vertical screen projection scale.</returns>
+	[Original(0x0082EBC8)]
+	public static float CreateFieldProjection(
+		int fieldOfViewAngle,
+		float fieldOfViewAspect,
+		float nearPlane,
+		float farPlane,
+		int viewportHeight,
+		out Matrix4x4 projection,
+		out Matrix4x4 viewportProjection,
+		float viewportScaleX = 1.0f,
+		float viewportScaleY = 1.0f)
+	{
+		Matrix4x4 rawProjection = CreateFromAngle(fieldOfViewAngle, fieldOfViewAspect, nearPlane, farPlane);
+		if (viewportScaleX != 1.0f || viewportScaleY != 1.0f)
+		{
+			Matrix4x4 translation = new(
+				1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				viewportScaleX - 1.0f, viewportScaleY - 1.0f, 0.0f, 1.0f);
+			Matrix4x4 scaling = new(
+				viewportScaleX, 0.0f, 0.0f, 0.0f,
+				0.0f, viewportScaleY, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f);
+			projection = Matrix4x4.Multiply(rawProjection, Matrix4x4.Multiply(scaling, translation));
+		}
+		else
+		{
+			projection = rawProjection;
+		}
+		viewportProjection = CreateViewportProjection(projection);
+		return (float)(viewportHeight * (double)rawProjection.M22 * 0.5f);
+	}
+
+	/// <summary>
 	/// Builds the original perspective projection from a full vertical field of view, using the half angle for the cotangent.
 	/// </summary>
 	/// <param name="verticalFieldOfView">The full vertical field of view in radians.</param>

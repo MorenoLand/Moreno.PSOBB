@@ -165,4 +165,82 @@ public readonly record struct Matrix4x4(
 			M34 = (float)((double)M34 * cosine + -(double)sine * M24),
 		};
 	}
+
+	/// <summary>
+	/// Computes the determinant of this 4x4 matrix following the original intermediate single-precision and double-precision rounding.
+	/// </summary>
+	/// <returns>The matrix determinant.</returns>
+	[Original(0x0084A778)]
+	public float Determinant()
+	{
+		float m22m33 = (float)((double)M22 * M33);
+		float m22m34 = (float)((double)M22 * M34);
+		float m23m34 = (float)((double)M23 * M34);
+		float m23m32 = (float)((double)M23 * M32);
+		float m24m32 = (float)((double)M24 * M32);
+		double m33m24 = (double)M33 * M24;
+		double m33m21 = (double)M33 * M21;
+		float c0 = (float)(((double)m22m33 * M44 + (double)m23m34 * M42 + (double)m24m32 * M43
+			- M42 * m33m24 - (double)m23m32 * M44 - (double)M43 * m22m34) * M11);
+		float m34m21 = (float)((double)M34 * M21);
+		double m24m31 = (double)M24 * M31;
+		float c3 = (float)m33m21;
+		float m23m31 = (float)((double)M23 * M31);
+		double term1 = m33m21 * M44 + (double)m23m34 * M41 + (double)M43 * m24m31
+			- m33m24 * M41 - (double)m23m31 * M44 - (double)M43 * m34m21;
+		float c1 = (float)(term1 * M12);
+		double m21m32 = (double)M21 * M32;
+		float c4 = (float)m21m32;
+		double m44m21m32 = (double)M44 * m21m32;
+		double m22m31 = (double)M22 * M31;
+		return (float)(
+			(m44m21m32 + (double)m22m34 * M41 + m24m31 * M42 - (double)m24m32 * M41 - (double)M44 * m22m31 - (double)m34m21 * M42) * M13
+			- ((double)M43 * c4 + (double)m22m33 * M41 + (double)m23m31 * M42 - (double)M41 * m23m32 - m22m31 * M43 - (double)M42 * c3) * M14
+			+ c0
+			- c1);
+	}
+
+	/// <summary>
+	/// Inverts <paramref name="matrix"/> in place when non-singular, or fills it with the original sentinel magnitude when singular.
+	/// </summary>
+	/// <param name="matrix">The matrix to invert.</param>
+	/// <returns><see langword="true"/> when the determinant was non-zero and inversion succeeded.</returns>
+	[Original(0x0083C670)]
+	public static bool TryInvert(ref Matrix4x4 matrix)
+	{
+		float determinant = matrix.Determinant();
+		if (determinant == 0.0f)
+		{
+			const float Singular = 3.4e38f;
+			matrix = new Matrix4x4(
+				Singular, Singular, Singular, Singular,
+				Singular, Singular, Singular, Singular,
+				Singular, Singular, Singular, Singular,
+				Singular, Singular, Singular, Singular);
+			return false;
+		}
+		float invDet = 1.0f / determinant;
+		double m11 = matrix.M11, m12 = matrix.M12, m13 = matrix.M13, m14 = matrix.M14;
+		double m21 = matrix.M21, m22 = matrix.M22, m23 = matrix.M23, m24 = matrix.M24;
+		double m31 = matrix.M31, m32 = matrix.M32, m33 = matrix.M33, m34 = matrix.M34;
+		double m41 = matrix.M41, m42 = matrix.M42, m43 = matrix.M43, m44 = matrix.M44;
+		matrix = new Matrix4x4(
+			(float)((m22 * m33 * m44 + m23 * m34 * m42 + m24 * m32 * m43 - m24 * m33 * m42 - m23 * m32 * m44 - m22 * m34 * m43) * invDet),
+			(float)(-(m12 * m33 * m44 + m34 * m13 * m42 + m14 * m32 * m43 - m14 * m33 * m42 - m13 * m32 * m44 - m12 * m34 * m43) * invDet),
+			(float)((m12 * m23 * m44 + m24 * m13 * m42 + m14 * m22 * m43 - m14 * m23 * m42 - m13 * m22 * m44 - m12 * m24 * m43) * invDet),
+			(float)(-(m12 * m23 * m34 + m24 * m13 * m32 + m14 * m22 * m33 - m14 * m23 * m32 - m13 * m22 * m34 - m12 * m24 * m33) * invDet),
+			(float)(-(m23 * m34 * m41 + m21 * m33 * m44 + m24 * m31 * m43 - m24 * m33 * m41 - m23 * m31 * m44 - m21 * m34 * m43) * invDet),
+			(float)((m13 * m34 * m41 + m11 * m33 * m44 + m14 * m31 * m43 - m14 * m33 * m41 - m13 * m31 * m44 - m11 * m34 * m43) * invDet),
+			(float)(-(m13 * m24 * m41 + m11 * m23 * m44 + m14 * m21 * m43 - m14 * m23 * m41 - m13 * m21 * m44 - m11 * m24 * m43) * invDet),
+			(float)((m13 * m24 * m31 + m11 * m23 * m34 + m14 * m21 * m33 - m14 * m23 * m31 - m13 * m21 * m34 - m11 * m24 * m33) * invDet),
+			(float)((m22 * m34 * m41 + m21 * m32 * m44 + m24 * m31 * m42 - m24 * m32 * m41 - m22 * m31 * m44 - m21 * m34 * m42) * invDet),
+			(float)(-(m12 * m34 * m41 + m11 * m32 * m44 + m14 * m31 * m42 - m14 * m32 * m41 - m12 * m31 * m44 - m11 * m34 * m42) * invDet),
+			(float)((m12 * m24 * m41 + m11 * m22 * m44 + m14 * m21 * m42 - m14 * m22 * m41 - m12 * m21 * m44 - m11 * m24 * m42) * invDet),
+			(float)(-(m12 * m24 * m31 + m11 * m22 * m34 + m14 * m21 * m32 - m14 * m22 * m31 - m12 * m21 * m34 - m11 * m24 * m32) * invDet),
+			(float)(-(m22 * m33 * m41 + m21 * m32 * m43 + m23 * m31 * m42 - m23 * m32 * m41 - m22 * m31 * m43 - m21 * m33 * m42) * invDet),
+			(float)((m12 * m33 * m41 + m11 * m32 * m43 + m13 * m31 * m42 - m13 * m32 * m41 - m12 * m31 * m43 - m11 * m33 * m42) * invDet),
+			(float)(-(m12 * m23 * m41 + m11 * m22 * m43 + m13 * m21 * m42 - m13 * m22 * m41 - m12 * m21 * m43 - m11 * m23 * m42) * invDet),
+			(float)((m12 * m23 * m31 + m11 * m22 * m33 + m13 * m21 * m32 - m13 * m22 * m31 - m12 * m21 * m33 - m11 * m23 * m32) * invDet));
+		return true;
+	}
 }

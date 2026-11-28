@@ -1,0 +1,16 @@
+[
+	{
+		"hasPlayer": false,
+		"playerIndex": 6,
+		"flagsAfter": 2048,
+		"modeClientIdAfter": 65535,
+		"controllerAttached": false
+	},
+	{
+		"hasPlayer": true,
+		"playerIndex": 6,
+		"flagsAfter": 2048,
+		"modeClientIdAfter": 6,
+		"controllerAttached": true
+	}
+]

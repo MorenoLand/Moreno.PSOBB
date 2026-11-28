@@ -24,6 +24,36 @@ public sealed class TransformationStack
 	public int Depth => _depth;
 
 	/// <summary>
+	/// Copies the matrix at the current stack depth into <paramref name="destination"/>.
+	/// </summary>
+	/// <param name="destination">Receives the current top matrix.</param>
+	[Original(0x00831650)]
+	public void CopyCurrentTo(out Matrix4x4 destination) => destination = _matrices[_depth];
+
+	/// <summary>
+	/// Overwrites the matrix at the current stack depth with <paramref name="transform"/>.
+	/// </summary>
+	/// <param name="transform">The replacement transform matrix.</param>
+	[Original(0x0083B410)]
+	public void ReplaceCurrent(Matrix4x4 transform) => _matrices[_depth] = transform;
+
+	/// <summary>
+	/// Pushes a copy of the current matrix, inverts it in place, reads back the result, and pops the copy.
+	/// </summary>
+	/// <returns>The inverted transform matrix.</returns>
+	[Original(0x00782984)]
+	public Matrix4x4 CaptureInverseCurrent()
+	{
+		PushCopy();
+		Matrix4x4 matrix = Current;
+		Matrix4x4.TryInvert(ref matrix);
+		ReplaceCurrent(matrix);
+		CopyCurrentTo(out Matrix4x4 result);
+		Pop();
+		return result;
+	}
+
+	/// <summary>
 	/// Copies the current matrix to the next depth, which is how a model node starts a child transform.
 	/// </summary>
 	[Original(0x0082D7B0, "push_transformation_matrix_copy_head")]

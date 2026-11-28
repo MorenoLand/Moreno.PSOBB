@@ -64,6 +64,21 @@ public sealed class Matrix4x4GoldenTests
 			GoldenVectors.ReadVector(vector.GetProperty("result")),
 		});
 
+	public static IEnumerable<object[]> DeterminantVectors() => GoldenVectors.Load("0084A778.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			GoldenVectors.ReadFloat(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> TryInvertVectors() => GoldenVectors.Load("0083C670.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("input")),
+			vector.GetProperty("succeeded").GetBoolean(),
+			GoldenVectors.ReadMatrix(vector.GetProperty("output")),
+		});
+
 	[Theory]
 	[MemberData(nameof(MultiplyVectors))]
 	public void MultiplyMatchesTheMachineCode(Matrix4x4 left, Matrix4x4 right, Matrix4x4 expected) =>
@@ -104,4 +119,18 @@ public sealed class Matrix4x4GoldenTests
 	[MemberData(nameof(TransformDirectionVectors))]
 	public void TransformDirectionMatchesTheMachineCode(Matrix4x4 matrix, Vector3 direction, Vector3 expected) =>
 		GoldenVectors.AssertVector(expected, matrix.TransformDirection(direction));
+
+	[Theory]
+	[MemberData(nameof(DeterminantVectors))]
+	public void DeterminantMatchesTheMachineCode(Matrix4x4 matrix, float expected) =>
+		GoldenVectors.AssertFloat(expected, matrix.Determinant());
+
+	[Theory]
+	[MemberData(nameof(TryInvertVectors))]
+	public void TryInvertMatchesTheMachineCode(Matrix4x4 matrix, bool expectedSucceeded, Matrix4x4 expectedOutput)
+	{
+		bool succeeded = Matrix4x4.TryInvert(ref matrix);
+		Assert.Equal(expectedSucceeded, succeeded);
+		GoldenVectors.AssertMatrix(expectedOutput, matrix);
+	}
 }

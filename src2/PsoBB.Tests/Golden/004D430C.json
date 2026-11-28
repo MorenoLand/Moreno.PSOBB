@@ -1,0 +1,20 @@
+[
+	{
+		"amplitudeInput": 1040187392,
+		"durationInput": 15,
+		"countdown": 15,
+		"amplitudeOutput": 1040187392
+	},
+	{
+		"amplitudeInput": 1056964608,
+		"durationInput": 45,
+		"countdown": 45,
+		"amplitudeOutput": 1056964608
+	},
+	{
+		"amplitudeInput": 0,
+		"durationInput": 0,
+		"countdown": 0,
+		"amplitudeOutput": 0
+	}
+]

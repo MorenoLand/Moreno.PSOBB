@@ -130,6 +130,138 @@ public sealed class FieldCameraControllerGoldenTests
 			Convert.FromHexString(vector.GetProperty("cameraOutput").GetString()!),
 		});
 
+	public static IEnumerable<object[]> CopyStackCurrentVectors() => GoldenVectors.Load("00831650.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> ReplaceStackCurrentVectors() => GoldenVectors.Load("0083B410.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("matrix")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> CaptureInverseStackVectors() => GoldenVectors.Load("00782984.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("input")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("inverse")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("topAfter")),
+			vector.GetProperty("depthAfter").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> ViewportProjectionVectors() => GoldenVectors.Load("00836100.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadMatrix(vector.GetProperty("projection")),
+			GoldenVectors.ReadMatrix(vector.GetProperty("result")),
+		});
+
+	public static IEnumerable<object[]> ComputeAnglesVectors() => GoldenVectors.Load("004D6448.json")
+		.Select(vector => new object[]
+		{
+			ReadVector(vector.GetProperty("direction")),
+			vector.GetProperty("pitch").GetInt32(),
+			vector.GetProperty("yaw").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> TargetClientIdVectors() => GoldenVectors.Load("004D30D4.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("hasCamera").GetBoolean(),
+			vector.GetProperty("hasTarget").GetBoolean(),
+			vector.GetProperty("playerIndex").GetInt32(),
+			vector.GetProperty("result").GetUInt16(),
+		});
+
+	public static IEnumerable<object[]> RequestTemporaryModeVectors() => GoldenVectors.Load("004D3180.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("flagsBefore").GetUInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+			vector.GetProperty("activeBefore").GetByte(),
+			vector.GetProperty("activeAfter").GetByte(),
+			vector.GetProperty("prevBefore").GetByte(),
+			vector.GetProperty("prevAfter").GetByte(),
+			vector.GetProperty("requested").GetByte(),
+			vector.GetProperty("result").GetBoolean(),
+		});
+
+	public static IEnumerable<object[]> ReleaseTemporaryModeVectors() => GoldenVectors.Load("004D31DC.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("flagsBefore").GetUInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+		});
+
+	public static IEnumerable<object[]> RestoreDefaultTargetVectors() => GoldenVectors.Load("004D3250.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("flagsBefore").GetUInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+			vector.GetProperty("activeMode").GetByte(),
+			vector.GetProperty("storedFov").GetInt32(),
+			vector.GetProperty("hasPlayer").GetBoolean(),
+			vector.GetProperty("playerIndex").GetInt32(),
+			ReadVector(vector.GetProperty("mode0Eye")),
+			ReadVector(vector.GetProperty("mode0Target")),
+			vector.GetProperty("mode5FovAfter").GetInt32(),
+			vector.GetProperty("mode0ClientIdAfter").GetUInt16(),
+			vector.GetProperty("mode5ClientIdAfter").GetUInt16(),
+			Convert.FromHexString(vector.GetProperty("cameraOutput").GetString()!),
+		});
+
+	public static IEnumerable<object[]> CopyOverrideVectors() => GoldenVectors.Load("004D3374.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("flags").GetUInt32(),
+			ReadVector(vector.GetProperty("modeEyeAfter")),
+			ReadVector(vector.GetProperty("modeTargetAfter")),
+			vector.GetProperty("modeFovAfter").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> BindTargetVectors() => GoldenVectors.Load("004D2FB4.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("hasPlayer").GetBoolean(),
+			vector.GetProperty("playerIndex").GetInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+			vector.GetProperty("mode0ClientIdAfter").GetUInt16(),
+			vector.GetProperty("mode2ClientIdAfter").GetUInt16(),
+			vector.GetProperty("controllerAttached").GetBoolean(),
+			Convert.FromHexString(vector.GetProperty("cameraOutput").GetString()!),
+		});
+
+	public static IEnumerable<object[]> LockTargetVectors() => GoldenVectors.Load("004D307C.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("hasPlayer").GetBoolean(),
+			vector.GetProperty("playerIndex").GetInt32(),
+			vector.GetProperty("flagsAfter").GetUInt32(),
+			vector.GetProperty("modeClientIdAfter").GetUInt16(),
+			vector.GetProperty("controllerAttached").GetBoolean(),
+		});
+
+	public static IEnumerable<object[]> ShakePresetVectors() => GoldenVectors.Load("004D4288.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("preset").GetInt32(),
+			vector.GetProperty("countdown").GetUInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("amplitude")),
+		});
+
+	public static IEnumerable<object[]> ShakeCustomVectors() => GoldenVectors.Load("004D430C.json")
+		.Select(vector => new object[]
+		{
+			GoldenVectors.ReadFloat(vector.GetProperty("amplitudeInput")),
+			vector.GetProperty("durationInput").GetUInt32(),
+			vector.GetProperty("countdown").GetUInt32(),
+			GoldenVectors.ReadFloat(vector.GetProperty("amplitudeOutput")),
+		});
+
 	public static IEnumerable<object[]> SelectModeVectors() => GoldenVectors.Load("004D3AA0.json")
 		.Select(vector => new object[]
 		{
@@ -596,11 +728,407 @@ public sealed class FieldCameraControllerGoldenTests
 		}
 	}
 
+	[Theory]
+	[MemberData(nameof(CopyStackCurrentVectors))]
+	public void TransformationStackCopyCurrentMatchesTheMachineCode(Matrix4x4 matrix, Matrix4x4 expected)
+	{
+		TransformationStack stack = new();
+		stack.ReplaceCurrent(matrix);
+		stack.CopyCurrentTo(out Matrix4x4 actual);
+		GoldenVectors.AssertMatrix(expected, actual);
+	}
+
+	[Theory]
+	[MemberData(nameof(ReplaceStackCurrentVectors))]
+	public void TransformationStackReplaceCurrentMatchesTheMachineCode(Matrix4x4 matrix, Matrix4x4 expected)
+	{
+		TransformationStack stack = new();
+		stack.ReplaceCurrent(matrix);
+		GoldenVectors.AssertMatrix(expected, stack.Current);
+	}
+
+	[Theory]
+	[MemberData(nameof(CaptureInverseStackVectors))]
+	public void TransformationStackCaptureInverseMatchesTheMachineCode(Matrix4x4 input, Matrix4x4 expectedInverse, Matrix4x4 expectedTopAfter, int expectedDepth)
+	{
+		TransformationStack stack = new();
+		stack.ReplaceCurrent(input);
+		Matrix4x4 inverse = stack.CaptureInverseCurrent();
+		GoldenVectors.AssertMatrix(expectedInverse, inverse);
+		GoldenVectors.AssertMatrix(expectedTopAfter, stack.Current);
+		Assert.Equal(expectedDepth, stack.Depth);
+	}
+
+	[Theory]
+	[MemberData(nameof(ViewportProjectionVectors))]
+	public void ViewportProjectionMatchesTheMachineCode(Matrix4x4 projection, Matrix4x4 expected) =>
+		GoldenVectors.AssertMatrix(expected, CameraProjection.CreateViewportProjection(projection));
+
+	[Theory]
+	[MemberData(nameof(ComputeAnglesVectors))]
+	public void ComputeAnglesFromDirectionMatchesTheMachineCode(Vector3 direction, int expectedPitch, int expectedYaw)
+	{
+		FieldCameraController.ComputeAnglesFromDirection(direction, out int pitch, out int yaw);
+		Assert.Equal(expectedPitch, pitch);
+		Assert.Equal(expectedYaw, yaw);
+	}
+
+	[Theory]
+	[MemberData(nameof(TargetClientIdVectors))]
+	public void GetCurrentTargetClientIdMatchesTheMachineCode(bool hasCamera, bool hasTarget, int playerIndex, ushort expected)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			if (hasCamera)
+			{
+				FieldCameraController controller = new()
+				{
+					TargetEntity = hasTarget ? PlayerCharacter.Create(playerIndex, default, 0, PlayerAnimationSet.Empty) : null,
+				};
+				FieldCameraController.Current = controller;
+			}
+			Assert.Equal(expected, FieldCameraController.GetCurrentTargetClientId());
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(RequestTemporaryModeVectors))]
+	public void RequestTemporaryModeMatchesTheMachineCode(uint flagsBefore, uint flagsAfter, byte activeBefore, byte activeAfter, byte prevBefore, byte prevAfter, byte requested, bool expectedResult)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.Flags = flagsBefore;
+			FieldCameraController.ActiveModeIndex = activeBefore;
+			FieldCameraController.PreviousModeIndex = prevBefore;
+			TrackingCameraMode mode = new();
+			FieldCameraController.Modes[requested] = mode;
+
+			bool result = FieldCameraController.RequestTemporaryMode(requested);
+
+			Assert.Equal(expectedResult, result);
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+			Assert.Equal(activeAfter, FieldCameraController.ActiveModeIndex);
+			Assert.Equal(prevAfter, FieldCameraController.PreviousModeIndex);
+			Assert.Equal(expectedResult ? 1 : 0, mode.ActivatedCount);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ReleaseTemporaryModeVectors))]
+	public void ReleaseTemporaryModeMatchesTheMachineCode(uint flagsBefore, uint flagsAfter)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.Flags = flagsBefore;
+			FieldCameraController.ReleaseTemporaryMode();
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(RestoreDefaultTargetVectors))]
+	public void RestoreDefaultTargetAndModeMatchesTheMachineCode(
+		uint flagsBefore,
+		uint flagsAfter,
+		byte activeMode,
+		int storedFov,
+		bool hasPlayer,
+		int playerIndex,
+		Vector3 mode0Eye,
+		Vector3 mode0Target,
+		int expectedMode5Fov,
+		ushort expectedMode0ClientId,
+		ushort expectedMode5ClientId,
+		byte[] cameraOutput)
+	{
+		FieldCameraController.ResetGlobals();
+		PlayerCharacter.ResetGlobals();
+		Scene2TransitionOverlay.Reset();
+		try
+		{
+			FieldCameraController.Flags = flagsBefore;
+			FieldCameraController.ActiveModeIndex = activeMode;
+			FieldCameraController.StoredMode5FieldOfView = storedFov;
+			FieldCameraController controller = new();
+			FieldCameraController.Current = controller;
+			FieldCameraMode mode0 = new() { Eye = mode0Eye, Target = mode0Target };
+			FieldCameraMode mode5 = new() { Eye = new Vector3(7, 8, 9), Target = new Vector3(1, 1, 1), FieldOfView = 0x36C1 };
+			FieldCameraController.Modes[0] = mode0;
+			FieldCameraController.Modes[5] = mode5;
+			if (hasPlayer)
+				PlayerCharacter.Slots[0] = PlayerCharacter.Create(playerIndex, default, 0, PlayerAnimationSet.Empty);
+
+			FieldCameraController.RestoreDefaultTargetAndMode();
+
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+			Assert.Equal(expectedMode5Fov, mode5.FieldOfView);
+			Assert.Equal(expectedMode0ClientId, mode0.TargetClientId);
+			Assert.Equal(expectedMode5ClientId, mode5.TargetClientId);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotEyesOffset), controller.SlotEyes[0]);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotTargetsOffset), controller.SlotTargets[0]);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+			PlayerCharacter.ResetGlobals();
+			Scene2TransitionOverlay.Reset();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(CopyOverrideVectors))]
+	public void ApplyOverrideRequestToActiveModeMatchesTheMachineCode(uint flags, Vector3 expectedEye, Vector3 expectedTarget, int expectedFov)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.Flags = flags;
+			FieldCameraController.ActiveModeIndex = 0;
+			FieldCameraMode mode = new() { Eye = new Vector3(1, 2, 3), Target = new Vector3(4, 5, 6), FieldOfView = 0x36C1 };
+			FieldCameraController.Modes[0] = mode;
+			FieldCameraOverrideRequest req = new()
+			{
+				Eye = new Vector3(11, 22, 33),
+				Target = new Vector3(44, 55, 66),
+				FieldOfViewDegrees = 0x3000,
+			};
+
+			FieldCameraController.ApplyOverrideRequestToActiveMode(req);
+
+			GoldenVectors.AssertVector(expectedEye, mode.Eye);
+			GoldenVectors.AssertVector(expectedTarget, mode.Target);
+			Assert.Equal(expectedFov, mode.FieldOfView);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(BindTargetVectors))]
+	public void BindTargetEntityMatchesTheMachineCode(bool hasPlayer, int playerIndex, uint flagsAfter, ushort expectedMode0ClientId, ushort expectedMode2ClientId, bool expectedControllerAttached, byte[] cameraOutput)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.Flags = 0x4;
+			FieldCameraController.ActiveModeIndex = 2;
+			FieldCameraController controller = new();
+			FieldCameraController.Current = controller;
+			FieldCameraMode mode0 = new() { Eye = new Vector3(2, 4, 6), Target = new Vector3(8, 10, 12) };
+			FieldCameraMode mode2 = new() { Eye = default, Target = new Vector3(0, 0, 1) };
+			FieldCameraController.Modes[0] = mode0;
+			FieldCameraController.Modes[2] = mode2;
+			PlayerCharacter? player = hasPlayer ? PlayerCharacter.Create(playerIndex, default, 0, PlayerAnimationSet.Empty) : null;
+
+			FieldCameraController.BindTargetEntity(player);
+
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+			Assert.Equal(expectedMode0ClientId, mode0.TargetClientId);
+			Assert.Equal(expectedMode2ClientId, mode2.TargetClientId);
+			Assert.Equal(expectedControllerAttached, ReferenceEquals(controller.TargetEntity, player) && player is not null);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotEyesOffset), controller.SlotEyes[0]);
+			GoldenVectors.AssertVector(ReadVector(cameraOutput, SlotTargetsOffset), controller.SlotTargets[0]);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(LockTargetVectors))]
+	public void LockModeToTargetMatchesTheMachineCode(bool hasPlayer, int playerIndex, uint flagsAfter, ushort expectedClientId, bool expectedControllerAttached)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.ActiveModeIndex = 2;
+			FieldCameraController controller = new();
+			FieldCameraController.Current = controller;
+			TrackingCameraMode mode = new();
+			FieldCameraController.Modes[2] = mode;
+			PlayerCharacter? player = hasPlayer ? PlayerCharacter.Create(playerIndex, default, 0, PlayerAnimationSet.Empty) : null;
+
+			FieldCameraController.LockModeToTarget(player, 42);
+
+			Assert.Equal(flagsAfter, FieldCameraController.Flags);
+			Assert.Equal(expectedClientId, mode.TargetClientId);
+			Assert.Equal(expectedControllerAttached, ReferenceEquals(controller.TargetEntity, player) && player is not null);
+			Assert.Equal(1, mode.LockedCount);
+			Assert.Equal(42, mode.LastLockedParameter);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ShakePresetVectors))]
+	public void TriggerPresetShakeMatchesTheMachineCode(int preset, uint expectedCountdown, float expectedAmplitude)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController controller = new();
+			FieldCameraController.Current = controller;
+			FieldCameraController.TriggerPresetShake(preset);
+			Assert.Equal(expectedCountdown, controller.OffsetCountdown);
+			GoldenVectors.AssertFloat(expectedAmplitude, controller.OffsetAmplitude);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Theory]
+	[MemberData(nameof(ShakeCustomVectors))]
+	public void TriggerCustomShakeMatchesTheMachineCode(float amplitude, uint duration, uint expectedCountdown, float expectedAmplitude)
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController controller = new();
+			FieldCameraController.Current = controller;
+			FieldCameraController.TriggerCustomShake(amplitude, duration);
+			Assert.Equal(expectedCountdown, controller.OffsetCountdown);
+			GoldenVectors.AssertFloat(expectedAmplitude, controller.OffsetAmplitude);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Fact]
+	public void UpdateRunsFullModeCollisionViewAndAxisPipeline()
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.ActiveModeIndex = 0;
+			FieldCameraController.Flags = 0x2;
+			TrackingCameraMode mode = new()
+			{
+				Flags = 0x5,
+				Eye = new Vector3(0, 10, 20),
+				Target = new Vector3(0, 1, 0),
+				EyeSmoothing = 1.0f,
+				TargetSmoothing = 1.0f,
+				FieldOfView = 0x4000,
+			};
+			FieldCameraController.Modes[9] = mode;
+
+			FieldCameraController controller = new()
+			{
+				YawAngle = 0x4000,
+				PitchAngle = 0,
+				Offset = new Vector3(0, 0, 0),
+			};
+			FieldCameraController.Current = controller;
+
+			TransformationStack stack = new();
+			stack.Translate(new Vector3(1, 2, 3));
+			FixedGroundCollision missGround = new(null);
+
+			controller.Update(missGround, stack);
+
+			Assert.True(controller.IsActiveFrame);
+			Assert.Equal(1, mode.UpdateCount);
+			Assert.Equal(1, mode.OverrideCount);
+			Assert.False(mode.LastOverrideRestoring);
+			Assert.Equal(1, mode.PostUpdateCount);
+			Assert.Equal(0x4000, controller.FieldOfView);
+			Assert.Equal(0x4000, controller.AppliedYawAngle);
+			GoldenVectors.AssertVector(controller.Eye, FieldCameraController.GlobalEye);
+			Assert.Equal(1.0f, FieldCameraController.GlobalForward.Length(), 5);
+			Assert.Equal(0, stack.Depth);
+			Matrix4x4 product = Matrix4x4.Multiply(stack.Current, FieldCameraController.GlobalInverseViewMatrix);
+			Assert.Equal(1.0f, product.M11, 5);
+			Assert.Equal(1.0f, product.M44, 5);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
+	[Fact]
+	public void RenderRefreshAppliesViewWhenNotUpdatedInCurrentFrame()
+	{
+		FieldCameraController.ResetGlobals();
+		try
+		{
+			FieldCameraController.RenderRefreshDisabled = 0;
+			FieldCameraController.GlobalEye = new Vector3(0, 5, 10);
+			FieldCameraController.GlobalForward = new Vector3(0, 0, -1);
+			FieldCameraController.GlobalUpAxis = new Vector3(0, 1, 0);
+			FieldCameraController controller = new() { IsActiveFrame = false };
+			TransformationStack stack = new();
+
+			controller.RenderRefresh(stack);
+
+			Assert.False(controller.IsActiveFrame);
+			Matrix4x4 expected = CameraView.CreateLookAt(new Vector3(0, 5, 10), new Vector3(0, 5, 9), new Vector3(0, 1, 0));
+			GoldenVectors.AssertMatrix(expected, stack.Current);
+		}
+		finally
+		{
+			FieldCameraController.ResetGlobals();
+		}
+	}
+
 	private sealed class TrackingCameraMode : FieldCameraMode
 	{
 		public int ActivatedCount { get; private set; }
 
+		public int UpdateCount { get; private set; }
+
+		public int OverrideCount { get; private set; }
+
+		public bool LastOverrideRestoring { get; private set; }
+
+		public int PostUpdateCount { get; private set; }
+
+		public int LockedCount { get; private set; }
+
+		public int LastLockedParameter { get; private set; }
+
 		public override void OnActivated() => ActivatedCount++;
+
+		public override void OnUpdate() => UpdateCount++;
+
+		public override void OnOverride(bool restoring)
+		{
+			OverrideCount++;
+			LastOverrideRestoring = restoring;
+		}
+
+		public override void OnPostUpdate() => PostUpdateCount++;
+
+		public override void OnTargetLocked(PlayerCharacter? entity, int parameter)
+		{
+			LockedCount++;
+			LastLockedParameter = parameter;
+		}
 	}
 
 	private sealed class FixedGroundCollision(GroundContact? contact) : IGroundCollision
