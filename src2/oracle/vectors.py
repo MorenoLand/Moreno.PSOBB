@@ -1584,6 +1584,11 @@ def main():
     camera_viewport_apply_vectors(read)
     camera_viewport_reset_vectors(read)
     camera_point_view_margin_vectors(read)
+    triangle_area_2d_vectors(read)
+    quads_overlap_2d_vectors(read)
+    quads_overlap_mask_3d_vectors(read)
+    quads_intersect_3d_vectors(read)
+    hexahedra_intersect_vectors(read)
     ftol_vectors(read)
     allmul_vectors(read)
     allshr_vectors(read)
@@ -4714,6 +4719,184 @@ def camera_point_view_margin_vectors(read):
             "visible": result != 0,
         })
     write("004D45E0.json", vectors)
+
+
+def triangle_area_2d_vectors(read):
+    """0x0084C118: computes half base-times-height area of a 2D triangle defined by an edge and vertex."""
+    P0 = 0x50002000
+    P1 = 0x50002010
+    P2 = 0x50002020
+    cases = [
+        ((0.0, 0.0), (10.0, 0.0), (5.0, 6.0)),
+        ((0.0, 0.0), (0.0, 10.0), (4.0, 5.0)),
+        ((1.0, 2.0), (1.02, -5.0), (7.5, 3.0)),
+        ((-3.5, 4.25), (8.5, -1.75), (2.0, 9.0)),
+        ((0.0, 0.0), (4.0, 4.0), (2.0, 2.0)),
+    ]
+    vectors = []
+    for a, b, c in cases:
+        value, _, _, _ = run_extended(
+            read,
+            0x0084C118,
+            0,
+            [P2],
+            registers={"ecx": P0, "edx": P1, "fpcw": 0x027F},
+            memory=[
+                (P0, struct.pack("<2f", *a)),
+                (P1, struct.pack("<2f", *b)),
+                (P2, struct.pack("<2f", *c)),
+            ],
+        )
+        vectors.append({
+            "a": [float_bits(v) for v in a],
+            "b": [float_bits(v) for v in b],
+            "c": [float_bits(v) for v in c],
+            "area": float_bits(value),
+        })
+    write("0084C118.json", vectors)
+
+
+def quads_overlap_2d_vectors(read):
+    """0x0084BCD0: tests 2D vertex-in-quad containment between two four-vertex quads."""
+    QA = 0x50002000
+    QB = 0x50002040
+    big = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    small_in = [(2.0, 2.0), (4.0, 2.0), (4.0, 4.0), (2.0, 4.0)]
+    small_partial = [(8.0, 5.0), (14.0, 5.0), (14.0, 8.0), (8.0, 8.0)]
+    small_out = [(12.0, 12.0), (15.0, 12.0), (15.0, 15.0), (12.0, 15.0)]
+    rot = [(3.0, 1.0), (7.0, 4.0), (4.0, 8.0), (0.0, 5.0)]
+    vectors = []
+    for qa, qb in [(big, small_in), (small_in, big), (big, small_partial), (big, small_out), (big, rot), (rot, small_in)]:
+        fa = [c for p in qa for c in p]
+        fb = [c for p in qb for c in p]
+        result, _, _ = run(
+            read,
+            0x0084BCD0,
+            0,
+            [],
+            registers={"ecx": QA, "edx": QB, "fpcw": 0x027F},
+            memory=[
+                (QA, struct.pack("<8f", *fa)),
+                (QB, struct.pack("<8f", *fb)),
+            ],
+        )
+        vectors.append({
+            "quadA": [[float_bits(c) for c in p] for p in qa],
+            "quadB": [[float_bits(c) for c in p] for p in qb],
+            "overlaps": result != 0,
+        })
+    write("0084BCD0.json", vectors)
+
+
+def quads_overlap_mask_3d_vectors(read):
+    """0x0084C1F4: computes the three-plane (XY, XZ, YZ) containment bitmask between two 3D quads."""
+    QA = 0x50002000
+    QB = 0x50002040
+    q_base = [(0.0, 0.0, 0.0), (10.0, 0.0, 0.0), (10.0, 10.0, 0.0), (0.0, 10.0, 10.0)]
+    q_all = [(2.0, 2.0, 2.0), (4.0, 2.0, 2.0), (4.0, 4.0, 4.0), (2.0, 4.0, 4.0)]
+    q_xy_only = [(2.0, 2.0, 20.0), (4.0, 2.0, 20.0), (4.0, 4.0, 25.0), (2.0, 4.0, 25.0)]
+    q_none = [(20.0, 20.0, 20.0), (22.0, 20.0, 20.0), (22.0, 22.0, 22.0), (20.0, 22.0, 22.0)]
+    q_skew = [(-5.0, 1.0, 1.0), (5.0, 1.0, 3.0), (5.0, 8.0, 7.0), (-5.0, 8.0, 5.0)]
+    vectors = []
+    for qa, qb in [(q_base, q_all), (q_base, q_xy_only), (q_base, q_none), (q_skew, q_all)]:
+        fa = [c for p in qa for c in p]
+        fb = [c for p in qb for c in p]
+        result, _, _ = run(
+            read,
+            0x0084C1F4,
+            0,
+            [],
+            registers={"ecx": QA, "edx": QB, "fpcw": 0x027F},
+            memory=[
+                (QA, struct.pack("<12f", *fa)),
+                (QB, struct.pack("<12f", *fb)),
+            ],
+        )
+        vectors.append({
+            "quadA": [[float_bits(c) for c in p] for p in qa],
+            "quadB": [[float_bits(c) for c in p] for p in qb],
+            "mask": result,
+        })
+    write("0084C1F4.json", vectors)
+
+
+def quads_intersect_3d_vectors(read):
+    """0x0084AFF4: tests whether two 3D quads overlap across edge-segment and containment checks."""
+    QA = 0x50002000
+    QB = 0x50002040
+    q_xy = [(0.0, 0.0, 0.0), (10.0, 0.0, 0.0), (10.0, 10.0, 0.0), (0.0, 10.0, 0.0)]
+    q_cross = [(2.0, 5.0, -5.0), (8.0, 5.0, -5.0), (8.0, 5.0, 5.0), (2.0, 5.0, 5.0)]
+    q_skew_hit = [(-2.0, 3.0, -2.0), (12.0, 7.0, 2.0), (12.0, 9.0, 4.0), (-2.0, 5.0, 0.0)]
+    q_parallel_miss = [(20.0, 0.0, 0.0), (30.0, 0.0, 0.0), (30.0, 10.0, 0.0), (20.0, 10.0, 0.0)]
+    q_inside = [(2.0, 2.0, -1.0), (8.0, 2.0, 1.0), (8.0, 8.0, 1.0), (2.0, 8.0, -1.0)]
+    q_z_miss = [(2.0, 2.0, 15.0), (8.0, 2.0, 15.0), (8.0, 8.0, 25.0), (2.0, 8.0, 25.0)]
+    vectors = []
+    for qa, qb in [(q_xy, q_cross), (q_xy, q_skew_hit), (q_xy, q_parallel_miss), (q_xy, q_inside), (q_xy, q_z_miss), (q_skew_hit, q_inside)]:
+        fa = [c for p in qa for c in p]
+        fb = [c for p in qb for c in p]
+        result, _, _ = run(
+            read,
+            0x0084AFF4,
+            0,
+            [],
+            registers={"ecx": QA, "edx": QB, "fpcw": 0x027F},
+            memory=[
+                (QA, struct.pack("<12f", *fa)),
+                (QB, struct.pack("<12f", *fb)),
+            ],
+        )
+        vectors.append({
+            "quadA": [[float_bits(c) for c in p] for p in qa],
+            "quadB": [[float_bits(c) for c in p] for p in qb],
+            "intersects": result != 0,
+        })
+    write("0084AFF4.json", vectors)
+
+
+def hexahedra_intersect_vectors(read):
+    """0x00844540: tests whether two eight-corner hexahedra intersect or contain one another."""
+    HA = 0x50002000
+    HB = 0x50002100
+
+    def make_box(x0, x1, y0, y1, z0, z1):
+        return [
+            (x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+            (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1),
+        ]
+
+    box_a = make_box(0.0, 10.0, 0.0, 10.0, 0.0, 10.0)
+    box_far = make_box(20.0, 30.0, 0.0, 10.0, 0.0, 10.0)
+    box_partial = make_box(5.0, 15.0, 5.0, 15.0, 5.0, 15.0)
+    box_inside = make_box(2.0, 8.0, 2.0, 8.0, 2.0, 8.0)
+    skew_sep = [
+        (8.0, 8.0, 8.0), (14.0, 8.0, 8.0), (14.0, 14.0, 8.0), (8.0, 14.0, 8.0),
+        (11.0, 11.0, 14.0), (17.0, 11.0, 14.0), (17.0, 17.0, 14.0), (11.0, 17.0, 14.0),
+    ]
+    skew_miss = [
+        (12.0, -2.0, 0.0), (22.0, 8.0, 0.0), (20.0, 10.0, 0.0), (10.0, 0.0, 0.0),
+        (12.0, -2.0, 10.0), (22.0, 8.0, 10.0), (20.0, 10.0, 10.0), (10.0, 0.0, 10.0),
+    ]
+    vectors = []
+    for ha, hb in [(box_a, box_far), (box_a, box_partial), (box_a, box_inside), (box_inside, box_a), (box_a, skew_sep), (box_a, skew_miss), (box_a, box_a)]:
+        fa = [c for p in ha for c in p]
+        fb = [c for p in hb for c in p]
+        result, _, _ = run(
+            read,
+            0x00844540,
+            0,
+            [HA, HB],
+            registers={"fpcw": 0x027F},
+            memory=[
+                (HA, struct.pack("<24f", *fa)),
+                (HB, struct.pack("<24f", *fb)),
+            ],
+        )
+        vectors.append({
+            "hexA": [[float_bits(c) for c in p] for p in ha],
+            "hexB": [[float_bits(c) for c in p] for p in hb],
+            "intersects": result != 0,
+        })
+    write("00844540.json", vectors)
 
 
 def camera_apply_inverse_view_vectors(read):

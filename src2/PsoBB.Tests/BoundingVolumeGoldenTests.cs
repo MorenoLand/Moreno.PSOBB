@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PsoBB.Mathematics;
 using Xunit;
 
@@ -41,6 +42,47 @@ public class BoundingVolumeGoldenTests
 			vector.GetProperty("intersects").GetBoolean(),
 		});
 
+	public static IEnumerable<object[]> TriangleArea2DVectors() => GoldenVectors.Load("0084C118.json")
+		.Select(vector => new object[]
+		{
+			ReadPoint2D(vector.GetProperty("a")),
+			ReadPoint2D(vector.GetProperty("b")),
+			ReadPoint2D(vector.GetProperty("c")),
+			GoldenVectors.ReadFloat(vector.GetProperty("area")),
+		});
+
+	public static IEnumerable<object[]> QuadsOverlap2DVectors() => GoldenVectors.Load("0084BCD0.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("quadA").EnumerateArray().Select(ReadPoint2D).ToArray(),
+			vector.GetProperty("quadB").EnumerateArray().Select(ReadPoint2D).ToArray(),
+			vector.GetProperty("overlaps").GetBoolean(),
+		});
+
+	public static IEnumerable<object[]> QuadsOverlapMask3DVectors() => GoldenVectors.Load("0084C1F4.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("quadA").EnumerateArray().Select(corner => GoldenVectors.ReadVector(corner)).ToArray(),
+			vector.GetProperty("quadB").EnumerateArray().Select(corner => GoldenVectors.ReadVector(corner)).ToArray(),
+			vector.GetProperty("mask").GetInt32(),
+		});
+
+	public static IEnumerable<object[]> QuadsIntersect3DVectors() => GoldenVectors.Load("0084AFF4.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("quadA").EnumerateArray().Select(corner => GoldenVectors.ReadVector(corner)).ToArray(),
+			vector.GetProperty("quadB").EnumerateArray().Select(corner => GoldenVectors.ReadVector(corner)).ToArray(),
+			vector.GetProperty("intersects").GetBoolean(),
+		});
+
+	public static IEnumerable<object[]> HexahedraIntersectVectors() => GoldenVectors.Load("00844540.json")
+		.Select(vector => new object[]
+		{
+			vector.GetProperty("hexA").EnumerateArray().Select(corner => GoldenVectors.ReadVector(corner)).ToArray(),
+			vector.GetProperty("hexB").EnumerateArray().Select(corner => GoldenVectors.ReadVector(corner)).ToArray(),
+			vector.GetProperty("intersects").GetBoolean(),
+		});
+
 	[Theory]
 	[MemberData(nameof(HexahedronBoundsVectors))]
 	public void ComputeHexahedronBoundsMatchesTheMachineCode(Vector3[] corners, Vector3 expectedMin, Vector3 expectedMax)
@@ -72,4 +114,46 @@ public class BoundingVolumeGoldenTests
 	{
 		Assert.Equal(expected, BoundingVolume.HexahedronIntersectsSphere(corners, center, radius));
 	}
+
+	[Theory]
+	[MemberData(nameof(TriangleArea2DVectors))]
+	public void ComputeTriangleArea2DMatchesTheMachineCode(
+		(float X, float Y) a,
+		(float X, float Y) b,
+		(float X, float Y) c,
+		float expectedArea)
+	{
+		GoldenVectors.AssertFloat(expectedArea, BoundingVolume.ComputeTriangleArea2D(a.X, a.Y, b.X, b.Y, c.X, c.Y));
+	}
+
+	[Theory]
+	[MemberData(nameof(QuadsOverlap2DVectors))]
+	public void QuadsOverlap2DMatchesTheMachineCode((float X, float Y)[] quadA, (float X, float Y)[] quadB, bool expected)
+	{
+		Assert.Equal(expected, BoundingVolume.QuadsOverlap2D(quadA, quadB));
+	}
+
+	[Theory]
+	[MemberData(nameof(QuadsOverlapMask3DVectors))]
+	public void QuadsOverlapMask3DMatchesTheMachineCode(Vector3[] quadA, Vector3[] quadB, int expectedMask)
+	{
+		Assert.Equal(expectedMask, BoundingVolume.QuadsOverlapMask3D(quadA, quadB));
+	}
+
+	[Theory]
+	[MemberData(nameof(QuadsIntersect3DVectors))]
+	public void QuadsIntersect3DMatchesTheMachineCode(Vector3[] quadA, Vector3[] quadB, bool expected)
+	{
+		Assert.Equal(expected, BoundingVolume.QuadsIntersect3D(quadA, quadB));
+	}
+
+	[Theory]
+	[MemberData(nameof(HexahedraIntersectVectors))]
+	public void HexahedraIntersectMatchesTheMachineCode(Vector3[] hexA, Vector3[] hexB, bool expected)
+	{
+		Assert.Equal(expected, BoundingVolume.HexahedraIntersect(hexA, hexB));
+	}
+
+	private static (float X, float Y) ReadPoint2D(JsonElement value) =>
+		(GoldenVectors.ReadFloat(value[0]), GoldenVectors.ReadFloat(value[1]));
 }

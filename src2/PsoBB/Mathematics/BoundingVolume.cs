@@ -203,11 +203,339 @@ public static class BoundingVolume
 		return insideAllFaces;
 	}
 
+	private static readonly int[,] HexahedronBoxFaces =
+	{
+		{ 0, 1, 2, 3 },
+		{ 4, 5, 6, 7 },
+		{ 0, 3, 7, 4 },
+		{ 2, 1, 5, 6 },
+		{ 0, 4, 5, 1 },
+		{ 3, 2, 6, 7 },
+	};
+
 	private static bool OverlapsAxis(float minA, float maxA, float minB, float maxB)
 	{
 		double minUnion = minB <= minA ? minB : minA;
 		double maxUnion = maxB >= maxA ? maxB : maxA;
 		double widthSum = (double)maxA - minA - minB + maxB;
 		return widthSum > maxUnion - minUnion;
+	}
+
+	/// <summary>
+	/// Computes the area of a 2D triangle defined by base segment (<paramref name="ax"/>, <paramref name="ay"/>) to
+	/// (<paramref name="bx"/>, <paramref name="by"/>) and third vertex (<paramref name="cx"/>, <paramref name="cy"/>).
+	/// </summary>
+	[Original(0x0084C118)]
+	public static float ComputeTriangleArea2D(float ax, float ay, float bx, float by, float cx, float cy) =>
+		(float)ComputeTriangleArea2DDouble(ax, ay, bx, by, cx, cy);
+
+	/// <summary>
+	/// Tests whether any vertex of the smaller-area 2D quad lies inside the larger-area 2D quad.
+	/// </summary>
+	/// <param name="quadA">The four vertices of the first 2D quad.</param>
+	/// <param name="quadB">The four vertices of the second 2D quad.</param>
+	/// <returns><see langword="true"/> if vertex-in-quad containment holds; otherwise <see langword="false"/>.</returns>
+	[Original(0x0084BCD0)]
+	public static bool QuadsOverlap2D(ReadOnlySpan<(float X, float Y)> quadA, ReadOnlySpan<(float X, float Y)> quadB)
+	{
+		if (quadA.Length < 4 || quadB.Length < 4)
+			throw new ArgumentException("Each quad must have four vertices.");
+
+		float areaA0 = (float)ComputeTriangleArea2DDouble(quadA[0].X, quadA[0].Y, quadA[1].X, quadA[1].Y, quadA[2].X, quadA[2].Y);
+		float areaA = (float)(ComputeTriangleArea2DDouble(quadA[0].X, quadA[0].Y, quadA[2].X, quadA[2].Y, quadA[3].X, quadA[3].Y) + areaA0);
+		float areaB0 = (float)ComputeTriangleArea2DDouble(quadB[0].X, quadB[0].Y, quadB[1].X, quadB[1].Y, quadB[2].X, quadB[2].Y);
+		float areaB = (float)(ComputeTriangleArea2DDouble(quadB[0].X, quadB[0].Y, quadB[2].X, quadB[2].Y, quadB[3].X, quadB[3].Y) + areaB0);
+
+		ReadOnlySpan<(float X, float Y)> small;
+		ReadOnlySpan<(float X, float Y)> large;
+		float largeArea;
+		if (areaA >= areaB)
+		{
+			largeArea = areaA;
+			small = quadB;
+			large = quadA;
+		}
+		else
+		{
+			largeArea = areaB;
+			small = quadA;
+			large = quadB;
+		}
+
+		const float AreaToleranceScale = 1.024999976158142f;
+		double threshold = largeArea * (double)AreaToleranceScale;
+		for (int i = 0; i < 4; i++)
+		{
+			float vx = small[i].X;
+			float vy = small[i].Y;
+			float a0 = (float)ComputeTriangleArea2DDouble(large[0].X, large[0].Y, large[1].X, large[1].Y, vx, vy);
+			float a1 = (float)ComputeTriangleArea2DDouble(large[1].X, large[1].Y, large[2].X, large[2].Y, vx, vy);
+			float a2 = (float)ComputeTriangleArea2DDouble(large[2].X, large[2].Y, large[3].X, large[3].Y, vx, vy);
+			double a3 = ComputeTriangleArea2DDouble(large[3].X, large[3].Y, large[0].X, large[0].Y, vx, vy);
+			if (threshold > a3 + a0 + a1 + a2)
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Computes the orthographic quad containment bitmask across XY (bit 2), XZ (bit 1), and YZ (bit 0).
+	/// </summary>
+	/// <param name="quadA">The four 3D vertices of the first quad.</param>
+	/// <param name="quadB">The four 3D vertices of the second quad.</param>
+	/// <returns>A bitmask combining <c>4</c> (XY), <c>2</c> (XZ), and <c>1</c> (YZ) when contained.</returns>
+	[Original(0x0084C1F4)]
+	public static int QuadsOverlapMask3D(ReadOnlySpan<Vector3> quadA, ReadOnlySpan<Vector3> quadB)
+	{
+		if (quadA.Length < 4 || quadB.Length < 4)
+			throw new ArgumentException("Each quad must have four vertices.");
+
+		Span<(float X, float Y)> projA = stackalloc (float X, float Y)[4];
+		Span<(float X, float Y)> projB = stackalloc (float X, float Y)[4];
+		int mask = 0;
+
+		ProjectQuad(quadA, projA, 0, 1);
+		ProjectQuad(quadB, projB, 0, 1);
+		if (QuadsOverlap2D(projA, projB))
+			mask = 4;
+
+		ProjectQuad(quadA, projA, 0, 2);
+		ProjectQuad(quadB, projB, 0, 2);
+		if (QuadsOverlap2D(projA, projB))
+			mask |= 2;
+
+		ProjectQuad(quadA, projA, 1, 2);
+		ProjectQuad(quadB, projB, 1, 2);
+		if (QuadsOverlap2D(projA, projB))
+			mask |= 1;
+
+		return mask;
+	}
+
+	/// <summary>
+	/// Tests whether two 3D quads intersect across orthographic edge-segment and containment projections.
+	/// </summary>
+	/// <param name="quadA">The four 3D vertices of the first quad.</param>
+	/// <param name="quadB">The four 3D vertices of the second quad.</param>
+	/// <returns><see langword="true"/> if the quads overlap in XY, XZ, and YZ projections; otherwise <see langword="false"/>.</returns>
+	[Original(0x0084AFF4)]
+	public static bool QuadsIntersect3D(ReadOnlySpan<Vector3> quadA, ReadOnlySpan<Vector3> quadB)
+	{
+		if (quadA.Length < 4 || quadB.Length < 4)
+			throw new ArgumentException("Each quad must have four vertices.");
+
+		bool edgeXY = QuadEdgesIntersect2D(quadA, quadB, 0, 1);
+		bool edgeXZ = QuadEdgesIntersect2D(quadA, quadB, 0, 2);
+		bool edgeYZ = QuadEdgesIntersect2D(quadA, quadB, 1, 2);
+
+		Span<(float X, float Y)> projA = stackalloc (float X, float Y)[4];
+		Span<(float X, float Y)> projB = stackalloc (float X, float Y)[4];
+
+		ProjectQuad(quadA, projA, 0, 1);
+		ProjectQuad(quadB, projB, 0, 1);
+		bool containXY = QuadsOverlap2D(projA, projB);
+
+		ProjectQuad(quadA, projA, 0, 2);
+		ProjectQuad(quadB, projB, 0, 2);
+		bool containXZ = QuadsOverlap2D(projA, projB);
+
+		ProjectQuad(quadA, projA, 1, 2);
+		ProjectQuad(quadB, projB, 1, 2);
+		bool containYZ = QuadsOverlap2D(projA, projB);
+
+		return (containXY || edgeXY) && (containXZ || edgeXZ) && (containYZ || edgeYZ);
+	}
+
+	/// <summary>
+	/// Tests whether two eight-corner hexahedra intersect or enclose one another.
+	/// </summary>
+	/// <param name="cornersA">The eight corners of the first hexahedron.</param>
+	/// <param name="cornersB">The eight corners of the second hexahedron.</param>
+	/// <returns><see langword="true"/> if the hexahedra intersect or overlap in all three planes; otherwise <see langword="false"/>.</returns>
+	[Original(0x00844540)]
+	public static bool HexahedraIntersect(ReadOnlySpan<Vector3> cornersA, ReadOnlySpan<Vector3> cornersB)
+	{
+		ComputeHexahedronBounds(cornersA, out Vector3 minA, out Vector3 maxA);
+		ComputeHexahedronBounds(cornersB, out Vector3 minB, out Vector3 maxB);
+		if (!BoundsIntersect(minA, maxA, minB, maxB))
+			return false;
+
+		Span<Vector3> quadA = stackalloc Vector3[4];
+		Span<Vector3> quadB = stackalloc Vector3[4];
+		int overlapMask = 0;
+
+		for (int faceA = 0; faceA < 6; faceA++)
+		{
+			FillQuad(cornersA, HexahedronBoxFaces, faceA, quadA);
+			for (int faceB = 0; faceB < 6; faceB++)
+			{
+				FillQuad(cornersB, HexahedronBoxFaces, faceB, quadB);
+				if (QuadsIntersect3D(quadA, quadB))
+					return true;
+
+				overlapMask |= QuadsOverlapMask3D(quadA, quadB);
+				if (overlapMask == 7)
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static double ComputeTriangleArea2DDouble(float ax, float ay, float bx, float by, float cx, float cy)
+	{
+		float ny;
+		float nx;
+		double d;
+		if (FloatingPointMath.Absolute(ax - bx) < AlignmentTolerance)
+		{
+			ny = 1.0f;
+			nx = 0.0f;
+			d = -(double)ax;
+		}
+		else
+		{
+			double ayD = ay;
+			double dy = (double)by - ayD;
+			ny = (float)dy;
+			double dx = (double)bx - ax;
+			nx = (float)-dx;
+			d = dy * -(double)ax + -dx * -ayD;
+		}
+
+		float signedDistance = (float)(d + (double)ny * cx + (double)nx * cy);
+		float absDistance = FloatingPointMath.Absolute(signedDistance);
+		float normalLenSq = (float)((double)ny * ny + (double)nx * nx);
+		double normalLen = SignedSquareRootDouble(normalLenSq);
+		double edgeDx = (double)ax - bx;
+		double edgeDxSq = edgeDx * edgeDx;
+		double edgeDy = (double)ay - by;
+		float height = (float)(absDistance / normalLen);
+		float edgeLenSq = (float)(edgeDy * edgeDy + edgeDxSq);
+		return SignedSquareRootDouble(edgeLenSq) * height * 0.5f;
+	}
+
+	private static bool QuadEdgesIntersect2D(ReadOnlySpan<Vector3> quadA, ReadOnlySpan<Vector3> quadB, int axisU, int axisV)
+	{
+		const float NegTolerance = -0.02500000037252903f;
+		float aPrevU = GetComponent(quadA[3], axisU);
+		float aPrevV = GetComponent(quadA[3], axisV);
+
+		for (int i = 0; i < 4; i++)
+		{
+			float aCurrU = GetComponent(quadA[i], axisU);
+			float aCurrV = GetComponent(quadA[i], axisV);
+			bool aVertical;
+			float slopeA = 0.0f;
+			float interceptA = 0.0f;
+			float verticalUA = 0.0f;
+
+			if (AlignmentTolerance + (double)aCurrU < aPrevU || (double)aCurrU - AlignmentTolerance > aPrevU)
+			{
+				double m = ((double)aCurrV - aPrevV) / ((double)aCurrU - aPrevU);
+				slopeA = (float)m;
+				interceptA = (float)(m * -(double)aPrevU + aPrevV);
+				aVertical = false;
+			}
+			else
+			{
+				verticalUA = aPrevU;
+				aVertical = true;
+			}
+
+			float bPrevU = GetComponent(quadB[3], axisU);
+			float bPrevV = GetComponent(quadB[3], axisV);
+			float diffAV = aPrevV - aCurrV;
+
+			for (int j = 0; j < 4; j++)
+			{
+				float bCurrU = GetComponent(quadB[j], axisU);
+				float bCurrV = GetComponent(quadB[j], axisV);
+
+				double hitU;
+				double hitV;
+				bool hasHit = true;
+
+				if (AlignmentTolerance + (double)bCurrU < bPrevU || (double)bCurrU - AlignmentTolerance > bPrevU)
+				{
+					double mB = ((double)bCurrV - bPrevV) / ((double)bCurrU - bPrevU);
+					double cB = (double)bPrevV + -(double)bPrevU * mB;
+					if (aVertical)
+					{
+						hitU = verticalUA;
+						hitV = mB * verticalUA + cB;
+					}
+					else if (slopeA < mB - AlignmentTolerance || slopeA > mB + AlignmentTolerance)
+					{
+						double x = (cB - interceptA) / ((double)slopeA - mB);
+						hitU = x;
+						hitV = (double)slopeA * x + interceptA;
+					}
+					else
+					{
+						hasHit = false;
+						hitU = 0.0;
+						hitV = 0.0;
+					}
+				}
+				else if (!aVertical)
+				{
+					hitU = bPrevU;
+					hitV = (double)slopeA * bPrevU + interceptA;
+				}
+				else
+				{
+					hasHit = false;
+					hitU = 0.0;
+					hitV = 0.0;
+				}
+
+				if (hasHit)
+				{
+					float dA0 = (float)SignedSquareRootDouble((float)(((double)aPrevV - hitV) * ((double)aPrevV - hitV) + ((double)aPrevU - hitU) * ((double)aPrevU - hitU)));
+					float dA1 = (float)SignedSquareRootDouble((float)(((double)aCurrV - hitV) * ((double)aCurrV - hitV) + ((double)aCurrU - hitU) * ((double)aCurrU - hitU)));
+					float diffAU = aPrevU - aCurrU;
+					bool onSegA = (double)dA0 + NegTolerance + dA1 <= SignedSquareRootDouble((float)((double)diffAU * diffAU + (double)diffAV * diffAV)) + AlignmentTolerance;
+
+					float dB0 = (float)SignedSquareRootDouble((float)(((double)bPrevV - hitV) * ((double)bPrevV - hitV) + ((double)bPrevU - hitU) * ((double)bPrevU - hitU)));
+					float dB1 = (float)SignedSquareRootDouble((float)(((double)bCurrV - hitV) * ((double)bCurrV - hitV) + ((double)bCurrU - hitU) * ((double)bCurrU - hitU)));
+					bool onSegB = (double)dB0 + NegTolerance + dB1 <= SignedSquareRootDouble((float)(((double)bPrevV - bCurrV) * ((double)bPrevV - bCurrV) + ((double)bPrevU - bCurrU) * ((double)bPrevU - bCurrU))) + AlignmentTolerance;
+
+					if (onSegA && onSegB)
+						return true;
+				}
+
+				bPrevU = bCurrU;
+				bPrevV = bCurrV;
+			}
+
+			aPrevU = aCurrU;
+			aPrevV = aCurrV;
+		}
+
+		return false;
+	}
+
+	private static double SignedSquareRootDouble(float value) =>
+		value >= 0.0f ? Math.Sqrt(value) : -Math.Sqrt(-value);
+
+	private static float GetComponent(Vector3 vector, int axis) => axis switch
+	{
+		0 => vector.X,
+		1 => vector.Y,
+		_ => vector.Z,
+	};
+
+	private static void ProjectQuad(ReadOnlySpan<Vector3> quad3D, Span<(float X, float Y)> quad2D, int axisU, int axisV)
+	{
+		for (int i = 0; i < 4; i++)
+			quad2D[i] = (GetComponent(quad3D[i], axisU), GetComponent(quad3D[i], axisV));
+	}
+
+	private static void FillQuad(ReadOnlySpan<Vector3> corners, int[,] faces, int face, Span<Vector3> destination)
+	{
+		for (int i = 0; i < 4; i++)
+			destination[i] = corners[faces[face, i]];
 	}
 }
