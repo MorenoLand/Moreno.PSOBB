@@ -28,6 +28,26 @@ public class FieldCameraMode
 	public ushort TargetClientId { get; set; } = ushort.MaxValue;
 
 	/// <summary>
+	/// Gets or sets the mode step state index.
+	/// </summary>
+	public int StepState { get; set; }
+
+	/// <summary>
+	/// Gets or sets the per-mode frame counter.
+	/// </summary>
+	public int Timer { get; set; }
+
+	/// <summary>
+	/// Gets or sets the mode-local pitch angle in 16-bit turn units.
+	/// </summary>
+	public int PitchAngle { get; set; }
+
+	/// <summary>
+	/// Gets or sets the mode-local yaw angle in 16-bit turn units.
+	/// </summary>
+	public int YawAngle { get; set; }
+
+	/// <summary>
 	/// Gets or sets the mode behavior flags controlling smoothing, collision and target vertical locking.
 	/// </summary>
 	public uint Flags { get; set; }
@@ -100,10 +120,36 @@ public class FieldCameraMode
 	}
 
 	/// <summary>
-	/// Performs per-frame post-processing after projection parameters are updated.
+	/// Performs per-frame post-processing after projection parameters are updated, updating controller angles and applying the look-at view transform.
 	/// </summary>
+	[Original(0x004D2158)]
 	public virtual void OnPostUpdate()
 	{
+		if (FieldCameraController.Current is not FieldCameraController controller)
+			return;
+		Vector3 direction = new(
+			(float)((double)controller.Target.X - controller.Eye.X),
+			(float)((double)controller.Target.Y - controller.Eye.Y),
+			(float)((double)controller.Target.Z - controller.Eye.Z));
+		if (direction.Length() == 0.0f)
+		{
+			Vector3.Normalize(ref direction);
+			controller.Target = controller.Eye with { Z = (float)((double)controller.Eye.Z + 1.0) };
+		}
+		else if (direction.X == 0.0f && direction.Z == 0.0f)
+		{
+			controller.Target = controller.Target with { Z = (float)((double)controller.Target.Z + 0.01f) };
+			direction = direction with { Z = 1.0f };
+		}
+		FieldCameraController.ComputeAnglesFromDirection(direction, out int pitch, out int yaw);
+		controller.PitchAngle = pitch;
+		controller.YawAngle = yaw;
+		Vector3 lookAtTarget = new(
+			(float)((double)controller.Target.X + controller.Offset.X),
+			(float)((double)controller.Target.Y + controller.Offset.Y),
+			(float)((double)controller.Target.Z + controller.Offset.Z));
+		CameraView.ApplyLookAt(controller.Eye, lookAtTarget, FieldCameraController.GlobalUpAxis);
+		FieldCameraController.GlobalEye = controller.Eye;
 	}
 
 	/// <summary>

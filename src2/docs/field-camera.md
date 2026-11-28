@@ -41,12 +41,14 @@ has been read for.
   give for `FieldCamera`), calls the mode object's slot `+0x24`, and copies `+0x194` to `+0x94`.
 - `0x004D3FB0` builds two rotation matrices on the matrix stack from the camera's `+0x194` and `+0x190` angles and
   stores the results in the globals `0x00A489E8` and `0x00A489DC`.
-- Remaining work: the 13 concrete mode subclasses at `0x00A48A00` (`0x004D7E70`, `0x004D62BC`, `0x004D665C`, `0x004D71C4`, `0x004D1D48`, `0x004EB2C0`, `0x004D5A14`, `0x004D6E88`, `0x004D16B0`, `0x004D1A3C`).
+- Remaining work: the remaining follow/cutscene mode subclasses (`0x004D7E70`, `0x004D665C`, `0x004EB2C0`, `0x004D1A3C`).
 
 ## Ported members
 
-`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`), `FieldCameraMode` (`src2/PsoBB/Rendering/FieldCameraMode.cs`)
-and `FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`) name the proven fields and globals:
+`FieldCameraController` (`src2/PsoBB/Rendering/FieldCameraController.cs`), `FieldCameraMode` (`src2/PsoBB/Rendering/FieldCameraMode.cs`),
+`FieldCameraOverrideRequest` (`src2/PsoBB/Rendering/FieldCameraOverrideRequest.cs`), and the specialized mode classes
+(`FieldCameraOrbitMode`, `FieldCameraSpectatorOrbitMode`, `FieldCameraPadOrbitMode`, `FieldCameraOverrideMode`,
+`FieldCameraTargetOverrideMode`, `FieldCameraFocusLookMode`) name the proven fields and globals:
 - Globals: `0x00A48A54` (`Current`), `0x00A489FC` (`Flags`), `0x00A48A44` (`SnapRequested`), `0x00A489E8` (`RightAxis`),
   `0x00A489DC` (`UpAxis`), `0x00A489F4` (`ActiveModeIndex`), `0x00A489F5` (`PreviousModeIndex`), `0x00A48A00` (`Modes`),
   `0x00A48780` (`GlobalEye`), `0x00A4878C` (`GlobalForward`), `0x00A48980` (`GlobalInverseViewMatrix`),

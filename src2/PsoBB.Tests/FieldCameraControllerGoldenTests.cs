@@ -10,6 +10,7 @@ namespace PsoBB.Tests;
 /// <summary>
 /// Checks the field camera controller against vectors produced by the original machine code.
 /// </summary>
+[Collection("Game state")]
 public sealed class FieldCameraControllerGoldenTests
 {
 	private const int OverrideSmoothingOffset = 0x30;

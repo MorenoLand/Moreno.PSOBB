@@ -1,0 +1,86 @@
+[
+	{
+		"buttons": 0,
+		"deltaYaw": 100,
+		"deltaPitch": -50,
+		"distanceInput": 1103626240,
+		"yawInput": 4096,
+		"pitchInput": 1024,
+		"target": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"distanceOutput": 1103626240,
+		"yawOutput": 4096,
+		"pitchOutput": 1024,
+		"eyeOutput": [
+			1093162510,
+			3202784795,
+			1104143077
+		]
+	},
+	{
+		"buttons": 2,
+		"deltaYaw": 200,
+		"deltaPitch": -80,
+		"distanceInput": 1103626240,
+		"yawInput": 4096,
+		"pitchInput": 1024,
+		"target": [
+			1065353216,
+			1073741824,
+			1077936128
+		],
+		"distanceOutput": 1103626240,
+		"yawOutput": 4696,
+		"pitchOutput": 784,
+		"eyeOutput": [
+			1094554421,
+			1039871982,
+			1103859639
+		]
+	},
+	{
+		"buttons": 34,
+		"deltaYaw": 0,
+		"deltaPitch": 0,
+		"distanceInput": 1148829696,
+		"yawInput": 16384,
+		"pitchInput": -512,
+		"target": [
+			0,
+			1092616192,
+			0
+		],
+		"distanceOutput": 1148846080,
+		"yawOutput": 16384,
+		"pitchOutput": -512,
+		"eyeOutput": [
+			1148826337,
+			1114391970,
+			0
+		]
+	},
+	{
+		"buttons": 130,
+		"deltaYaw": 0,
+		"deltaPitch": 0,
+		"distanceInput": 1098907648,
+		"yawInput": -8192,
+		"pitchInput": 1536,
+		"target": [
+			3231711232,
+			0,
+			1084227584
+		],
+		"distanceOutput": 1097859072,
+		"yawOutput": -8192,
+		"pitchOutput": 1536,
+		"eyeOutput": [
+			3245858420,
+			3222068318,
+			1098374772
+		]
+	}
+]

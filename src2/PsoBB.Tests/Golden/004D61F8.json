@@ -1,0 +1,112 @@
+[
+	{
+		"zoomOut": false,
+		"zoomIn": false,
+		"deltaYaw": 0,
+		"deltaPitch": 0,
+		"distanceInput": 1092616192,
+		"yawInput": 0,
+		"pitchInput": 0,
+		"target": [
+			0,
+			0,
+			0
+		],
+		"distanceOutput": 1092616192,
+		"yawOutput": 0,
+		"pitchOutput": 0,
+		"eyeOutput": [
+			0,
+			0,
+			1092616192
+		]
+	},
+	{
+		"zoomOut": true,
+		"zoomIn": false,
+		"deltaYaw": 100,
+		"deltaPitch": -50,
+		"distanceInput": 1092616192,
+		"yawInput": 8192,
+		"pitchInput": 4096,
+		"target": [
+			1084227584,
+			1092616192,
+			3225419776
+		],
+		"distanceOutput": 1094923059,
+		"yawOutput": 8492,
+		"pitchOutput": 3946,
+		"eyeOutput": [
+			1096017683,
+			1085263235,
+			1083772121
+		]
+	},
+	{
+		"zoomOut": false,
+		"zoomIn": true,
+		"deltaYaw": -250,
+		"deltaPitch": 120,
+		"distanceInput": 1094713344,
+		"yawInput": 16384,
+		"pitchInput": -2048,
+		"target": [
+			1069547520,
+			1075838976,
+			1080033280
+		],
+		"distanceOutput": 1092616192,
+		"yawOutput": 15634,
+		"pitchOutput": -1688,
+		"eyeOutput": [
+			1094025293,
+			1082363824,
+			1082568841
+		]
+	},
+	{
+		"zoomOut": false,
+		"zoomIn": true,
+		"deltaYaw": 0,
+		"deltaPitch": 0,
+		"distanceInput": 1093140480,
+		"yawInput": 0,
+		"pitchInput": 0,
+		"target": [
+			0,
+			0,
+			0
+		],
+		"distanceOutput": 1092616192,
+		"yawOutput": 0,
+		"pitchOutput": 0,
+		"eyeOutput": [
+			0,
+			0,
+			1092616192
+		]
+	},
+	{
+		"zoomOut": true,
+		"zoomIn": false,
+		"deltaYaw": 0,
+		"deltaPitch": 0,
+		"distanceInput": 1133871104,
+		"yawInput": 32768,
+		"pitchInput": 16384,
+		"target": [
+			3221225472,
+			1082130432,
+			3233808384
+		],
+		"distanceOutput": 1133903872,
+		"yawOutput": 32768,
+		"pitchOutput": 16384,
+		"eyeOutput": [
+			3221225472,
+			3281256448,
+			3233808384
+		]
+	}
+]
